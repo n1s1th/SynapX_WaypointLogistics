@@ -36,13 +36,13 @@ class DispatchTrip(Base):
     estimated_arrival = Column(DateTime, nullable=True)
     actual_arrival = Column(DateTime, nullable=True)
 
-    total_weight_kg = Column(Float, default=0.0)
-    total_volume_m3 = Column(Float, default=0.0)
-    stop_count = Column(Integer, default=0)
-    stops_completed = Column(Integer, default=0)
+    total_weight_kg = Column(Float, default=0.0, nullable=False)
+    total_volume_m3 = Column(Float, default=0.0, nullable=False)
+    stop_count = Column(Integer, default=0, nullable=False)
+    stops_completed = Column(Integer, default=0, nullable=False)
     stop_sequence = Column(JSON, nullable=True)
     
-    open_shortfalls = Column(Integer, default=0)
+    open_shortfalls = Column(Integer, default=0, nullable=False)
     loading_events = Column(JSON, nullable=True)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
