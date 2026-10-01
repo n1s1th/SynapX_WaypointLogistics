@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text
+from sqlalchemy import Column, Date, Integer, String, Float, ForeignKey, DateTime, Enum, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -122,3 +122,21 @@ class SOSAlert(Base):
 
     driver = relationship("User")
     driver_trip = relationship("DriverTrip")
+
+
+class DriverAvailability(Base):
+    """A driver telling dispatch they can take a run on the next operating day.
+
+    Migration 0006_driver_availability. One row per driver per day; confirming
+    again is a no-op, so the tap can be queued offline and replayed safely.
+    """
+
+    __tablename__ = "driver_availability"
+    __table_args__ = (UniqueConstraint("driver_id", "for_date", name="uq_driver_availability_day"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    driver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    for_date = Column(Date, nullable=False)
+    confirmed_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    driver = relationship("User")
