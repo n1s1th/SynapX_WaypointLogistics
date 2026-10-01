@@ -1,201 +1,143 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// Trip summary: what happened at each stop, whether every record reached the
+// server, and the way back to the depot (a vehicle can run a second trip).
+
+import * as React from "react";
 import Link from "next/link";
-import {
-  Signal, BatteryFull, Check, CloudCheck, MapPin, CheckCircle2,
-  Map as MapIcon, Home, TriangleAlert, Layers
-} from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import { CheckCircle2, CloudCheck, CloudOff, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { Notice } from "@/components/driver/notice";
+import { StopStatusBadge } from "@/components/driver/badges";
+import { StopUnavailable } from "@/components/driver/stop-unavailable";
+import { formatDay, formatTime } from "@/lib/driver/format";
+import { useTrip } from "@/lib/driver/hooks";
 
-export default function TripSummaryPage() {
-  const [tripDetail, setTripDetail] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+function SummaryContent() {
+  const params = useSearchParams();
+  const tripId = Number(params.get("trip")) || null;
+  const trip = useTrip(tripId);
+  const { outbox } = useDriver();
+  const data = trip.data;
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const trips = await apiFetch<any[]>("/driver/trips/today");
-        // Prioritize started trip, otherwise take the most recently completed one
-        const targetTrip = trips.find(t => t.status === "STARTED") || trips.find(t => t.status === "COMPLETED");
-        
-        if (targetTrip) {
-          const detail = await apiFetch<any>(`/driver/trips/${targetTrip.id}`);
-          setTripDetail(detail);
-        }
-      } catch (error) {
-        console.error("Failed to load trip summary:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+  if (!data) {
+    return <StopUnavailable loading={trip.loading} error={trip.error} backHref="/driver" />;
+  }
 
-  const totalStops = tripDetail?.stops?.length || 0;
-  const processedStops = tripDetail?.stops?.filter((s: any) => s.status === 'COMPLETED').length || 0;
-  // Based on DeliveryStop model and outcome updates:
-  const fullDeliveries = tripDetail?.stops?.filter((s: any) => s.status === 'COMPLETED').length || 0; 
-  const partialDeliveries = 0; // if we tracked partial, we'd count it here
-  const podComplete = processedStops; 
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const waiting = outbox.filter((item) => item.trip_id === data.id && item.status !== "failed").length;
+  const { counts } = data;
+  const allDone = counts.done === counts.total;
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white z-10"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Synced</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
+    <DriverShell
+      title={data.status === "completed" ? "Trip complete" : "Trip summary"}
+      subtitle={`${data.run?.code ?? `Trip ${data.id}`}${data.started_at ? ` · ${formatDay(data.started_at)}` : ""}`}
+      backHref={`/driver/trip?id=${data.id}`}
+      tab="home"
+      footer={
+        data.checked_in_at ? (
+          <Button asChild size="lg" className="h-13 text-base font-bold">
+            <Link href="/driver">Back to today&apos;s trips</Link>
+          </Button>
+        ) : allDone ? (
+          <Button asChild size="lg" className="h-13 text-base font-bold">
+            <Link href={`/driver/trip/depot?trip=${data.id}`}>I&apos;m back at the depot</Link>
+          </Button>
+        ) : (
+          <Button asChild size="lg" className="h-13 text-base font-bold">
+            <Link href={`/driver/trip?id=${data.id}`}>Back to the route</Link>
+          </Button>
+        )
+      }
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1 rounded-xl border-2 border-success bg-success-muted p-4">
+          <span className="text-3xl font-bold text-success tabular-nums">
+            {counts.done}/{counts.total}
+          </span>
+          <span className="text-xs text-muted-foreground">Stops done</span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-xl border-2 border-info bg-info-muted p-4">
+          <span className="text-3xl font-bold text-info tabular-nums">
+            {counts.pod}/{counts.delivered + counts.partial}
+          </span>
+          <span className="text-xs text-muted-foreground">Proof of delivery</span>
         </div>
       </div>
 
-      {/* Completion Content */}
-      <div className="flex flex-col flex-1 px-5 pt-[36px] pb-[100px] gap-[20px]">
-        
-        {/* Celebration */}
-        <div className="flex flex-col items-center gap-3 w-full">
-          <div className="flex justify-center items-center w-[84px] h-[84px] rounded-full" style={{ backgroundColor: "#163A5F" }}>
-            <Check size={40} color="#FFFFFF" strokeWidth={3} />
-          </div>
-          <div className="flex items-center px-3 py-1.5 rounded-md gap-2.5" style={{ backgroundColor: "#27AE60" }}>
-            <span className="font-medium text-[14px] leading-[22px] text-white">Success</span>
-          </div>
-          <div className="flex flex-col items-center gap-[5px] w-full mt-1 text-center">
-            <h1 className="font-bold text-[32px]" style={{ color: "#12202E" }}>Trip complete</h1>
-            <p className="font-normal text-[14px] leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              {loading ? "..." : tripDetail ? `Trip R-${tripDetail.id} · ${today}` : "No trip data"}
-            </p>
-          </div>
-        </div>
+      <section className="flex flex-col divide-y divide-border rounded-xl border border-border bg-card">
+        <Row label="Full deliveries" value={counts.delivered} />
+        <Row label="Partial deliveries" value={counts.partial} />
+        <Row label="Not delivered" value={counts.failed} />
+        {counts.removed > 0 && <Row label="Removed by dispatch" value={counts.removed} />}
+        <Row label="Problems reported" value={data.open_issues} />
+      </section>
 
-        {/* Completion totals */}
-        <div className="flex w-full gap-[10px]">
-          <div 
-            className="flex-1 flex flex-col p-4 rounded-xl gap-[10px]"
-            style={{ backgroundColor: "#E8F6EF", border: "2px solid #18794E" }}
-          >
-            <span className="font-bold text-[28px]" style={{ color: "#18794E" }}>
-              {loading ? "-" : `${processedStops} / ${totalStops}`}
-            </span>
-            <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#5D6A78" }}>Stops processed</span>
-          </div>
-          <div 
-            className="flex-1 flex flex-col p-4 rounded-xl gap-[10px]"
-            style={{ backgroundColor: "#EAF2FF", border: "2px solid #2167D5" }}
-          >
-            <span className="font-bold text-[28px]" style={{ color: "#2167D5" }}>
-              {loading ? "-" : `${podComplete} / ${totalStops}`}
-            </span>
-            <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#5D6A78" }}>POD complete</span>
-          </div>
-        </div>
+      {waiting > 0 ? (
+        <Notice tone="warning" icon={CloudOff} title={`${waiting} record${waiting > 1 ? "s" : ""} still on this phone`}>
+          They sync automatically. Keep the app open near the depot&apos;s Wi-Fi or signal.
+        </Notice>
+      ) : (
+        <Notice tone="success" icon={CloudCheck} title="Every record is synced">
+          Dispatch and the stores have your delivery records.
+        </Notice>
+      )}
 
-        {/* Summary stats card */}
-        <div 
-          className="flex flex-col p-3.5 gap-2.5 rounded-xl w-full bg-white"
-          style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-        >
-          <div className="flex justify-between items-center py-1.5">
-            <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Full deliveries</span>
-            <span className="font-bold text-[18px]" style={{ color: "#18794E" }}>{loading ? "-" : fullDeliveries}</span>
-          </div>
-          <div className="flex justify-between items-center py-1.5">
-            <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Partial deliveries</span>
-            <span className="font-bold text-[18px]" style={{ color: "#A85D00" }}>{loading ? "-" : partialDeliveries}</span>
-          </div>
-          <div className="flex justify-between items-center py-1.5">
-            <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Issues reported</span>
-            <span className="font-bold text-[18px]" style={{ color: "#5D6A78" }}>0</span>
-          </div>
-        </div>
+      <section aria-labelledby="stops-done" className="flex flex-col gap-2">
+        <h2 id="stops-done" className="text-base font-bold">
+          Stops
+        </h2>
+        <ol className="flex flex-col divide-y divide-border rounded-xl border border-border bg-card">
+          {data.stops.map((stop) => (
+            <li key={stop.id} className="flex items-center gap-3 px-3 py-2.5">
+              <span className="w-5 text-sm font-bold text-muted-foreground tabular-nums">{stop.sequence}</span>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-semibold">{stop.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {stop.arrived_at ? `Arrived ${formatTime(stop.arrived_at)}` : "Not reached"}
+                  {stop.pod ? ` · signed by ${stop.pod.recipient_name}` : ""}
+                </span>
+              </span>
+              <StopStatusBadge status={stop.status} />
+            </li>
+          ))}
+        </ol>
+      </section>
 
-        {/* Banner */}
-        <div 
-          className="flex p-3 gap-2.5 rounded-xl w-full"
-          style={{ backgroundColor: "#E8F6EF", border: "1px solid rgba(24, 121, 78, 0.21)" }}
-        >
-          <CloudCheck size={18} color="#18794E" className="shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-[12px] leading-[1.45em]" style={{ color: "#18794E" }}>
-              All records synced — up to date.
-            </span>
-            <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#18794E" }}>
-              Your shift record is safely stored.
+      {data.depot && (
+        <section className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-info-muted text-info">
+            <MapPin className="size-5" aria-hidden />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="text-sm font-bold">Return to {data.depot.name}</span>
+            <span className="text-xs text-muted-foreground">
+              {data.checked_in_at ? `Checked in at ${formatTime(data.checked_in_at)}` : "Check in when you're back so dispatch can plan your next trip."}
             </span>
           </div>
-        </div>
+          {data.checked_in_at && <CheckCircle2 className="size-6 text-success" aria-label="Checked in" />}
+        </section>
+      )}
+    </DriverShell>
+  );
+}
 
-        {/* Return to depot card */}
-        <div 
-          className="flex flex-col p-3 gap-2 rounded-xl w-full bg-white"
-          style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-        >
-          <div className="flex justify-between items-center w-full">
-            <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>Return to depot</span>
-            <div className="flex items-center px-[9px] py-[5px] rounded-full" style={{ backgroundColor: "#EAF2FF" }}>
-              <span className="font-bold text-[10px]" style={{ color: "#2167D5" }}>Next step</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-[10px] w-full mt-1">
-            <div 
-              className="flex justify-center items-center w-[36px] h-[36px] rounded-lg shrink-0"
-              style={{ backgroundColor: "#EAF2FF" }}
-            >
-              <MapPin size={18} color="#2167D5" />
-            </div>
-            <div className="flex flex-col gap-0.5 flex-1">
-              <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>Paliyagoda Depot</span>
-              <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>14 Logistics Ave · 2.4 km away</span>
-            </div>
-            <CheckCircle2 size={22} color="#D9E1E8" className="shrink-0" />
-          </div>
-        </div>
-
-        {/* Primary Action */}
-        <Link href="/driver/trip/depot" className="w-full mt-2">
-          <button 
-            className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
-            style={{ backgroundColor: "#092C4C" }}
-          >
-            Continue
-          </button>
-        </Link>
-      </div>
-
-      {/* Bottom Nav */}
-      <div
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-8 py-2.5 bg-white z-50"
-        style={{ borderTop: "1px solid #D9E1E8", boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <MapIcon size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Queue</span>
-        </Link>
-      </div>
+function Row({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-lg font-bold tabular-nums">{value}</span>
     </div>
+  );
+}
+
+export default function TripSummaryPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <SummaryContent />
+    </React.Suspense>
   );
 }
