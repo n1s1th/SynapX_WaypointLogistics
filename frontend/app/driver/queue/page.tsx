@@ -1,165 +1,157 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import {
-  Signal, BatteryFull, WifiOff, MapPin, PackageCheck,
-  PenTool, ShieldCheck, Map, Home, TriangleAlert, Layers
-} from "lucide-react";
+// Sync queue: everything recorded on this phone that hasn't reached the server
+// yet, conflicts to resolve, and records the server refused.
 
-export default function SyncQueuePage() {
-  const pendingRecords = [
-    {
-      type: "ARRIVAL",
-      title: "Harbor Fresh Foods",
-      subtitle: "06:58 · Saved on device",
-      icon: MapPin,
-    },
-    {
-      type: "DELIVERY OUTCOME",
-      title: "ORD0092308",
-      subtitle: "06:59 · Saved on device",
-      icon: PackageCheck,
-    },
-    {
-      type: "POD",
-      title: "ORD0092308",
-      subtitle: "07:01 · Saved on device",
-      icon: PenTool, // using PenTool as a proxy for 'signature'
-    }
-  ];
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { CloudCheck, CloudOff, CloudUpload, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { Notice } from "@/components/driver/notice";
+import { QueueItem } from "@/components/driver/queue-item";
+import { deleteOutboxAction } from "@/lib/driver/offline/db";
+import { formatTime } from "@/lib/driver/format";
+import type { QueuedAction } from "@/lib/driver/types";
+
+export default function QueuePage() {
+  const router = useRouter();
+  const { outbox, online, syncing, lastSync, pendingCount, conflictCount, failedCount, syncNow, refreshOutbox } = useDriver();
+  const [discarding, setDiscarding] = React.useState<QueuedAction | null>(null);
+
+  const pending = outbox.filter((item) => item.status === "pending");
+  const failed = outbox.filter((item) => item.status === "failed");
+  // One conflict card per stop: its arrival, outcome and proof conflict together.
+  const conflictStops = [...new Map(
+    outbox.filter((item) => item.status === "conflict" && item.stop_id != null).map((item) => [item.stop_id, item]),
+  ).values()];
+
+  async function discard() {
+    if (!discarding) return;
+    await deleteOutboxAction(discarding.client_action_id);
+    await refreshOutbox();
+    setDiscarding(null);
+    toast("Record discarded.");
+  }
+
+  function syncAll() {
+    void syncNow();
+    router.push("/driver/queue/sync");
+  }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white z-10"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Offline</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
+    <DriverShell
+      title="Sync queue"
+      subtitle={
+        pendingCount + conflictCount + failedCount === 0
+          ? "Nothing waiting"
+          : `${pendingCount} waiting · ${conflictCount + failedCount} need attention`
+      }
+      tab="queue"
+      footer={
+        pendingCount > 0 ? (
+          <Button size="lg" className="h-13 text-base font-bold" onClick={syncAll} disabled={!online || syncing}>
+            {online ? (syncing ? "Syncing…" : "Sync now") : "Waiting for signal"}
+          </Button>
+        ) : undefined
+      }
+    >
+      {!online ? (
+        <Notice tone="warning" icon={CloudOff} title="No connection">
+          Everything below is saved on this phone. Keep driving: it syncs on its own when the signal returns.
+        </Notice>
+      ) : pendingCount > 0 ? (
+        <Notice tone="info" icon={CloudUpload} title="Sending automatically">
+          Records go out by themselves while you&apos;re online.
+        </Notice>
+      ) : (
+        <Notice tone="success" icon={CloudCheck} title="Everything is synced">
+          {lastSync ? `Last sync ${formatTime(lastSync.at)}.` : "Dispatch has all your records."}
+        </Notice>
+      )}
 
-        {/* Title bar */}
-        <div className="flex px-5 py-2.5 items-center w-full">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              Sync Queue
-            </h1>
-            <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              3 pending records
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Queue Content */}
-      <div className="flex flex-col flex-1 px-5 pt-[18px] pb-[100px] gap-[15px]">
-        
-        {/* Offline Banner */}
-        <div 
-          className="flex p-3 gap-2.5 rounded-xl w-full"
-          style={{ backgroundColor: "#FFF4D6", border: "1px solid rgba(168, 93, 0, 0.21)" }}
-        >
-          <WifiOff size={18} color="#A85D00" className="shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-[12px] leading-[1.45em]" style={{ color: "#A85D00" }}>
-              No connection since 06:52
-            </span>
-            <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#A85D00" }}>
-              Everything below is saved on this device.
-            </span>
-          </div>
-        </div>
-
-        {/* Queue heading */}
-        <div className="flex justify-between items-center w-full">
-          <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>Pending records</span>
-          <div className="flex items-center px-[9px] py-[5px] rounded-full" style={{ backgroundColor: "#FFF4D6" }}>
-            <span className="font-bold text-[10px]" style={{ color: "#A85D00" }}>3 pending</span>
-          </div>
-        </div>
-
-        {/* Records */}
-        <div className="flex flex-col gap-[9px] w-full">
-          {pendingRecords.map((record, index) => {
-            const Icon = record.icon;
-            
-            return (
-              <div 
-                key={index}
-                className="flex flex-col p-[13px] gap-[10px] w-full bg-white rounded-xl"
-                style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-              >
-                <div className="flex items-center gap-[11px] w-full">
-                  <div 
-                    className="flex justify-center items-center w-[38px] h-[38px] rounded-lg shrink-0"
-                    style={{ backgroundColor: "#FFF4D6" }}
-                  >
-                    <Icon size={19} color="#12202E" />
-                  </div>
-                  <div className="flex flex-col gap-0.5 w-full">
-                    <span className="font-bold text-[10px]" style={{ color: "#A85D00" }}>{record.type}</span>
-                    <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>{record.title}</span>
-                    <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>{record.subtitle}</span>
-                  </div>
-                  <div className="flex items-center px-[9px] py-[5px] rounded-full shrink-0" style={{ backgroundColor: "#FFF4D6" }}>
-                    <span className="font-medium text-[10px]" style={{ color: "#A85D00" }}>Pending</span>
+      {(conflictStops.length > 0 || failed.length > 0) && (
+        <section aria-labelledby="attention" className="flex flex-col gap-2">
+          <h2 id="attention" className="flex items-center gap-2 text-base font-bold text-destructive">
+            <TriangleAlert className="size-5" aria-hidden />
+            Needs your attention
+          </h2>
+          {conflictStops.map((item) => (
+            <Link
+              key={item.client_action_id}
+              href={`/driver/queue/conflict?stop=${item.stop_id}`}
+              className="flex flex-col gap-1 rounded-xl border-2 border-destructive/40 bg-destructive-muted p-3 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              <span className="text-sm font-bold text-destructive">Dispatch changed this stop while you were offline</span>
+              <span className="text-sm">{item.label}</span>
+              <span className="text-xs font-semibold text-destructive underline">Choose which record to keep</span>
+            </Link>
+          ))}
+          {failed.length > 0 && (
+            <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-card">
+              {failed.map((item) => (
+                <div key={item.client_action_id} className="flex flex-col">
+                  <QueueItem item={item} />
+                  <div className="flex justify-end px-3 pb-3">
+                    <Button variant="outline" size="lg" className="h-10" onClick={() => setDiscarding(item)}>
+                      Discard
+                    </Button>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
-        {/* Queue explanation */}
-        <div className="flex items-center p-3 gap-[9px] w-full bg-white rounded-xl mt-1">
-          <ShieldCheck size={18} color="#BDBDBD" className="shrink-0" />
-          <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#5D6A78" }}>
-            You can keep driving. Waypoint will retry automatically in the background.
-          </span>
-        </div>
+      {pending.length > 0 && (
+        <section aria-labelledby="waiting" className="flex flex-col gap-2">
+          <h2 id="waiting" className="text-base font-bold">
+            Waiting to sync
+          </h2>
+          <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-card">
+            {pending.map((item) => (
+              <QueueItem key={item.client_action_id} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
 
-        {/* Primary action */}
-        <Link href="/driver/queue/sync" className="w-full mt-1">
-          <button 
-            className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
-            style={{ backgroundColor: "#092C4C" }}
-          >
-            Retry sync
-          </button>
-        </Link>
-      </div>
+      <p className="flex items-start gap-2 rounded-xl bg-card px-3 py-3 text-xs text-muted-foreground">
+        <ShieldCheck className="size-4 shrink-0" aria-hidden />
+        Records keep the time you made them, not the time they sync, and a record is never applied twice.
+      </p>
 
-      {/* Bottom Nav */}
-      <div
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-8 py-2.5 bg-white z-50"
-        style={{ borderTop: "1px solid #D9E1E8", boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <Map size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#163A5F" />
-          <span className="text-[10px] font-bold" style={{ color: "#163A5F" }}>Queue</span>
-        </Link>
-      </div>
-    </div>
+      <Dialog open={discarding !== null} onOpenChange={(open) => !open && setDiscarding(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Discard this record?</DialogTitle>
+            <DialogDescription>
+              {discarding?.label}. The server refused it{discarding?.last_error ? `: ${discarding.last_error}` : ""}. Discarding removes it
+              from this phone; it won&apos;t reach dispatch.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" size="lg" className="h-11" onClick={() => setDiscarding(null)}>
+              Keep it
+            </Button>
+            <Button variant="destructive" size="lg" className="h-11" onClick={discard}>
+              Discard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DriverShell>
   );
 }
