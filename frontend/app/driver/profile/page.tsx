@@ -1,186 +1,133 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  Signal, BatteryFull, User, Truck, Phone, Mail,
-  LogOut, Map, Home, TriangleAlert, ChevronRight
-} from "lucide-react";
-import { apiFetch } from "@/lib/api";
-import { clearToken } from "@/lib/auth";
+// Profile: who's signed in, their vehicle and depot, sync state, and sign-out
+// (which warns when records are still waiting on the phone).
 
-interface UserProfile {
-  id: number;
-  full_name: string;
-  email: string;
-  role: string;
-}
+import * as React from "react";
+import Link from "next/link";
+import { CloudCheck, CloudOff, LogOut, Snowflake, Truck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DemoTools } from "@/components/driver/demo-tools";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { DEMO_TOOLS_ENABLED } from "@/lib/driver/demo";
+import { formatTime, titleCase } from "@/lib/driver/format";
+import { useMe } from "@/lib/driver/hooks";
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        const data = await apiFetch<UserProfile>("/driver/me");
-        setProfile(data);
-      } catch (error) {
-        console.error("Failed to load profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProfile();
-  }, []);
-
-  function handleLogout() {
-    clearToken();
-    router.push("/driver/login");
-  }
+  const me = useMe();
+  const { pendingCount, conflictCount, lastSync, online, signOut } = useDriver();
+  const [confirming, setConfirming] = React.useState(false);
+  const unsent = pendingCount + conflictCount;
+  const data = me.data;
+  const initials = data?.full_name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white z-10"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Online</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
+    <DriverShell title="Profile" subtitle="Your account and vehicle" backHref="/driver" tab="home">
+      {!data ? (
+        <Skeleton className="h-28 rounded-xl" />
+      ) : (
+        <section className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-info-muted text-lg font-bold text-info">
+            {initials}
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-lg font-bold">{data.full_name}</span>
+            <span className="text-xs font-semibold text-muted-foreground">{data.driver_code}</span>
+            <span className="truncate text-xs text-muted-foreground">{data.email}</span>
+            {data.phone && <span className="text-xs text-muted-foreground">{data.phone}</span>}
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Title bar */}
-        <div className="flex px-5 py-2.5 items-center w-full">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              Driver Profile
-            </h1>
-            <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              View your account and vehicle details
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex flex-col flex-1 px-5 pt-[24px] pb-[100px] gap-4">
-        
-        {/* Driver Info Card */}
-        <div 
-          className="flex flex-col p-4 gap-4 w-full rounded-2xl bg-white"
-          style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-        >
-          <div className="flex items-center gap-4 w-full">
-            <div 
-              className="flex justify-center items-center w-[64px] h-[64px] rounded-full shrink-0"
-              style={{ backgroundColor: "#EAF2FF" }}
-            >
-              <User size={32} color="#2167D5" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>
-                {loading ? "Loading..." : profile?.full_name || "Unknown Driver"}
-              </span>
-              <div className="flex items-center px-2.5 py-0.5 rounded-full w-fit" style={{ backgroundColor: "#F2F5F8" }}>
-                <span className="font-semibold text-[11px]" style={{ color: "#5D6A78" }}>
-                  ID: {loading ? "..." : `DRV-${profile?.id.toString().padStart(4, "0")}`}
+      <section aria-labelledby="vehicle" className="flex flex-col gap-2 rounded-xl border-2 border-info bg-info-muted p-4">
+        <h2 id="vehicle" className="flex items-center gap-2 text-sm font-bold text-info">
+          <Truck className="size-5" aria-hidden />
+          Assigned vehicle
+        </h2>
+        {data?.vehicle ? (
+          <>
+            <span className="text-2xl font-bold">{data.vehicle.code}</span>
+            <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              {titleCase(data.vehicle.type)}
+              {data.vehicle.temperature_mode === "reefer" ? (
+                <span className="inline-flex items-center gap-1 font-semibold text-info">
+                  <Snowflake className="size-4" aria-hidden />
+                  Refrigerated
                 </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="w-full h-[1px]" style={{ backgroundColor: "#F2F5F8" }}></div>
-          
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Phone size={16} color="#8793A0" className="shrink-0" />
-              <span className="font-medium text-[14px]" style={{ color: "#12202E" }}>Not available</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Mail size={16} color="#8793A0" className="shrink-0" />
-              <span className="font-medium text-[14px]" style={{ color: "#12202E" }}>
-                {loading ? "Loading..." : profile?.email || "No email"}
-              </span>
-            </div>
-          </div>
-        </div>
+              ) : (
+                <span>Ambient</span>
+              )}
+              {data.depot ? `· ${data.depot.name}` : ""}
+            </span>
+            {data.license_type && <span className="text-xs text-muted-foreground">Licence: {data.license_type}</span>}
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">{data ? "No vehicle assigned yet. Dispatch assigns one." : "Loading…"}</span>
+        )}
+      </section>
 
-        {/* Assigned Vehicle */}
-        <div className="flex flex-col gap-2 w-full mt-2">
-          <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>Current Assignment</span>
-          <div 
-            className="flex flex-col p-4 gap-3 w-full rounded-xl"
-            style={{ backgroundColor: "#EAF2FF", border: "2px solid #2167D5" }}
-          >
-            <div className="flex items-center gap-3">
-              <Truck size={20} color="#2167D5" className="shrink-0" />
-              <span className="font-bold text-[14px]" style={{ color: "#2167D5" }}>ASSIGNED VEHICLE</span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="font-bold text-[20px]" style={{ color: "#12202E" }}>Pending</span>
-              <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Awaiting allocation</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <div className="flex flex-col w-full mt-4 bg-white rounded-xl overflow-hidden" style={{ border: "1px solid #D9E1E8" }}>
-          <button className="flex items-center justify-between p-4 w-full active:bg-gray-50 transition-colors">
-            <span className="font-medium text-[15px]" style={{ color: "#12202E" }}>Support & Help</span>
-            <ChevronRight size={18} color="#8793A0" />
-          </button>
-          <div className="w-full h-[1px]" style={{ backgroundColor: "#F2F5F8" }}></div>
-          <button className="flex items-center justify-between p-4 w-full active:bg-gray-50 transition-colors">
-            <span className="font-medium text-[15px]" style={{ color: "#12202E" }}>Privacy Policy</span>
-            <ChevronRight size={18} color="#8793A0" />
-          </button>
-        </div>
-
-        {/* Logout Action */}
-        <div className="w-full mt-6">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex justify-center items-center gap-2 h-[55px] rounded-lg bg-white"
-            style={{ border: "2px solid #C9363E" }}
-          >
-            <LogOut size={18} color="#C9363E" />
-            <span className="font-bold text-[16px]" style={{ color: "#C9363E" }}>Log out</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom Nav */}
-      <div
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-8 py-2.5 bg-white z-50"
-        style={{ borderTop: "1px solid #D9E1E8", boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)" }}
+      <Link
+        href="/driver/queue"
+        className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <Map size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Report</span>
-        </Link>
-        <Link href="/driver/profile" className="flex flex-col items-center gap-1 w-[72px]">
-          <User size={22} color="#163A5F" />
-          <span className="text-[10px] font-bold" style={{ color: "#163A5F" }}>Profile</span>
-        </Link>
-      </div>
-    </div>
+        {online && unsent === 0 ? (
+          <CloudCheck className="size-6 text-success" aria-hidden />
+        ) : (
+          <CloudOff className="size-6 text-warning" aria-hidden />
+        )}
+        <span className="flex flex-col">
+          <span className="text-sm font-bold">{unsent === 0 ? "All records synced" : `${unsent} record${unsent === 1 ? "" : "s"} on this phone`}</span>
+          <span className="text-xs text-muted-foreground">
+            {lastSync ? `Last sync ${formatTime(lastSync.at)}` : online ? "Connected" : "No connection"}
+          </span>
+        </span>
+      </Link>
+
+      {DEMO_TOOLS_ENABLED && <DemoTools />}
+
+      <Button
+        variant="outline"
+        size="lg"
+        className="h-12 border-2 border-destructive font-bold text-destructive hover:bg-destructive-muted"
+        onClick={() => (unsent > 0 ? setConfirming(true) : void signOut())}
+      >
+        <LogOut aria-hidden />
+        Sign out
+      </Button>
+
+      <Dialog open={confirming} onOpenChange={setConfirming}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Sign out with {unsent} record{unsent === 1 ? "" : "s"} not synced?</DialogTitle>
+            <DialogDescription>
+              They stay on this phone and sync after you sign in again. Signing out on a shared phone? Sync first.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" size="lg" className="h-11" onClick={() => setConfirming(false)}>
+              Stay signed in
+            </Button>
+            <Button variant="destructive" size="lg" className="h-11" onClick={() => void signOut()}>
+              Sign out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DriverShell>
   );
 }
