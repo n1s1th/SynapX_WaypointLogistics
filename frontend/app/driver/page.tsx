@@ -1,266 +1,109 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// Home: the driver's trips for the day (up to two per vehicle), what to do next
+// with each, and "ready for tomorrow". Opens from the phone's copy with no signal.
+
 import Link from "next/link";
-import {
-  MapPin, Signal, BatteryFull, Map, Home, TriangleAlert, Layers, User
-} from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { CloudOff, RefreshCw, Truck, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { Notice } from "@/components/driver/notice";
+import { ReadyTomorrowCard } from "@/components/driver/ready-tomorrow-card";
+import { RunCard } from "@/components/driver/run-card";
+import { formatDay, formatTime } from "@/lib/driver/format";
+import { useMe, useNow, useRuns } from "@/lib/driver/hooks";
 
-interface UserProfile {
-  id: number;
-  full_name: string;
-  email: string;
-  role: string;
+function greeting(now: Date | null): string {
+  if (!now) return "Hello";
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Colombo", hour: "2-digit", hourCycle: "h23" }).format(now));
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-interface DriverTripSummary {
-  id: number;
-  dispatch_trip_id: number;
-  status: string;
-  assigned_date: string;
-}
-
-export default function DriverDashboard() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [trips, setTrips] = useState<DriverTripSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [readyForTomorrow, setReadyForTomorrow] = useState(false);
-  const [submittingReady, setSubmittingReady] = useState(false);
-
-  useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        const [profileData, tripsData] = await Promise.all([
-          apiFetch<UserProfile>("/driver/me"),
-          apiFetch<DriverTripSummary[]>("/driver/trips/today"),
-        ]);
-        setProfile(profileData);
-        setTrips(tripsData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadDashboardData();
-  }, []);
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const currentHour = new Date().getHours();
-  
-  // Show if: has ongoing trip, before 6 PM (18:00), and hasn't confirmed yet
-  const showTomorrowButton = trips.some(t => t.status === "STARTED") && currentHour < 18 && !readyForTomorrow;
-
-  async function handleReadyForTomorrow() {
-    setSubmittingReady(true);
-    try {
-      // Send readiness to dispatcher
-      await apiFetch("/driver/ready-tomorrow", { method: "POST" });
-    } catch (e) {
-      console.warn("Backend endpoint might not exist yet, but proceeding to update UI", e);
-    } finally {
-      setReadyForTomorrow(true);
-      setSubmittingReady(false);
-    }
-  }
+export default function DriverHomePage() {
+  const now = useNow();
+  const me = useMe();
+  const runs = useRuns();
+  const cards = runs.data ?? [];
+  const focus = cards.find((card) => card.state === "in_progress") ?? cards.find((card) => card.state === "ready");
+  const completed = cards.filter((card) => card.state === "completed").length;
+  const hasWorkToday = cards.some((card) => card.state === "in_progress" || card.state === "completed");
+  const firstName = me.data?.full_name.split(" ")[0];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-xs font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-normal text-[#BDBDBD]">Synced</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
-
-        {/* Title bar */}
-        <div className="flex px-5 py-2.5 items-center justify-between w-full">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              Today — {today}
-            </h1>
-            <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              {loading ? "Loading..." : `Good morning, ${profile?.full_name?.split(' ')[0] || 'Driver'} · DRV-${profile?.id?.toString().padStart(4, '0') || '0000'}`}
-            </p>
-          </div>
-          <Link href="/driver/profile">
-            <div className="flex justify-center items-center w-10 h-10 rounded-full shrink-0" style={{ backgroundColor: "#EAF2FF" }}>
-              <User size={20} color="#2167D5" />
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Trips content */}
-      <div className="flex flex-col flex-1 px-5 pt-5 pb-24 gap-4">
-        
-        {/* Availability for Tomorrow Prompt */}
-        {showTomorrowButton && (
-          <div className="flex justify-between items-center p-4 rounded-xl" style={{ backgroundColor: "#E8F6EF", border: "1px solid #18794E", boxShadow: "0px 5px 16px 0px rgba(24, 121, 78, 0.08)" }}>
-            <div className="flex flex-col gap-0.5">
-              <span className="font-bold text-[14px]" style={{ color: "#18794E" }}>Available Tomorrow?</span>
-              <span className="font-normal text-[11px]" style={{ color: "#18794E", maxWidth: "160px" }}>Let dispatch know you can take a ride tomorrow (ends at 6 PM).</span>
-            </div>
-            <button
-              onClick={handleReadyForTomorrow}
-              disabled={submittingReady}
-              className="px-4 py-2.5 rounded-lg font-bold text-[13px] text-white disabled:opacity-50"
-              style={{ backgroundColor: "#18794E" }}
-            >
-              {submittingReady ? "Sending..." : "I'm Ready"}
-            </button>
-          </div>
-        )}
-
-        {readyForTomorrow && (
-          <div className="flex items-center p-3 gap-2 rounded-xl" style={{ backgroundColor: "#EAF2FF", border: "1px solid #2167D5" }}>
-            <span className="font-bold text-[12px]" style={{ color: "#2167D5" }}>✓ You're confirmed for tomorrow's schedule</span>
-          </div>
-        )}
-        {loading ? (
-          <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">Loading your trips...</div>
-        ) : trips.length === 0 ? (
-          <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">No trips assigned for today.</div>
-        ) : (
-          trips.map((trip, index) => {
-            const isActive = trip.status === "STARTED" || (index === 0 && trip.status === "ASSIGNED");
-            
-            if (isActive) {
-              return (
-                <div 
-                  key={trip.id}
-                  className="flex flex-col p-4 gap-2.5 rounded-xl"
-                  style={{ backgroundColor: "#EAF2FF", border: "2px solid #2167D5" }}
-                >
-                  {/* Trip Header */}
-                  <div className="flex justify-between items-start w-full">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-[24px]" style={{ color: "#0B2743" }}>Trip R-{trip.id}</span>
-                      <span className="font-semibold text-[12px]" style={{ color: "#5D6A78" }}>Dispatch #{trip.dispatch_trip_id}</span>
-                    </div>
-                    <div className="flex items-center px-2 py-1 rounded-full bg-[#FFF4D6]">
-                      <span className="font-bold text-[10px]" style={{ color: "#A85D00" }}>{trip.status.replace('_', ' ')}</span>
-                    </div>
-                  </div>
-
-                  {/* Trip tags */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center px-2.5 py-1.5 rounded-full bg-[#E8F6EF]">
-                      <span className="font-bold text-[10px]" style={{ color: "#18794E" }}>Delivery</span>
-                    </div>
-                  </div>
-
-                  {/* Region */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <MapPin size={17} color="#12202E" />
-                    <span className="font-semibold text-[14px]" style={{ color: "#12202E" }}>Assigned Route</span>
-                  </div>
-
-                  {/* Action */}
-                  <Link href={`/driver/trip/${trip.id}`} className="mt-2">
-                    <button 
-                      className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
-                      style={{ backgroundColor: "#092C4C" }}
-                    >
-                      Open Trip R-{trip.id}
-                    </button>
-                  </Link>
-                </div>
-              );
-            } else {
-              return (
-                <div 
-                  key={trip.id}
-                  className="flex flex-col p-4 gap-2.5 rounded-xl bg-white"
-                  style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-                >
-                  {/* Trip Header */}
-                  <div className="flex justify-between items-start w-full mb-1">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>Trip R-{trip.id}</span>
-                      <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Status · {trip.status}</span>
-                    </div>
-                    <div className="flex items-center px-2 py-1 rounded-full bg-[#E9EEF3]">
-                      <span className="font-bold text-[10px]" style={{ color: "#5D6A78" }}>Scheduled</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-baseline w-full mt-[-2px]">
-                    <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Dispatch Ref</span>
-                    <span className="font-bold text-[12px]" style={{ color: "#5D6A78" }}>#{trip.dispatch_trip_id}</span>
-                  </div>
-                  
-                  {/* Action */}
-                  <Link href={`/driver/trip/${trip.id}`} className="mt-2">
-                    <button 
-                      className="w-full flex justify-center items-center h-[40px] rounded-lg text-[#092C4C] font-bold text-[14px]"
-                      style={{ backgroundColor: "#F2F5F8" }}
-                    >
-                      View Details
-                    </button>
-                  </Link>
-                </div>
-              );
-            }
-          })
-        )}
-
-        {/* Shift Summary */}
-        <div className="flex w-full gap-2.5 mt-2">
-          <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1" style={{ backgroundColor: "#0B2743" }}>
-            <span className="font-bold text-[22px] text-white">{loading ? "-" : trips.length}</span>
-            <span className="font-normal text-[12px]" style={{ color: "rgba(255, 255, 255, 0.72)" }}>Trips today</span>
-          </div>
-          <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1 bg-white" style={{ border: "1px solid #D9E1E8" }}>
-            <span className="font-bold text-[22px]" style={{ color: "#12202E" }}>
-              {loading ? "-" : trips.filter(t => t.status === "COMPLETED").length}
-            </span>
-            <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Completed</span>
-          </div>
-        </div>
-      </div>
-
-      {/* SOS Button */}
-      <Link href="/driver/sos">
-        <button 
-          className="fixed bottom-[96px] right-5 flex justify-center items-center w-[54px] h-[54px] rounded-full text-white font-extrabold text-[12px]"
-          style={{ backgroundColor: "#C9363E", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
+    <DriverShell
+      title={now ? `Today · ${formatDay(now)}` : "Today"}
+      subtitle={
+        me.data
+          ? `${greeting(now)}, ${firstName} · ${me.data.driver_code}${me.data.vehicle ? ` · ${me.data.vehicle.code}` : ""}`
+          : `${greeting(now)}`
+      }
+      tab="home"
+      action={
+        <Link
+          href="/driver/profile"
+          aria-label="Profile"
+          className="flex size-11 items-center justify-center rounded-full bg-info-muted text-info focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          SOS
-        </button>
-      </Link>
+          <User className="size-5" aria-hidden />
+        </Link>
+      }
+    >
+      {runs.fromCache && (
+        <Notice tone="warning" icon={CloudOff} title="Showing trips saved on this phone">
+          {runs.savedAt ? `Last updated ${formatTime(runs.savedAt)}. ` : ""}They refresh when the connection returns.
+        </Notice>
+      )}
+      {runs.error && (
+        <Notice tone="destructive" icon={RefreshCw} title="Couldn't load your trips">
+          {runs.error}
+        </Notice>
+      )}
+      {me.data && !me.data.vehicle && (
+        <Notice tone="info" icon={Truck} title="No vehicle assigned to you yet">
+          Your trips appear here once dispatch assigns you a vehicle.
+        </Notice>
+      )}
 
-      {/* Bottom Nav */}
-      <div
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-8 py-2.5 bg-white"
-        style={{ borderTop: "1px solid #D9E1E8", boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#111111" />
-          <span className="text-[10px] font-medium" style={{ color: "#111111" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <Map size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Queue</span>
-        </Link>
-      </div>
-    </div>
+      <ReadyTomorrowCard now={now} hasWorkToday={hasWorkToday} />
+
+      {runs.loading ? (
+        <div className="flex flex-col gap-3" aria-busy="true">
+          <Skeleton className="h-44 rounded-xl" />
+          <Skeleton className="h-36 rounded-xl" />
+        </div>
+      ) : cards.length === 0 ? (
+        <section className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-4 py-8 text-center">
+          <Truck className="size-8 text-muted-foreground" aria-hidden />
+          <div className="flex flex-col gap-1">
+            <span className="font-bold">No trips for you right now</span>
+            <span className="text-sm text-muted-foreground">
+              A run shows here when dispatch plans your vehicle and the loader starts loading it.
+            </span>
+          </div>
+          <Button variant="outline" size="lg" className="h-11" onClick={runs.reload}>
+            <RefreshCw aria-hidden />
+            Check again
+          </Button>
+        </section>
+      ) : (
+        cards.map((card) => <RunCard key={card.code} card={card} highlight={card === focus} />)
+      )}
+
+      {cards.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1 rounded-xl bg-brand-strong p-3.5 text-white">
+            <span className="text-2xl font-bold">{cards.length}</span>
+            <span className="text-xs text-white/75">Trips</span>
+          </div>
+          <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3.5">
+            <span className="text-2xl font-bold">{completed}</span>
+            <span className="text-xs text-muted-foreground">Completed</span>
+          </div>
+        </div>
+      )}
+    </DriverShell>
   );
 }

@@ -1,231 +1,124 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Lock, User, Navigation, CloudOff, BatteryFull, Signal } from "lucide-react";
-import { setToken, isAuthenticated } from "@/lib/auth";
-import { apiFetch, ApiError } from "@/lib/api";
+import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CloudOff, Eye, EyeOff, Lock, Mail, Navigation } from "lucide-react";
+import { ApiError } from "@/lib/api";
+import { clearToken, setToken } from "@/lib/auth";
+import { driverApi } from "@/lib/driver/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Notice } from "@/components/driver/notice";
 
-interface LoginResponse {
-  access_token: string;
-  token_type: string;
-}
-
-export default function DriverLoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const params = useSearchParams();
+  const next = params.get("next");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (isAuthenticated()) {
-      router.replace("/driver");
-    }
-  }, [router]);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
     setError(null);
-    setLoading(true);
-
     try {
-      // Backend expects form data for OAuth2 password flow
-      const formData = new URLSearchParams();
-      formData.append("username", username);
-      formData.append("password", password);
-
-      const data = await apiFetch<LoginResponse>("/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData.toString(),
-      });
-
-      setToken(data.access_token);
-      router.push("/driver");
+      const { access_token } = await driverApi.login(email.trim(), password);
+      setToken(access_token);
+      // The driver API only answers drivers: check before going in.
+      await driverApi.me();
+      router.replace(next?.startsWith("/driver") ? next : "/driver");
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Could not connect to server. Check your internet connection.");
-      }
+      clearToken();
+      if (err instanceof ApiError && err.status === 403) setError("This account isn't a driver account.");
+      else if (err instanceof ApiError && !err.isNetworkError) setError(err.message);
+      else setError("Couldn't reach Waypoint. Check your connection and try again.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col font-sans" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      {/* Hero Section */}
-      <div 
-        className="flex flex-col relative w-full"
-        style={{
-          background: "linear-gradient(180deg, rgba(10, 30, 58, 1) 0%, rgba(13, 37, 69, 1) 40%, rgba(18, 45, 82, 1) 70%, rgba(22, 58, 95, 1) 100%)",
-          paddingBottom: "40px"
-        }}
-      >
-        {/* Device Status Bar */}
-        <div className="flex justify-between items-center px-5 py-3 h-11 w-full text-white">
-          <span className="text-xs font-semibold">06:58</span>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-white/20 px-2 py-0.5 rounded text-[10px] font-medium">
-              Offline
-            </div>
-            <Signal size={14} />
-            <BatteryFull size={18} />
-          </div>
+    <div className="flex min-h-dvh flex-col bg-background">
+      <div className="flex flex-col gap-8 bg-brand-strong px-5 pt-10 pb-12 text-white">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl border border-white/25 bg-white/15">
+            <Navigation className="size-4.5" aria-hidden />
+          </span>
+          <span className="text-xl font-extrabold tracking-widest">WAYPOINT</span>
         </div>
-
-        {/* Brand */}
-        <div className="flex items-center px-5 gap-2.5 mt-2 h-11 w-full">
-          <div 
-            className="flex justify-center items-center rounded-xl w-9 h-9 shrink-0"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", border: "1px solid rgba(255, 255, 255, 0.25)" }}
-          >
-            <Navigation size={18} color="#FFFFFF" />
-          </div>
-          <span className="text-white font-extrabold text-xl tracking-[0.09em]">WAYPOINT</span>
-        </div>
-
-        {/* Hero Copy */}
-        <div className="flex flex-col px-5 mt-10 mb-8 max-w-[320px] gap-2">
-          <span className="font-bold text-[10px] tracking-[0.12em]" style={{ color: "#8CC2FF" }}>
-            DRIVER PORTAL
-          </span>
-          <div className="flex flex-col">
-            <span className="font-bold text-[32px] leading-[1.1em]" style={{ color: "rgba(255, 255, 255, 0.82)" }}>
-              Good morning,
-            </span>
-            <span className="font-extrabold text-[40px] leading-[1.05em] text-white">
-              Driver.
-            </span>
-          </div>
-          <span className="font-semibold text-lg leading-[1.25em] mt-1" style={{ color: "#8CC2FF" }}>
-            Ready for today's run?
-          </span>
-          <span className="font-regular text-[13px] leading-[1.5em]" style={{ color: "rgba(255, 255, 255, 0.69)" }}>
-            Sign in to view your assigned<br/>trips and delivery records.
-          </span>
+        <div className="flex max-w-xs flex-col gap-2">
+          <span className="text-[11px] font-bold tracking-[0.12em] text-white/70">DRIVER</span>
+          <h1 className="text-4xl leading-tight font-extrabold">Ready for today&apos;s run?</h1>
+          <p className="text-sm text-white/75">Sign in to see your trips and record each delivery.</p>
         </div>
       </div>
 
-      {/* Login Card */}
-      <form
-        onSubmit={handleLogin}
-        className="flex flex-col flex-1 px-5 pt-7 pb-5 gap-5 -mt-6 z-10"
-        style={{
-          backgroundColor: "#FFFFFF",
-          boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.25)"
-        }}
-      >
-        {/* Handle */}
-        <div className="flex justify-center w-full">
-          <div className="w-9 h-1 rounded-full" style={{ backgroundColor: "#D9E1E8" }}></div>
-        </div>
-
-        {/* Error Message */}
+      <form onSubmit={submit} className="-mt-6 flex flex-1 flex-col gap-5 rounded-t-2xl bg-card px-5 pt-7 pb-6">
         {error && (
-          <div
-            className="flex items-center px-3.5 py-2.5 rounded-xl text-[13px] font-medium"
-            style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA", color: "#C9363E" }}
-          >
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive-muted px-3 py-2.5 text-sm font-medium text-destructive">
             {error}
-          </div>
+          </p>
         )}
-
-        {/* Fields */}
-        <div className="flex flex-col w-full gap-[14px]">
-          {/* Driver ID */}
-          <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: "#5D6A78" }}>
-              Driver ID or phone
-            </label>
-            <div 
-              className="flex items-center gap-2.5 px-3.5 h-[52px] rounded-xl w-full"
-              style={{ backgroundColor: "#FFFFFF", border: "1px solid #D9E1E8" }}
-            >
-              <User size={18} color="#6B7280" />
-              <input
-                id="driver-username"
-                type="text"
-                placeholder="e.g. DRV-214"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="flex-1 bg-transparent outline-none text-[13px] placeholder-[#6B7280]"
-                style={{ color: "#111827" }}
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-[11px] font-bold uppercase tracking-[0.07em]" style={{ color: "#5D6A78" }}>
-              Password
-            </label>
-            <div 
-              className="flex items-center gap-2.5 px-3.5 h-[52px] rounded-xl w-full"
-              style={{ backgroundColor: "#FFFFFF", border: "1px solid #D9E1E8" }}
-            >
-              <Lock size={18} color="#6B7280" />
-              <input
-                id="driver-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="flex-1 bg-transparent outline-none text-[13px] placeholder-[#6B7280]"
-                style={{ color: "#111827" }}
-              />
-              <button onClick={() => setShowPassword(!showPassword)} type="button">
-                {showPassword ? <Eye size={18} color="#6B7280" /> : <EyeOff size={18} color="#6B7280" />}
-              </button>
-            </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="driver-email">Email</Label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              id="driver-email"
+              type="email"
+              inputMode="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-12 pl-10 text-base"
+              placeholder="you@waypoint.com"
+            />
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex flex-col w-full gap-2.5 mt-1">
-          <button
-            id="driver-login-btn"
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center items-center h-[54px] rounded-xl text-white font-bold text-base disabled:opacity-60"
-            style={{ backgroundColor: "#092C4C" }}
-          >
-            {loading ? "Signing in…" : "Log in →"}
-          </button>
-          <button 
-            type="button"
-            className="w-full flex justify-start items-center h-9 rounded-md font-semibold text-[13px]"
-            style={{ color: "rgba(24, 56, 95, 0.75)" }}
-          >
-            Forgot password
-          </button>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="driver-password">Password</Label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute top-1/2 left-3 size-4.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              id="driver-password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 pr-12 pl-10 text-base"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((shown) => !shown)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
+            </button>
+          </div>
         </div>
+        <Button type="submit" size="lg" disabled={busy} className="h-13 text-base font-bold">
+          {busy ? "Signing in…" : "Sign in"}
+        </Button>
+
+        <Notice tone="info" icon={CloudOff} title="Works without signal once you're signed in" className="mt-auto">
+          Your trips and delivery records are kept on this phone and sync when you&apos;re back online.
+        </Notice>
       </form>
-
-      {/* Offline Info */}
-      <div className="flex flex-col px-5 pb-7 pt-2 w-full" style={{ backgroundColor: "#F2F5F8" }}>
-        <div 
-          className="flex flex-row p-3 gap-2.5 rounded-xl w-full"
-          style={{ backgroundColor: "#EAF2FF", border: "1px solid rgba(33, 103, 213, 0.21)" }}
-        >
-          <CloudOff size={18} color="#2167D5" className="mt-0.5 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <span className="font-bold text-[13px] leading-[1.45em]" style={{ color: "#2167D5" }}>
-              Works offline once signed in
-            </span>
-            <span className="font-normal text-[12px] leading-[1.55em]" style={{ color: "#2167D5" }}>
-              Your assigned trips and delivery records<br/>are saved on this device and will sync<br/>automatically when you're back online.
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
+export default function DriverLoginPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <LoginForm />
+    </React.Suspense>
+  );
+}
