@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Enum, UniqueConstraint
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.reference import Brand
@@ -51,8 +51,9 @@ class DeliveryRun(Base):
 
     Intentionally NOT an extension of DispatchTrip/Shipment. Those are owned by the
     dispatcher team and have no concept of stop sequence, plan version, dock or
-    brand. `dispatch_trip_id` is left as the nullable seam for them to wire the two
-    together later, without this module having to wait on their schema.
+    brand. `dispatch_trip_id` links the two: a dispatched allocation becomes one
+    loader run (LoaderService.create_run_for_dispatch_trip), at most one per trip.
+    Runs with no trip (the demo seeds) keep it null and are left alone.
 
     planned_* are what the current plan version says the run should carry;
     loaded_* are what is physically on the truck so far. The checklist capacity
@@ -60,6 +61,10 @@ class DeliveryRun(Base):
     """
 
     __tablename__ = "delivery_runs"
+    __table_args__ = (
+        # One loader run per dispatch trip; NULLs repeat (runs not from a trip).
+        Index("uq_delivery_runs_dispatch_trip_id", "dispatch_trip_id", unique=True),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(20), unique=True, index=True, nullable=False)
@@ -82,7 +87,7 @@ class DeliveryRun(Base):
     released_by_id = Column(Integer, ForeignKey("loader_users.id"), nullable=True)
     gated_out_at = Column(DateTime, nullable=True)
 
-    # Seam for the dispatcher team; nothing in the loader module reads it yet.
+    # The dispatcher's trip this run was built from (docs/loader/INTEGRATION_DESIGN.md).
     dispatch_trip_id = Column(Integer, ForeignKey("dispatch_trips.id"), nullable=True)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

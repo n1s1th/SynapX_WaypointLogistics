@@ -190,7 +190,8 @@ class OrderService:
                 destination_address=f"{outlet.name}, {outlet.district}",
                 status=OrderStatus.SUBMITTED,
                 total_amount=sum(item.quantity * item.unit_price for item in lines),
-                brand=brand,
+                # Stored capitalised ("Fresh"), matching the Dispatcher's orders and filters.
+                brand=brand.capitalize() if brand else None,
                 district=outlet.district,
                 temperature_zone=zone,
                 delivery_window=_window(outlet),

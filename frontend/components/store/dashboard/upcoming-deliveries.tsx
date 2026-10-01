@@ -23,16 +23,18 @@ function windowText(order: StoreOrder, now: Date) {
 function DeliveryAction({ order }: { order: StoreOrder }) {
   if (order.status === "delivered") {
     return (
-      <Button asChild className="h-10 px-4 text-base font-bold">
+      <Button asChild size="sm" className="h-8 px-3 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90">
         <Link href={deliveryHref(order)}>Confirm Delivery</Link>
       </Button>
     );
   }
   return (
-    <Link href={deliveryHref(order)} className="text-sm font-bold text-primary underline-offset-4 hover:underline">
-      View Details
-      <span className="sr-only"> for {order.orderNumber}</span>
-    </Link>
+    <Button asChild variant="ghost" size="sm" className="h-8 px-2.5 text-xs font-bold text-primary hover:text-primary hover:bg-secondary">
+      <Link href={deliveryHref(order)}>
+        View Details
+        <span className="sr-only"> for {order.orderNumber}</span>
+      </Link>
+    </Button>
   );
 }
 
@@ -117,9 +119,14 @@ export function UpcomingDeliveries({ orders, now }: { orders: StoreOrder[]; now:
                   </div>
                 )}
               </dl>
-              {order.deliveryAlert === "vehicle_unavailable" && (
-                <StoreArrowLink href={deliveryHref(order)}>Choose what happens</StoreArrowLink>
-              )}
+              <div className="pt-2 flex items-center justify-between">
+                {order.deliveryAlert === "vehicle_unavailable" ? (
+                  <StoreArrowLink href={deliveryHref(order)}>Choose what happens</StoreArrowLink>
+                ) : <span />}
+                <Button asChild size="sm" variant="outline" className="text-xs font-bold text-primary border-primary hover:bg-secondary">
+                  <Link href={deliveryHref(order)}>View Details</Link>
+                </Button>
+              </div>
             </Card>
           ))}
       </section>

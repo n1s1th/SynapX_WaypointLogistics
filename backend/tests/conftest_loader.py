@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.security import get_password_hash
+from app.models.allocation import Allocation, AllocationStatus
 from app.models.delivery_run import (
     DeliveryRun,
     RunOrderState,
@@ -21,6 +22,7 @@ from app.models.loader_issue import IssueStatus, IssueType, LoaderIssue, LoaderI
 from app.models.loader_user import LoaderUser
 from app.models.order import Order, OrderStatus
 from app.models.plan_revision import PlanRevision
+from app.models.shipment import DispatchTrip
 from app.models.reference import (
     Brand,
     Depot,
@@ -280,3 +282,44 @@ def put_on_truck(db, run, number, checked_at="02:12"):
     LoaderService.recalculate_capacity(db, run)
     db.flush()
     return row
+
+
+# --- dispatcher integration (docs/loader/INTEGRATION_DESIGN.md) ----------------
+
+
+def make_trip(db, vehicle, orders, code="RUN-0024", departs="03:30", stop_sequence=None):
+    allocation = Allocation(vehicle_id=vehicle.id, run_id=code, status=AllocationStatus.DISPATCHED)
+    db.add(allocation)
+    db.flush()
+    for order in orders:
+        order.allocation_id = allocation.id
+    trip = DispatchTrip(
+        trip_code=code, allocation_id=allocation.id, vehicle_id=vehicle.id,
+        vehicle_number=vehicle.code, driver_name="Unassigned", origin="peliyagoda",
+        destination="multiple stops", depot_name="peliyagoda",
+        departure_time=at(departs) if departs else None,
+        stop_sequence=stop_sequence if stop_sequence is not None else [],
+    )
+    db.add(trip)
+    db.flush()
+    return trip
+
+
+@pytest.fixture
+def trip_setup(db_session):
+    """VEH014 at Peliyagoda, DOCK3, three Fresh outlets and four orders."""
+    db = db_session
+    vehicle = make_vehicle(db, code="VEH014")
+    dock = make_dock(db)
+    out26 = make_outlet(db, "OUT026")
+    out27 = make_outlet(db, "OUT027")
+    out30 = make_outlet(db, "OUT030")
+    out27.window_start = time(2, 30)  # earliest window: first by default
+    orders = [
+        make_order(db, "ORD1001", out26, units=12, kg=300.0, m3=1.2),
+        make_order(db, "ORD1002", out27, temperature=TemperatureClass.CHILLED, units=8, kg=200.0, m3=0.8),
+        make_order(db, "ORD1003", out30, units=5, kg=100.0, m3=0.5),
+        make_order(db, "ORD1004", out26, units=3, kg=50.0, m3=0.2),
+    ]
+    db.flush()
+    return {"db": db, "vehicle": vehicle, "dock": dock, "orders": orders}

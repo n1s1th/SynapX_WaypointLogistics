@@ -3,6 +3,8 @@ import {
   mockHolidays,
   mockNotifications,
   mockOrders,
+  mockOutletSettings,
+  type OutletSettings,
   type StoreNotification,
   type StoreOrder,
   type TemperatureClass,
@@ -10,11 +12,13 @@ import {
 import { ApiError, apiFetch } from "@/components/store/api/client";
 import { STORE_DATA_SOURCE, STORE_OUTLET_ID } from "@/components/store/api/config";
 import {
+  toOutletSettings,
   toStoreNotification,
   toStoreOrder,
   toTemperatureZone,
   type ApiNotification,
   type ApiOperatingDays,
+  type ApiOutletSettings,
   type ApiStoreOrder,
 } from "@/components/store/api/mappers";
 
@@ -110,3 +114,41 @@ export async function getHolidays(from: Date, days = 90): Promise<{ date: string
     .filter((day) => day.getDay() !== 0 && !operating.has(format(day, "yyyy-MM-dd")))
     .map((day) => ({ date: format(day, "yyyy-MM-dd"), name: "Holiday" }));
 }
+
+export async function getOutletSettings(): Promise<OutletSettings> {
+  if (!live()) return mockOutletSettings;
+  const res = await apiFetch<ApiOutletSettings>(`/outlets/${STORE_OUTLET_ID}/settings`);
+  return toOutletSettings(res);
+}
+
+export async function updateOutletSettings(payload: Partial<OutletSettings>): Promise<OutletSettings> {
+  if (!live()) {
+    return {
+      ...mockOutletSettings,
+      ...payload,
+      lastSyncedAt: `today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+    };
+  }
+  const apiPayload = {
+    contact_phone: payload.contactPhone,
+    emergency_contact: payload.emergencyContact,
+    driver_check_in_call: payload.driverCheckInCall,
+    share_dock_gate_code: payload.shareDockGateCode,
+    email_alerts_issues: payload.emailAlertsIssues,
+    sms_alerts_priority: payload.smsAlertsPriority,
+  };
+  const res = await apiFetch<ApiOutletSettings>(`/outlets/${STORE_OUTLET_ID}/settings`, {
+    method: "PATCH",
+    body: JSON.stringify(apiPayload),
+  });
+  return toOutletSettings(res);
+}
+
+export async function resetOutletSettings(): Promise<OutletSettings> {
+  if (!live()) return mockOutletSettings;
+  const res = await apiFetch<ApiOutletSettings>(`/outlets/${STORE_OUTLET_ID}/settings/reset`, {
+    method: "POST",
+  });
+  return toOutletSettings(res);
+}
+

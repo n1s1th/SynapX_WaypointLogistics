@@ -4,20 +4,23 @@ import { Badge } from "@/components/ui/badge";
 import type { OrderStatus, StoreOrder } from "@/components/store/mock-data";
 
 // Store Manager status pill (Figma: Components / Status Pill). Always shows a text label,
-// so status is never communicated by colour alone.
-const storePillVariants = cva("h-auto rounded-xl border-transparent px-2 py-0.5 text-sm font-medium", {
-  variants: {
-    tone: {
-      neutral: "bg-muted text-foreground",
-      brand: "bg-accent text-accent-foreground",
-      info: "bg-info-muted text-info-muted-foreground",
-      success: "bg-success-muted text-success-muted-foreground",
-      warning: "bg-warning-muted text-warning-muted-foreground",
-      destructive: "bg-destructive-muted text-destructive-muted-foreground",
+// so status is never communicated by colour alone. Proportionate text-xs size for tables and headers.
+const storePillVariants = cva(
+  "inline-flex items-center justify-center h-auto rounded-lg border-transparent px-2.5 py-0.5 text-xs font-semibold leading-tight whitespace-nowrap",
+  {
+    variants: {
+      tone: {
+        neutral: "bg-muted text-foreground",
+        brand: "bg-accent text-accent-foreground",
+        info: "bg-info-muted text-info-muted-foreground",
+        success: "bg-success-muted text-success-muted-foreground",
+        warning: "bg-warning-muted text-warning-muted-foreground",
+        destructive: "bg-destructive-muted text-destructive-muted-foreground",
+      },
     },
-  },
-  defaultVariants: { tone: "neutral" },
-});
+    defaultVariants: { tone: "neutral" },
+  }
+);
 
 export type StorePillTone = NonNullable<VariantProps<typeof storePillVariants>["tone"]>;
 

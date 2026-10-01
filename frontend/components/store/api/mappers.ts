@@ -135,3 +135,53 @@ export function toStoreNotification(n: ApiNotification): StoreNotification {
     links: linksFor(n),
   };
 }
+
+export interface ApiOutletSettings {
+  outlet_id: number;
+  outlet_code: string;
+  outlet_name: string;
+  brand: string;
+  district: string;
+  serving_depot: string;
+  store_manager: string | null;
+  contact_phone: string | null;
+  emergency_contact: string | null;
+  window_start: string;
+  window_end: string;
+  dock_type: string;
+  vehicle_access: string;
+  parking: string;
+  driver_check_in_call: boolean;
+  share_dock_gate_code: boolean;
+  email_alerts_issues: boolean;
+  sms_alerts_priority: boolean;
+  is_verified: boolean;
+  last_synced_at?: string;
+}
+
+export function toOutletSettings(api: ApiOutletSettings) {
+  return {
+    outletId: api.outlet_id,
+    outletCode: api.outlet_code,
+    outletName: api.outlet_name,
+    brand: api.brand,
+    district: api.district,
+    servingDepot: api.serving_depot,
+    // Unset contact details come back as null; "" lets the inputs show their placeholders.
+    storeManager: api.store_manager ?? "",
+    contactPhone: api.contact_phone ?? "",
+    emergencyContact: api.emergency_contact ?? "",
+    windowStart: api.window_start,
+    windowEnd: api.window_end,
+    dockType: api.dock_type,
+    vehicleAccess: api.vehicle_access,
+    parking: api.parking,
+    driverCheckInCall: api.driver_check_in_call,
+    shareDockGateCode: api.share_dock_gate_code,
+    emailAlertsIssues: api.email_alerts_issues,
+    smsAlertsPriority: api.sms_alerts_priority,
+    isVerified: api.is_verified,
+    lastSyncedAt: api.last_synced_at ? new Date(api.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "today at 14:31",
+  };
+}
+

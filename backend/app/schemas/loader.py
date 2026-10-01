@@ -5,7 +5,7 @@ The queue, sign-in and issue-list shapes (L2/L3/L5) are Sanduni's and are
 proposed in docs/loader/API_CONTRACT.md for her to review rather than coded here.
 """
 from datetime import date, datetime, time, timezone
-from typing import Annotated, Dict, List, Optional
+from typing import Annotated, Dict, List, Optional, Union
 from uuid import UUID
 
 from pydantic import AfterValidator, AliasChoices, BaseModel, BeforeValidator, ConfigDict, Field
@@ -257,6 +257,8 @@ class RunDetailRead(BaseModel):
 
 
 class IssueOptionRead(BaseModel):
+    # The option's id, for POST /loader/issues/{id}/decision (integration).
+    id: Optional[int] = None
     label: str
     detail: Optional[str] = None
     is_default: bool
@@ -590,3 +592,180 @@ class QueueSummaryRead(BaseModel):
     issues: IssueCountRead
     ready: ReadyCountRead
     plan_updated_at: Optional[UtcDateTime] = None
+
+
+# --- integration slice 1 (docs/loader/INTEGRATION_DESIGN.md) ------------------
+
+
+class DispatcherLoadingEventRead(BaseModel):
+    """One entry on the dispatcher's Loading readiness timeline.
+
+    event / time / note / status are the keys LoadingReadinessDialog already
+    reads from dispatch_trips.loading_events; at and type are extra.
+    """
+
+    event: str
+    time: str  # "HH:MM", depot time
+    note: str
+    status: str  # ok | warning | error
+    at: UtcDateTime
+    type: str  # the loader activity event_type
+
+
+class DispatcherLoadingRead(BaseModel):
+    """The dock's side of one dispatch trip, for the dispatcher's screens.
+
+    stop_count / stops_completed / open_shortfalls / loading_events use the
+    names the readiness dialog already reads, so it can switch from `run.X`
+    to `run.loader.X`. stops_completed = stops fully loaded (or flagged).
+    """
+
+    run_code: str
+    status: RunStatus
+    dock: str
+    departs_at: UtcDateTime
+    plan_version: int
+    plan_acknowledged: bool
+    stop_count: int
+    stops_completed: int
+    orders_checked: int
+    orders_total: int
+    open_shortfalls: int
+    planned_weight_kg: float
+    loaded_weight_kg: float
+    planned_volume_m3: float
+    loaded_volume_m3: float
+    released_at: Optional[UtcDateTime] = None
+    released_by: Optional[LoaderRefRead] = None
+    last_update_at: Optional[UtcDateTime] = None
+    loading_events: List[DispatcherLoadingEventRead]
+
+
+class DispatchTripRunRead(BaseModel):
+    """POST /loader/dispatch-trips/{id}/run: the loader run built for a trip."""
+
+    dispatch_trip_id: int
+    run_code: str
+    created: bool
+    loading: DispatcherLoadingRead
+
+
+
+# --- dispatcher / driver integration endpoints ---------------------------------
+
+
+class DispatcherOrderRef(BaseModel):
+    order_number: str
+    reason: Optional[str] = None  # the dispatcher's words, shown verbatim on the tablet
+
+
+class DispatcherMovedOrder(DispatcherOrderRef):
+    # The trip the order moves to, if the dispatcher knows it. Informational:
+    # moved_to on the tablet is read from wherever the order is planned next.
+    to_dispatch_trip_id: Optional[int] = None
+
+
+class DispatcherDeferredOrder(DispatcherOrderRef):
+    # Informational, as for moves: deferred_to on the tablet is read from the
+    # order (status DEFERRED with a later operating_date).
+    deferred_to: Optional[date] = None
+
+
+class DispatcherPlanRequest(BaseModel):
+    """POST /loader/dispatch-trips/{id}/plan: the dispatcher changes the plan."""
+
+    client_action_id: UUID
+    base_version: int  # the plan version the dispatcher's screen shows
+    stop_order: Optional[List[str]] = None  # outlet codes, delivery order; unnamed stops follow
+    add: List[DispatcherOrderRef] = []
+    remove: List[DispatcherOrderRef] = []
+    move: List[DispatcherMovedOrder] = []
+    defer: List[DispatcherDeferredOrder] = []
+    departs_at: Optional[datetime] = None
+    summary: Optional[str] = None
+    dispatcher: str = "Dispatcher"
+
+
+class DispatcherPlanResult(BaseModel):
+    dispatch_trip_id: int
+    run_code: str
+    plan_version: int
+    published: bool  # false when only departs_at changed (no new plan version)
+    replayed: bool  # true when this request had already been applied
+    run_status: RunStatus
+    departs_at: UtcDateTime
+    changes: List["PlanChangeRead"]
+
+
+class IssueDecisionRequest(BaseModel):
+    """POST /loader/issues/{id}/decision. option = the option id (int) or its label."""
+
+    option: Union[int, str]
+    note: Optional[str] = None
+    client_action_id: UUID
+    decided_by: str = "Dispatcher"
+
+
+class GateOutRequest(BaseModel):
+    client_action_id: UUID
+    by: Optional[str] = None  # who let it through (driver or gate), for the log
+
+
+class GateOutRead(BaseModel):
+    dispatch_trip_id: int
+    run_code: str
+    status: RunStatus
+    gated_out_at: UtcDateTime
+    replayed: bool
+
+
+class HandoffShortfallRead(BaseModel):
+    issue_id: int
+    order_number: str
+    outlet_code: Optional[str] = None
+    issue_type: IssueType
+    units_affected: Optional[int] = None
+    units_total: Optional[int] = None
+    status: IssueStatus  # decided | default_applied
+    decision: Optional[str] = None  # the chosen option's label
+    decided_by: Optional[str] = None
+    decided_at: Optional[UtcDateTime] = None
+
+
+class HandoffOrderRead(BaseModel):
+    order_number: str
+    temperature_class: Optional[TemperatureClass] = None
+    units_ordered: Optional[int] = None
+    loaded_units: int
+    weight_kg: Optional[float] = None
+    volume_m3: Optional[float] = None
+    shortfall: Optional[HandoffShortfallRead] = None
+
+
+class HandoffStopRead(BaseModel):
+    stop_sequence: int  # delivery order: the driver goes 1, 2, 3 ...
+    load_position: int  # 1 = loaded first, deepest
+    outlet_code: str
+    outlet_name: str
+    district: str
+    eta: Optional[UtcDateTime] = None
+    orders: List[HandoffOrderRead]
+
+
+class HandoffRead(BaseModel):
+    """GET /loader/dispatch-trips/{id}/handoff: what is on the truck, for the driver."""
+
+    dispatch_trip_id: int
+    run_code: str
+    status: RunStatus
+    plan_version: int
+    vehicle_code: str
+    dock: str
+    departs_at: UtcDateTime
+    released_at: Optional[UtcDateTime] = None
+    released_by: Optional[LoaderRefRead] = None
+    gated_out_at: Optional[UtcDateTime] = None
+    units_ordered: int
+    units_loaded: int
+    stops: List[HandoffStopRead]
+    shortfalls: List[HandoffShortfallRead]

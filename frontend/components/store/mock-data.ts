@@ -33,6 +33,52 @@ export const currentManager: StoreManager = {
   initials: "SJ",
 };
 
+export interface OutletSettings {
+  outletId: number;
+  outletCode: string;
+  outletName: string;
+  brand: string;
+  district: string;
+  servingDepot: string;
+  storeManager: string;
+  contactPhone: string;
+  emergencyContact: string;
+  windowStart: string;
+  windowEnd: string;
+  dockType: string;
+  vehicleAccess: string;
+  parking: string;
+  driverCheckInCall: boolean;
+  shareDockGateCode: boolean;
+  emailAlertsIssues: boolean;
+  smsAlertsPriority: boolean;
+  isVerified: boolean;
+  lastSyncedAt?: string;
+}
+
+export const mockOutletSettings: OutletSettings = {
+  outletId: 5,
+  outletCode: "OUT005",
+  outletName: "Fresh Colombo",
+  brand: "Fresh",
+  district: "Colombo",
+  servingDepot: "Peliyagoda",
+  storeManager: "Sarah Jenkins · MGR-88",
+  contactPhone: "+94 11 234 5678",
+  emergencyContact: "Kamal S. (Backroom Lead) · ext 8802",
+  windowStart: "04:00",
+  windowEnd: "07:45",
+  dockType: "Rear dock",
+  vehicleAccess: "Trucks and vans",
+  parking: "No restrictions",
+  driverCheckInCall: true,
+  shareDockGateCode: true,
+  emailAlertsIssues: true,
+  smsAlertsPriority: false,
+  isVerified: true,
+  lastSyncedAt: "today at 14:31",
+};
+
 // The mock data is written around this moment (the day shown in the Figma screens).
 // Replace with the real current time once orders come from the API.
 export const MOCK_NOW = new Date("2026-09-26T06:00:00");

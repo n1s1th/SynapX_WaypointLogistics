@@ -57,7 +57,7 @@ class Order(Base):
     units = Column(Integer, nullable=True)
     volume_m3 = Column(Float, nullable=True)
 
-    # Store Manager fields (Dev A migration, not yet written).
+    # Store Manager fields (Dev A migration, 0004_store_manager).
     submitted_at = Column(DateTime, nullable=True)
     cutoff_at = Column(DateTime, nullable=True)
     notes = Column(Text, nullable=True)
@@ -68,6 +68,7 @@ class Order(Base):
     shipment = relationship("Shipment", back_populates="order", uselist=False)
     allocation = relationship("Allocation", back_populates="orders")
     outlet = relationship("Outlet")
+    receipt = relationship("DeliveryReceipt", back_populates="order", uselist=False)
 
 
 class OrderItem(Base):
@@ -79,5 +80,9 @@ class OrderItem(Base):
     item_name = Column(String(255), nullable=False)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Float, nullable=False)
+
+    # Dev B store receiving extensions (contract §2)
+    quantity_sent = Column(Integer, nullable=True)
+    dispatcher_note = Column(Text, nullable=True)
 
     order = relationship("Order", back_populates="items")
