@@ -1,223 +1,152 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// Arrival: recorded when the driver taps "I've arrived" on the route (not on page
+// load). Shows the arrival against the outlet's window (brief p15: early waits
+// for it to open; after it closes is late) and how to unload here.
+
+import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import {
-  Signal, BatteryFull, MapPinCheck, LocateFixed,
-  Map as MapIcon, Home, TriangleAlert, Layers
-} from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { Clock, MapPinCheck, TriangleAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { Notice } from "@/components/driver/notice";
+import { TimingBadge } from "@/components/driver/badges";
+import { RouteMap } from "@/components/driver/route-map-lazy";
+import { AccessFacts, OrderList } from "@/components/driver/stop-details";
+import { StopUnavailable } from "@/components/driver/stop-unavailable";
+import { formatTime, minutesLabel } from "@/lib/driver/format";
+import { useTripStop } from "@/lib/driver/hooks";
+import type { DockType } from "@/lib/driver/types";
 
-interface DeliveryStop {
-  id: number;
-  sequence: number;
-  address: string;
-  customer_name: string;
-  status: string;
-}
+const UNLOADING: Record<DockType, string> = {
+  rear_dock: "Back up to the rear dock and unload with the outlet's staff.",
+  street: "Curbside unloading: park safely, hazard lights on, keep the footpath clear.",
+  mall_bay: "Shared mall loading bay: unload inside the mall's access window and check in with mall security.",
+};
 
-interface TripDetail {
-  id: number;
-  stops: DeliveryStop[];
-}
+function ArrivedContent() {
+  const { trip, stop } = useTripStop();
+  const { perform } = useDriver();
+  const [busy, setBusy] = React.useState(false);
+  const data = trip.data;
+  const mapStops = React.useMemo(
+    () =>
+      (data?.stops ?? [])
+        .filter((item) => item.latitude != null && item.longitude != null)
+        .map((item) => ({
+          sequence: item.sequence,
+          latitude: item.latitude as number,
+          longitude: item.longitude as number,
+          name: item.name,
+          status: item.status,
+        })),
+    [data?.stops],
+  );
 
-function ArrivalContent() {
-  const searchParams = useSearchParams();
-  const stopId = searchParams.get("stop_id");
-  
-  const [stop, setStop] = useState<DeliveryStop | null>(null);
-  const [loading, setLoading] = useState(true);
+  if (!data || !stop) {
+    return <StopUnavailable loading={trip.loading} error={trip.error} backHref={data ? `/driver/trip?id=${data.id}` : "/driver/trip"} />;
+  }
 
-  useEffect(() => {
-    if (!stopId) return;
+  const outcomeHref = `/driver/trip/outcome?trip=${data.id}&stop=${stop.id}`;
 
-    async function loadDataAndArrive() {
-      try {
-        // Find the active trip to get stop details for display
-        const trips = await apiFetch<any[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "STARTED");
-        
-        if (startedTrip) {
-          const tripDetail = await apiFetch<TripDetail>(`/driver/trips/${startedTrip.id}`);
-          const foundStop = tripDetail.stops.find(s => s.id.toString() === stopId);
-          if (foundStop) setStop(foundStop);
-        }
-
-        // Fire arrival API
-        await apiFetch(`/driver/stops/${stopId}/arrive`, { method: "PATCH" });
-      } catch (error) {
-        console.error("Failed to process arrival:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    loadDataAndArrive();
-  }, [stopId]);
+  async function arrive() {
+    if (!data || !stop) return;
+    setBusy(true);
+    await perform({ action_type: "arrive", trip_id: data.id, stop_id: stop.id, label: `Arrival · ${stop.name}` });
+    setBusy(false);
+  }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative overflow-hidden" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white z-10"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Online</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
+    <DriverShell
+      title={stop.name}
+      subtitle={stop.outlet ? `Stop ${stop.sequence} · ${stop.outlet.code} · ${stop.outlet.district}` : `Stop ${stop.sequence}`}
+      backHref={`/driver/trip?id=${data.id}`}
+      footer={
+        stop.status === "pending" ? (
+          <Button size="lg" className="h-13 text-base font-bold" onClick={arrive} disabled={busy}>
+            <MapPinCheck aria-hidden />
+            I&apos;ve arrived
+          </Button>
+        ) : (
+          <>
+            <Button asChild size="lg" className="h-13 text-base font-bold">
+              <Link href={outcomeHref}>Record what happened</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="h-11">
+              <Link href={`/driver/report?trip=${data.id}&stop=${stop.id}`}>Report a problem here</Link>
+            </Button>
+          </>
+        )
+      }
+    >
+      {stop.latitude != null && stop.longitude != null && (
+        <RouteMap
+          variant="strip"
+          depot={null}
+          stops={mapStops}
+          activeSequence={stop.sequence}
+          focusSequence={stop.sequence}
+        />
+      )}
 
-        {/* Title bar */}
-        <div className="flex px-5 py-2.5 items-center w-full">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              {loading ? "Loading..." : stop?.customer_name || "Unknown Stop"}
-            </h1>
-            <p className="text-[12px] font-normal leading-[1.45em] truncate max-w-full" style={{ color: "#5D6A78" }}>
-              {loading ? "..." : stop?.address}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Toast Area */}
-      <div className="w-full px-[15px] py-[10px] z-10" style={{ backgroundColor: "#F2F5F8" }}>
-        <div 
-          className="flex flex-col p-4 w-full bg-white rounded-lg"
-          style={{ border: "1px solid #E5E5E2", height: "76px" }}
-        >
-          <span className="font-semibold text-[13px]" style={{ color: "#18385F" }}>Arrival detected</span>
-          <span className="font-normal text-[12px] mt-1" style={{ color: "#6B7280" }}>
-            Timestamp and location captured automatically.
+      {stop.arrived_at ? (
+        <section className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-success-muted text-success">
+            <MapPinCheck className="size-5.5" aria-hidden />
           </span>
-        </div>
-      </div>
-
-      {/* Arrival Map */}
-      <div className="relative w-full overflow-hidden shrink-0 z-0" style={{ height: "142px", backgroundColor: "#F2F5F8" }}>
-        {/* Map placeholder */}
-        <div className="absolute inset-0">
-          <div className="absolute left-[38px] top-[-30px] w-[26.57px] h-[202px] bg-white" />
-          <div className="absolute left-[118px] top-[-30px] w-[26.57px] h-[202px] bg-white" />
-          <div className="absolute left-[198px] top-[-30px] w-[26.57px] h-[202px] bg-white" />
-          <div className="absolute left-[278px] top-[-30px] w-[26.57px] h-[202px] bg-white" />
-          <div className="absolute left-[348px] top-[-30px] w-[26.57px] h-[202px] bg-white" />
-          
-          <div className="absolute left-0 top-[26px] w-full h-[10px] bg-white" />
-          <div className="absolute left-0 top-[92px] w-full h-[10px] bg-white" />
-          <div className="absolute left-0 top-[103px] w-full h-[64px] bg-white" />
-          
-          <div className="absolute left-[260px] top-0 w-[130px] h-full" style={{ backgroundColor: "#DCEAF4" }} />
-          
-          <svg className="absolute left-[22px] top-[30px] w-[320px] h-[230px]" style={{ pointerEvents: "none" }}>
-            <path d="M21,188 L152,98 L248,46 L306,12" stroke="#2167D5" strokeWidth="5" strokeDasharray="10,7" fill="none" />
-          </svg>
-
-          {/* Map Dimmer */}
-          <div className="absolute inset-0" style={{ backgroundColor: "rgba(11, 39, 67, 0.6)" }} />
-
-          {/* Current location & Pins (scaled/positioned for small map) */}
-          <div className="absolute left-[111px] top-[182px] w-[18px] h-[18px] rounded-full border-4 border-white z-10" style={{ backgroundColor: "#2167D5" }} />
-          <div className="absolute left-[43px] top-[218px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-white shadow-sm z-10" style={{ backgroundColor: "#18794E" }}>
-            <span className="text-[12px] font-bold text-white">✓</span>
-          </div>
-          <div className="absolute left-[174px] top-[128px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-white shadow-sm z-10" style={{ backgroundColor: "#163A5F" }}>
-            <span className="text-[12px] font-bold text-white">{stop?.sequence || ""}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Sheet */}
-      <div 
-        className="flex flex-col flex-1 bg-white px-5 pb-5 pt-2.5 gap-[14px] z-20 relative"
-        style={{ boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)", marginTop: "-20px" }}
-      >
-        {/* Drag Handle */}
-        <div className="w-full flex justify-center pb-2">
-          <div className="w-[40px] h-[4px] rounded-full" style={{ backgroundColor: "#D9E1E8" }} />
-        </div>
-
-        {/* Arrival Heading */}
-        <div className="flex items-center gap-3 w-full">
-          <div className="flex justify-center items-center w-[44px] h-[44px] rounded-full shrink-0" style={{ backgroundColor: "#E8F6EF" }}>
-            <MapPinCheck size={22} color="#18794E" />
-          </div>
-          <div className="flex flex-col gap-0.5 w-full">
-            <h2 className="font-bold text-[24px]" style={{ color: "#12202E" }}>You’ve arrived</h2>
-            <p className="font-normal text-[12px] truncate" style={{ color: "#5D6A78" }}>{stop?.address}</p>
-          </div>
-        </div>
-
-        {/* Arrival Times */}
-        <div className="flex w-full gap-2.5">
-          <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1" style={{ backgroundColor: "#F2F5F8" }}>
-            <span className="font-bold text-[10px]" style={{ color: "#5D6A78" }}>EXPECTED</span>
-            <span className="font-bold text-[22px]" style={{ color: "#12202E" }}>--:--</span>
-          </div>
-          <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1" style={{ backgroundColor: "#E8F6EF" }}>
-            <span className="font-bold text-[10px]" style={{ color: "#18794E" }}>ACTUAL · NOW</span>
-            <span className="font-bold text-[22px]" style={{ color: "#18794E" }}>
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-xl font-bold">You&apos;ve arrived · {formatTime(stop.arrived_at)}</span>
+            <span className="text-xs text-muted-foreground">
+              Planned {formatTime(stop.eta)} · recorded on this phone at the tap
             </span>
+            <div>
+              <TimingBadge timing={stop.timing} />
+            </div>
           </div>
-        </div>
+        </section>
+      ) : (
+        <Notice tone="info" icon={MapPinCheck} title="Not marked as arrived yet">
+          Tap &ldquo;I&apos;ve arrived&rdquo; when you&apos;re stopped at the outlet.
+        </Notice>
+      )}
 
-        {/* Capture Confirmation */}
-        <div className="flex items-center p-3 gap-2.5 rounded-xl" style={{ backgroundColor: "#EAF2FF" }}>
-          <LocateFixed size={18} color="#2167D5" className="shrink-0" />
-          <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#2167D5" }}>
-            Geofence captured the timestamp and location automatically.
-          </span>
-        </div>
+      {stop.timing?.status === "early" && (
+        <Notice tone="info" icon={Clock} title={`Window opens at ${stop.outlet?.window_start}`}>
+          You&apos;re {minutesLabel(stop.timing.minutes)} early. The outlet receives goods only inside its window, so wait before unloading.
+        </Notice>
+      )}
+      {stop.timing?.status === "late" && (
+        <Notice tone="destructive" icon={TriangleAlert} title="Arrived after the window closed">
+          Still deliver. Receiving staff may have moved on{stop.outlet?.brand === "fresh" ? " and the store may miss morning sales" : ""}: note anything that goes wrong.
+        </Notice>
+      )}
 
-        {/* Primary Action Button */}
-        <Link href={`/driver/trip/outcome${stopId ? `?stop_id=${stopId}` : ""}`} className="mt-auto pt-2">
-          <button 
-            className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
-            style={{ backgroundColor: "#092C4C" }}
-          >
-            Continue
-          </button>
-        </Link>
-      </div>
+      <section aria-labelledby="unload" className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+        <h2 id="unload" className="text-base font-bold">
+          Unloading here
+        </h2>
+        <AccessFacts stop={stop} />
+        {stop.outlet && <p className="text-sm text-muted-foreground">{UNLOADING[stop.outlet.dock_type]}</p>}
+        {stop.handling_minutes ? (
+          <p className="text-xs text-muted-foreground">Planned: {stop.handling_minutes} min to unload.</p>
+        ) : null}
+      </section>
 
-      {/* Bottom Nav */}
-      <div
-        className="flex items-center justify-between px-8 py-2.5 bg-white z-50 shrink-0"
-        style={{ borderTop: "1px solid #D9E1E8" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <MapIcon size={22} color="#163A5F" />
-          <span className="text-[10px] font-medium" style={{ color: "#163A5F" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Queue</span>
-        </Link>
-      </div>
-    </div>
+      <section aria-labelledby="drop" className="flex flex-col gap-2">
+        <h2 id="drop" className="text-base font-bold">
+          What to drop
+        </h2>
+        <OrderList orders={stop.orders} />
+      </section>
+    </DriverShell>
   );
 }
 
-export default function ArrivalPage() {
+export default function ArrivedPage() {
   return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      <ArrivalContent />
+    <React.Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <ArrivedContent />
     </React.Suspense>
   );
 }

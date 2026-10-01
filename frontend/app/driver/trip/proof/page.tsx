@@ -1,262 +1,165 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// Proof of delivery (brief p6: "so disputes do not depend on memory"): who took
+// the goods, their signature, and a photo. Saved on the phone at once and synced
+// when there's signal; the store sees the delivery before confirming receipt.
+
+import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Signal, BatteryFull, CloudOff, Camera,
-  Map as MapIcon, Home, TriangleAlert, Layers
-} from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, CloudOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { Notice } from "@/components/driver/notice";
+import { StopStatusBadge } from "@/components/driver/badges";
+import { PhotoCapture } from "@/components/driver/photo-capture";
+import { SignaturePad } from "@/components/driver/signature-pad";
+import { StopUnavailable } from "@/components/driver/stop-unavailable";
+import { useTripStop } from "@/lib/driver/hooks";
+import type { DockType, DriverStop, DriverTrip, PodPayload } from "@/lib/driver/types";
 
-interface DeliveryStop {
-  id: number;
-  sequence: number;
-  address: string;
-  customer_name: string;
-  status: string;
-}
+const PHOTO_HINT: Record<DockType, string> = {
+  rear_dock: "The delivered goods at the rear dock.",
+  street: "The delivered goods at the curb.",
+  mall_bay: "The delivered goods in the mall bay.",
+};
 
-function ProofOfDeliveryContent() {
+function ProofForm({ trip, stop }: { trip: DriverTrip; stop: DriverStop }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const stopId = searchParams.get("stop_id");
+  const { perform, online } = useDriver();
+  const [recipient, setRecipient] = React.useState("");
+  const [signature, setSignature] = React.useState<string | null>(null);
+  const [photo, setPhoto] = React.useState<string | null>(null);
+  const [notes, setNotes] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const completeHref = `/driver/trip/complete?trip=${trip.id}&stop=${stop.id}`;
 
-  const [recipientName, setRecipientName] = useState("Malini Perera");
-  const [stop, setStop] = useState<DeliveryStop | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  if (stop.pod) {
+    return (
+      <DriverShell title="Proof of delivery" subtitle={stop.name} backHref={`/driver/trip?id=${trip.id}`}>
+        <Notice tone="success" icon={CheckCircle2} title={`Signed for by ${stop.pod.recipient_name}`}>
+          {stop.pod.has_signature ? "Signature" : ""}
+          {stop.pod.has_signature && stop.pod.has_photo ? " and photo" : stop.pod.has_photo ? "Photo" : ""} saved.
+        </Notice>
+        <Button asChild size="lg" className="h-12">
+          <Link href={completeHref}>Continue</Link>
+        </Button>
+      </DriverShell>
+    );
+  }
 
-  useEffect(() => {
-    if (!stopId) return;
+  if (stop.status !== "delivered" && stop.status !== "partial") {
+    return (
+      <DriverShell title="Proof of delivery" subtitle={stop.name} backHref={`/driver/trip?id=${trip.id}`}>
+        <Notice tone="info" icon={CheckCircle2} title="Record what happened first">
+          Proof of delivery follows a full or partial delivery.
+        </Notice>
+        <Button asChild size="lg" className="h-12">
+          <Link href={`/driver/trip/outcome?trip=${trip.id}&stop=${stop.id}`}>Record the outcome</Link>
+        </Button>
+      </DriverShell>
+    );
+  }
 
-    async function loadStopData() {
-      try {
-        const trips = await apiFetch<any[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "STARTED");
-        
-        if (startedTrip) {
-          const tripDetail = await apiFetch<any>(`/driver/trips/${startedTrip.id}`);
-          const foundStop = tripDetail.stops.find((s: any) => s.id.toString() === stopId);
-          if (foundStop) setStop(foundStop);
-        }
-      } catch (error) {
-        console.error("Failed to fetch stop data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    loadStopData();
-  }, [stopId]);
-
-  async function handleSubmit() {
-    if (!stopId) return;
-    setSubmitting(true);
-    
-    try {
-      await apiFetch(`/driver/stops/${stopId}/pod`, {
-        method: "POST",
-        body: JSON.stringify({
-          recipient_name: recipientName,
-          signature_data: "mock-signature.png",
-          photo_url: "mock-photo.jpg",
-          notes: ""
-        })
-      });
-      // The backend pod endpoint automatically completes the stop if successful
-      router.push(`/driver/trip/complete?stop_id=${stopId}`);
-    } catch (error) {
-      console.error("Failed to submit POD:", error);
-      setSubmitting(false);
-    }
+  async function submit() {
+    setError(null);
+    if (!recipient.trim()) return setError("Enter the name of the person who took the goods.");
+    if (!signature && !photo) return setError("Get their signature, or add a photo of the delivered goods.");
+    const payload: PodPayload = { recipient_name: recipient.trim() };
+    if (signature) payload.signature_data = signature;
+    if (photo) payload.photo_url = photo;
+    if (notes.trim()) payload.notes = notes.trim();
+    setBusy(true);
+    await perform({ action_type: "pod", trip_id: trip.id, stop_id: stop.id, payload, label: `Proof of delivery · ${stop.name}` });
+    router.push(completeHref);
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative overflow-hidden" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white z-10"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Saving offline</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
-
-        {/* Title bar */}
-        <div className="flex px-5 py-2.5 items-center w-full">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              Proof of Delivery
-            </h1>
-            <p className="text-[12px] font-normal leading-[1.45em] truncate max-w-full" style={{ color: "#5D6A78" }}>
-              {loading ? "..." : stop?.customer_name || "Unknown Stop"}
+    <DriverShell
+      title="Proof of delivery"
+      subtitle={`Stop ${stop.sequence} · ${stop.name}`}
+      backHref={`/driver/trip/outcome?trip=${trip.id}&stop=${stop.id}`}
+      footer={
+        <>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {error}
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Toast Area */}
-      <div className="w-full px-[15px] py-[10px] z-10" style={{ backgroundColor: "#F2F5F8" }}>
-        <div 
-          className="flex flex-col p-4 w-full bg-white rounded-lg"
-          style={{ border: "1px solid #E5E5E2", height: "76px" }}
-        >
-          <span className="font-semibold text-[13px]" style={{ color: "#18385F" }}>Saved locally</span>
-          <span className="font-normal text-[12px] mt-1" style={{ color: "#6B7280" }}>
-            Your proof is safe on this device.
+          )}
+          <Button size="lg" className="h-13 text-base font-bold" onClick={submit} disabled={busy}>
+            {busy ? "Saving…" : "Save and close the stop"}
+          </Button>
+        </>
+      }
+    >
+      <section className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3">
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-bold">{stop.name}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {stop.note ?? `${stop.orders.filter((order) => order.on_truck).length} orders handed over`}
           </span>
         </div>
+        <StopStatusBadge status={stop.status} />
+      </section>
+
+      {!online && (
+        <Notice tone="warning" icon={CloudOff} title="No signal: that's fine">
+          The proof is kept on this phone and sent when the connection returns.
+        </Notice>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="pod-recipient">Received by</Label>
+        <Input
+          id="pod-recipient"
+          value={recipient}
+          onChange={(e) => setRecipient(e.target.value)}
+          autoComplete="off"
+          placeholder="Name of the person taking the goods"
+          className="h-12 text-base"
+        />
       </div>
 
-      {/* Proof Map */}
-      <div className="relative w-full overflow-hidden shrink-0 z-0" style={{ height: "96px", backgroundColor: "#F2F5F8" }}>
-        {/* Map placeholder */}
-        <div className="absolute inset-0">
-          <div className="absolute left-[38px] top-[-30px] w-[22.56px] h-[156px] bg-white" />
-          <div className="absolute left-[118px] top-[-30px] w-[22.56px] h-[156px] bg-white" />
-          <div className="absolute left-[198px] top-[-30px] w-[22.56px] h-[156px] bg-white" />
-          <div className="absolute left-[278px] top-[-30px] w-[22.56px] h-[156px] bg-white" />
-          <div className="absolute left-[348px] top-[-30px] w-[22.56px] h-[156px] bg-white" />
-          
-          <div className="absolute left-0 top-[26px] w-full h-[10px] bg-white" />
-          <div className="absolute left-0 top-[92px] w-full h-[10px] bg-white" />
-          <div className="absolute left-0 top-[103px] w-full h-[64px] bg-white" />
-          
-          <div className="absolute left-[260px] top-0 w-[130px] h-full" style={{ backgroundColor: "#DCEAF4" }} />
-          
-          <svg className="absolute left-[22px] top-[30px] w-[320px] h-[230px]" style={{ pointerEvents: "none" }}>
-            <path d="M21,188 L152,98 L248,46 L306,12" stroke="#2167D5" strokeWidth="5" strokeDasharray="10,7" fill="none" />
-          </svg>
-
-          {/* Map Dimmer */}
-          <div className="absolute inset-0" style={{ backgroundColor: "rgba(11, 39, 67, 0.6)" }} />
-
-          {/* Current location & Pins */}
-          <div className="absolute left-[111px] top-[182px] w-[18px] h-[18px] rounded-full border-4 border-white z-10" style={{ backgroundColor: "#2167D5" }} />
-          <div className="absolute left-[43px] top-[218px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-white shadow-sm z-10" style={{ backgroundColor: "#18794E" }}>
-            <span className="text-[12px] font-bold text-white">✓</span>
-          </div>
-          <div className="absolute left-[174px] top-[128px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-white shadow-sm z-10" style={{ backgroundColor: "#163A5F" }}>
-            <span className="text-[12px] font-bold text-white">{stop?.sequence || ""}</span>
-          </div>
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="pod-signature">Their signature</Label>
+        <SignaturePad id="pod-signature" onChange={setSignature} />
       </div>
 
-      {/* Bottom Sheet */}
-      <div 
-        className="flex flex-col flex-1 bg-white px-5 pb-5 pt-2.5 gap-[14px] z-20 relative overflow-y-auto"
-        style={{ boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)", marginTop: "-20px" }}
-      >
-        {/* Drag Handle */}
-        <div className="w-full flex justify-center pb-2 shrink-0">
-          <div className="w-[40px] h-[4px] rounded-full" style={{ backgroundColor: "#D9E1E8" }} />
-        </div>
-
-        {/* Order summary */}
-        <div className="flex justify-between items-center w-full shrink-0">
-          <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-[10px] uppercase" style={{ color: "#2167D5" }}>{stop?.status || "PENDING"}</span>
-            <span className="font-bold text-[18px] truncate max-w-[200px]" style={{ color: "#12202E" }}>{stop?.customer_name || "Unknown"}</span>
-          </div>
-          <CloudOff size={22} color="#8793A0" />
-        </div>
-
-        {/* Form field (Recipient name) */}
-        <div className="flex flex-col gap-1.5 w-full shrink-0">
-          <label className="font-semibold text-[12px]" style={{ color: "#12202E" }}>Recipient name</label>
-          <div className="flex items-center w-full px-[14px] h-[40px] rounded-md" style={{ border: "1px solid #E5E5E2" }}>
-            <input 
-              type="text" 
-              value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
-              className="w-full text-[13px] outline-none"
-              style={{ color: "#6B7280", backgroundColor: "transparent" }}
-            />
-          </div>
-        </div>
-
-        {/* Signature field */}
-        <div className="flex flex-col gap-1.5 w-full shrink-0">
-          <label className="font-semibold text-[12px]" style={{ color: "#12202E" }}>Recipient signature</label>
-          <div className="relative w-full rounded-lg bg-white overflow-hidden" style={{ height: "108px", border: "1px solid #D9E1E8" }}>
-            {/* Baseline */}
-            <div className="absolute left-[18px] right-[18px] bottom-[26px] h-[1px]" style={{ backgroundColor: "#D9E1E8" }} />
-            
-            {/* Signature content */}
-            <div className="absolute left-[62px] top-[24px]">
-              <span className="italic font-medium text-[30px]" style={{ color: "#163A5F" }}>Malini P.</span>
-            </div>
-
-            {/* Timestamp */}
-            <div className="absolute left-[18px] bottom-[8px]">
-              <span className="font-normal text-[10px]" style={{ color: "#8793A0" }}>Signed at 06:59</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Photo evidence */}
-        <div 
-          className="flex flex-col justify-center items-center w-full p-[14px] gap-2 rounded-xl shrink-0 cursor-pointer"
-          style={{ height: "126px", backgroundColor: "#F2F5F8", border: "1px dashed #2167D5" }}
-        >
-          <Camera size={25} color="#12202E" />
-          <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>Add photo evidence</span>
-          <span className="font-normal text-[12px] text-center" style={{ color: "#5D6A78" }}>
-            Capture delivered goods at the rear dock.
-          </span>
-        </div>
-
-        {/* Primary Action Button */}
-        <div className="mt-auto pt-2 shrink-0">
-          <button 
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px] disabled:opacity-50"
-            style={{ backgroundColor: "#092C4C" }}
-          >
-            {submitting ? "Saving..." : "Submit & complete stop"}
-          </button>
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">Photo evidence</span>
+        <PhotoCapture
+          value={photo}
+          onChange={setPhoto}
+          label="Take a photo"
+          hint={stop.outlet ? PHOTO_HINT[stop.outlet.dock_type] : "The delivered goods."}
+        />
       </div>
 
-      {/* Bottom Nav */}
-      <div
-        className="flex items-center justify-between px-8 py-2.5 bg-white z-50 shrink-0"
-        style={{ borderTop: "1px solid #D9E1E8" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <MapIcon size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Queue</span>
-        </Link>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="pod-notes">Notes (optional)</Label>
+        <Textarea id="pod-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={1000} className="text-base" />
       </div>
-    </div>
+    </DriverShell>
   );
 }
 
-export default function ProofOfDeliveryPage() {
+function ProofContent() {
+  const { trip, stop } = useTripStop();
+  if (!trip.data || !stop) {
+    return <StopUnavailable loading={trip.loading} error={trip.error} backHref={trip.data ? `/driver/trip?id=${trip.data.id}` : "/driver/trip"} />;
+  }
+  return <ProofForm key={stop.id} trip={trip.data} stop={stop} />;
+}
+
+export default function ProofPage() {
   return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      <ProofOfDeliveryContent />
+    <React.Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <ProofContent />
     </React.Suspense>
   );
 }
