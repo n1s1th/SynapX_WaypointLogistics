@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.models.delivery_run import RunOrderState, RunStatus, RunStop
 from app.models.loader_activity import LoaderActivity
-from app.models.loader_issue import IssueStatus, IssueType
+from app.models.loader_issue import IssueStatus, IssueType, LoaderIssueOption
 from app.models.order import OrderStatus
 from app.models.plan_revision import PlanRevision
 from app.models.reference import Brand
@@ -417,7 +417,9 @@ def test_the_handoff_is_409_until_released(loader_client, trip_setup):
 def test_the_handoff_lists_what_was_loaded(loader_client, trip_setup):
     db = trip_setup["db"]
     trip, run, issue, loader = flagged(trip_setup, issue_type=IssueType.SHORT, affected=3)
-    decide(loader_client, issue, "Hold VEH035", decided_by="Kasun P.")
+    issue.options.append(LoaderIssueOption(label="Send 5 of 8", is_default=False, is_chosen=False, position=9))
+    db.flush()
+    decide(loader_client, issue, "Send 5 of 8", decided_by="Kasun P.")
     release(db, run, loader)
 
     body = loader_client.get(f"{BASE}/dispatch-trips/{trip.id}/handoff").json()
@@ -432,7 +434,8 @@ def test_the_handoff_lists_what_was_loaded(loader_client, trip_setup):
     out27 = body["stops"][0]["orders"][0]
     assert (out27["order_number"], out27["units_ordered"], out27["loaded_units"]) == ("ORD1002", 8, 5)
     assert out27["temperature_class"] == "chilled"
-    assert out27["shortfall"]["decision"] == "Hold VEH035"
+    assert out27["shortfall"]["decision"] == "Send 5 of 8"
+    assert out27["shortfall"]["units_affected"] == 3
     assert out27["shortfall"]["decided_by"] == "Kasun P."
     assert [s["order_number"] for s in body["shortfalls"]] == ["ORD1002"]
     assert (body["units_ordered"], body["units_loaded"]) == (28, 25)

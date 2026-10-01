@@ -2,6 +2,7 @@
 
 Endpoints stay thin; anything that decides something lives here.
 """
+import logging
 from collections import Counter
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
@@ -47,6 +48,8 @@ from app.models.reference import (
     VehicleType,
 )
 from app.schemas import loader as schemas
+from app.services.calendar_service import calendar_service
+from app.services.order_service import order_service
 
 # States that mean the order is physically aboard, for the capacity rollup.
 # RE_CHECK counts: the goods are on the truck, they just need re-confirming
@@ -110,6 +113,62 @@ def _day_label(day: date) -> str:
 def _ordinal(n: int) -> str:
     suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
+
+
+logger = logging.getLogger(__name__)
+
+# Order lifecycle as the loader drives it (order_service, docs/store-manager-contract.md):
+# ALLOCATED -> PROCESSING on the first tick, -> READY_FOR_DISPATCH once a release
+# can no longer be undone.
+PROCESSING_OR_LATER = {
+    OrderStatus.PROCESSING,
+    OrderStatus.READY_FOR_DISPATCH,
+    OrderStatus.DISPATCHED,
+    OrderStatus.DELIVERED,
+    OrderStatus.COMPLETED,
+}
+# Orders a released run moves on to READY_FOR_DISPATCH. Anything else is left
+# alone: already ready or further (finalizing is idempotent), DEFERRED
+# (deferred upstream), CANCELLED, DRAFT.
+FINALIZABLE_ORDER_STATUSES = {
+    OrderStatus.SUBMITTED,
+    OrderStatus.CONFIRMED,
+    OrderStatus.ALLOCATED,
+    OrderStatus.PROCESSING,
+}
+
+# order_items.quantity_sent for a SHORT order with more than one item. The
+# loader's flag is per order (units_affected) and does not say which item was
+# short, so:
+#   "C" - leave quantity_sent null on every item of that order (no guessing);
+#   "B" - put the whole shortfall on the last item, by order_items.id.
+# Single-item and fully loaded orders are exact either way.
+SHORT_MULTI_ITEM_RULE = "C"
+
+
+def _quantity_sent_for_order(
+    items, units_ordered: Optional[int], loaded_units: int, rule: Optional[str] = None
+) -> Dict[int, Optional[int]]:
+    """quantity_sent per order_items.id for an order the loader released."""
+    rule = rule or SHORT_MULTI_ITEM_RULE
+    items = sorted(items, key=lambda item: item.id)
+    if not items:
+        return {}
+    ordered = units_ordered if units_ordered is not None else sum(i.quantity for i in items)
+    shortfall = max(ordered - loaded_units, 0)
+    if shortfall == 0:
+        return {item.id: item.quantity for item in items}
+    if len(items) == 1:
+        return {items[0].id: max(min(loaded_units, items[0].quantity), 0)}
+    if rule == "B":
+        sent: Dict[int, Optional[int]] = {}
+        remaining = shortfall
+        for item in reversed(items):  # the last item first, then backwards if it runs out
+            take = min(item.quantity, remaining)
+            sent[item.id] = item.quantity - take
+            remaining -= take
+        return sent
+    return {item.id: None for item in items}
 
 
 class IncorrectPinError(Exception):
@@ -407,6 +466,27 @@ class _TripRef:
         self.trip_code = run.code
 
 
+class OrderAlreadyFlaggedError(InvalidStateTransitionError):
+    """A second flag for an order on the same run. 409; details.issue_id is
+    the issue it already has."""
+
+    def __init__(self, run: DeliveryRun, order_number: str, issue: LoaderIssue):
+        super().__init__(
+            f"{order_number} already has issue {issue.id} on {run.code}.",
+            current_state="flagged",
+            target_state=RunOrderState.FLAGGED.value,
+            entity="LoaderIssue",
+        )
+        self.code = "ORDER_ALREADY_FLAGGED"
+        self.details = {
+            "entity": "LoaderIssue",
+            "issue_id": issue.id,
+            "run_code": run.code,
+            "order_number": order_number,
+            "status": issue.status.value,
+        }
+
+
 class PlanLockedError(InvalidStateTransitionError):
     """A dispatcher plan change on a run that has gone through the gate. 409."""
 
@@ -451,13 +531,14 @@ class PlanChangeInvalidError(AllocationError):
 class InvalidOptionError(AllocationError):
     """A decision naming an option the issue does not have. 422."""
 
-    def __init__(self, issue: LoaderIssue, option):
+    def __init__(self, issue: LoaderIssue, option, *, message: Optional[str] = None,
+                 code: str = "INVALID_OPTION"):
         super().__init__(
-            f"Option {option!r} is not one of issue {issue.id}'s options.",
-            code="INVALID_OPTION",
+            message or f"Option {option!r} is not one of issue {issue.id}'s options.",
+            code=code,
             violations=[{
-                "code": "INVALID_OPTION",
-                "message": "Choose one of the issue's options.",
+                "code": code,
+                "message": message or "Choose one of the issue's options.",
                 "options": [{"id": o.id, "label": o.label} for o in issue.options],
             }],
         )
@@ -660,15 +741,21 @@ class LoaderService:
         """Units of this order actually on the truck.
 
         - loaded, re_check, take_off (not yet unloaded): every unit is aboard.
-        - flagged: missing -> 0; short, damaged or won't fit -> units minus the
-          units flagged; a flag without a count means the whole order is affected (0).
+        - flagged: units minus the issue's units_affected, for every issue type
+          (missing included: the tablet sends how many are missing, the whole
+          order by default). Once decided, units_affected is the final number
+          not sent (_final_units_not_sent), so a hold or a top-up shows the
+          order full again. No count: the whole order is affected (0).
         - to_load, new, moved: nothing aboard.
+
+        The hand-off, quantity_sent and the Store Manager page all read this
+        same number (INTEGRATION_DESIGN.md §11).
         """
         units = row.units or 0
         if row.state in (RunOrderState.LOADED, RunOrderState.RE_CHECK, RunOrderState.TAKE_OFF):
             return units
         if row.state == RunOrderState.FLAGGED and issue is not None:
-            if issue.issue_type == IssueType.MISSING or issue.units_affected is None:
+            if issue.units_affected is None:
                 return 0
             return max(units - issue.units_affected, 0)
         return 0
@@ -1391,6 +1478,14 @@ class LoaderService:
             raise PlanNotAcknowledgedError(run)
 
         row = LoaderService._current_row(db, run, payload.order_number)
+        earlier = db.execute(
+            select(LoaderIssue).filter_by(run_id=run.id, order_id=row.order_id)
+        ).scalars().first()
+        if earlier is not None:
+            # One issue per order per run (the Store Manager page reads
+            # loader_issues by order). A row back on the plan after a plan change
+            # keeps the issue it had; the loader ticks it or the dispatcher re-plans.
+            raise OrderAlreadyFlaggedError(run, payload.order_number, earlier)
         if row.state not in FLAGGABLE_STATES:
             raise InvalidStateTransitionError(
                 f"{payload.order_number} is {row.state.value}; it cannot be flagged.",
@@ -1572,7 +1667,10 @@ class LoaderService:
             run.released_by_id = None
         else:
             run.status = RunStatus.READY_TO_DEPART
-            run.released_at = at
+            # Naive UTC, like the column. An aware value is converted by the
+            # Postgres session time zone, which on a Colombo session stored it
+            # 5:30 ahead and kept the undo window open for hours.
+            run.released_at = _naive_utc(at)
             run.released_by_id = actor.id if actor else None
 
     @staticmethod
@@ -1738,6 +1836,8 @@ class LoaderService:
                 return run
             raise
 
+        if target == RunOrderState.LOADED:
+            LoaderService._mark_order_processing(db, row.order_id)
         return run
 
     @staticmethod
@@ -2832,10 +2932,19 @@ class LoaderService:
         message = f"{issue.order.order_number}: {chosen.label}"
         if payload.note:
             message += f" · {payload.note}"
+        if payload.units_not_sent is not None:
+            total = LoaderService._issue_units_total(issue)
+            if payload.units_not_sent > total:
+                raise InvalidOptionError(
+                    issue, payload.option,
+                    message=f"units_not_sent must be between 0 and {total}.",
+                    code="INVALID_UNITS_NOT_SENT",
+                )
         LoaderService._record_decision(
             db, issue, chosen,
             status=IssueStatus.DECIDED, decided_by=payload.decided_by,
             actor_kind=ActorKind.DISPATCHER, event_type="issue_decided", message=message,
+            deferred_to=payload.deferred_to, units_not_sent=payload.units_not_sent,
         )
         return issue, False
 
@@ -2861,10 +2970,13 @@ class LoaderService:
         actor_kind: ActorKind,
         event_type: str,
         message: str,
+        deferred_to: Optional[date] = None,
+        units_not_sent: Optional[int] = None,
     ) -> None:
         """Mark the option chosen, apply the outcome to the run (which lifts
         the release lock once nothing waits) and log it. Shared by the real
-        decision, the dev decision and the decide-by default."""
+        decision, the dev decision and the decide-by default. An option that
+        defers the order defers it through order_service, last."""
         now = datetime.now(timezone.utc)
         for option in issue.options:
             option.is_chosen = option is chosen
@@ -2873,6 +2985,13 @@ class LoaderService:
         issue.decided_by = decided_by
         if issue.seen_at is None and status == IssueStatus.DECIDED:
             issue.seen_at = now
+        if issue.units_total is None:
+            issue.units_total = LoaderService._issue_units_total(issue)
+        issue.units_affected = (
+            units_not_sent
+            if units_not_sent is not None
+            else LoaderService._final_units_not_sent(issue, chosen)
+        )
         LoaderService._apply_issue_outcome(db, issue, chosen)
         LoaderService.log(
             db, issue.run, at=now, actor_kind=actor_kind, event_type=event_type,
@@ -2880,6 +2999,51 @@ class LoaderService:
             order_id=issue.order_id, message=message,
         )
         db.flush()
+        if LoaderService._decision_defers_order(issue, chosen):
+            LoaderService._defer_order_for_decision(db, issue, chosen, deferred_to)
+
+    @staticmethod
+    def _issue_units_total(issue: LoaderIssue) -> int:
+        """The order's units on this run: the issue's units_total, else the
+        planned row's units, else the order's."""
+        if issue.units_total is not None:
+            return issue.units_total
+        row = next(
+            (
+                r
+                for stop in issue.run.stops
+                if stop.plan_version == issue.run.current_plan_version
+                for r in stop.orders
+                if r.order_id == issue.order_id
+            ),
+            None,
+        )
+        if row is not None and row.units is not None:
+            return row.units
+        return issue.order.units or issue.units_affected or 0
+
+    @staticmethod
+    def _final_units_not_sent(issue: LoaderIssue, chosen: LoaderIssueOption) -> int:
+        """The units of the order that do NOT go, once this option is chosen.
+        Becomes issue.units_affected, which loaded_units, the hand-off,
+        quantity_sent and the Store Manager page all read.
+
+        - "Send without it", "Defer ...", "Move to ...": the order does not go
+          on this run - every unit (units_total).
+        - "Hold ...", "Swap to a larger vehicle": the truck waits for the stock
+          or a bigger truck takes it all - 0.
+        - "Send N of M", "Leave the overflow ...", anything else: as flagged
+          (units_affected; every unit when the flag had no count).
+        A partial top-up is sent explicitly as units_not_sent on the decision.
+        """
+        total = LoaderService._issue_units_total(issue)
+        flagged = issue.units_affected if issue.units_affected is not None else total
+        label = chosen.label.strip().lower()
+        if label.startswith(("send without", "defer", "move to")):
+            return total
+        if label.startswith(("hold", "swap")):
+            return 0
+        return min(flagged, total)
 
     @staticmethod
     def apply_default_decision(db: Session, issue: LoaderIssue) -> LoaderIssue:
@@ -2947,6 +3111,7 @@ class LoaderService:
         the loader has released the run (ready_to_depart or gated_out)."""
         if run.status not in CLOSED_RUN_STATES:
             raise RunNotReleasedError(run)
+        LoaderService.finalize_release(db, run)
 
         latest = LoaderService._latest_issues(db, run)
         shortfalls = {
@@ -3029,6 +3194,7 @@ class LoaderService:
         """
         db.execute(select(DeliveryRun.id).where(DeliveryRun.id == run.id).with_for_update())
         if run.status == RunStatus.GATED_OUT:
+            LoaderService.finalize_release(db, run, force=True)  # a no-op once done
             return run, True
         if run.status != RunStatus.READY_TO_DEPART:
             raise RunNotReleasedError(run)
@@ -3041,7 +3207,162 @@ class LoaderService:
             actor_label=who, message=f"Gated out · {who}",
         )
         db.flush()
+        LoaderService.finalize_release(db, run, force=True)
         return run, False
+
+    # --- order status (order_service) --------------------------------------
+    #
+    # Every call here comes LAST in its loader action: order_service commits,
+    # and that commit writes the loader's own change with it. A refused move
+    # raises before anything is committed, and is logged, never re-raised -
+    # a tick or a read must not fail because of the order's status.
+
+    @staticmethod
+    def _mark_order_processing(db: Session, order_id: int) -> None:
+        """First tick of an order: ALLOCATED -> PROCESSING. Already PROCESSING
+        or further: nothing to do."""
+        order = db.get(Order, order_id)
+        if order is None or order.status in PROCESSING_OR_LATER:
+            return
+        try:
+            order_service.update_order_status(db, order.id, OrderStatus.PROCESSING)
+        except InvalidStateTransitionError as exc:
+            logger.warning("Loader tick: %s stays %s (%s)", order.order_number, order.status.value, exc.message)
+
+    @staticmethod
+    def release_window_closed(run: DeliveryRun, now: Optional[datetime] = None) -> bool:
+        """The release can no longer be undone (check_undo_allowed's window)."""
+        if run.released_at is None:
+            return False
+        now = now or datetime.now(timezone.utc)
+        elapsed = (_naive_utc(now) - _naive_utc(run.released_at)).total_seconds()
+        return elapsed > UNDO_WINDOW_SECONDS + UNDO_GRACE_SECONDS
+
+    @staticmethod
+    def finalize_release(
+        db: Session, run: DeliveryRun, *, now: Optional[datetime] = None, force: bool = False
+    ) -> List[Order]:
+        """Move a released run's orders to READY_FOR_DISPATCH and record what
+        was sent (order_items.quantity_sent). Returns the orders moved.
+
+        Only once the undo window has closed (force: gate-out, which ends the
+        window itself). Every order on the current plan, short ones included;
+        not orders taken off or moved (take_off / moved rows), and not orders
+        deferred upstream or in any other state outside
+        FINALIZABLE_ORDER_STATUSES - which is also what makes a second call a
+        no-op. An order the loader never ticked (flagged missing, kept on by
+        the dispatcher) goes through PROCESSING first.
+        """
+        if run.status not in CLOSED_RUN_STATES:
+            return []
+        if not force and not LoaderService.release_window_closed(run, now):
+            return []
+        latest = LoaderService._latest_issues(db, run)
+        pending = [
+            (row.order_id, row.units, LoaderService.loaded_units(row, latest.get(row.order_id)))
+            for stop in LoaderService.current_stops(db, run)
+            for row in stop.orders
+            if row.state not in OFF_PLAN_STATES and row.order.status in FINALIZABLE_ORDER_STATUSES
+        ]
+        moved: List[Order] = []
+        for order_id, units, loaded in pending:
+            order = db.get(Order, order_id)
+            if order.status not in FINALIZABLE_ORDER_STATUSES:
+                continue
+            sent = _quantity_sent_for_order(order.items, units, loaded)
+            for item in order.items:
+                if item.id in sent:
+                    item.quantity_sent = sent[item.id]
+            try:
+                if order.status != OrderStatus.PROCESSING:
+                    order_service.update_order_status(db, order.id, OrderStatus.PROCESSING)
+                order_service.update_order_status(db, order.id, OrderStatus.READY_FOR_DISPATCH)
+                moved.append(order)
+            except InvalidStateTransitionError as exc:
+                logger.warning(
+                    "Release of %s: %s stays %s (%s)", run.code, order.order_number, order.status.value, exc.message
+                )
+        return moved
+
+    @staticmethod
+    def finalize_due_releases(db: Session, now: Optional[datetime] = None) -> List[Order]:
+        """finalize_release for every released run whose undo window has
+        closed and which still has an order to move. Called on the loader and
+        dispatcher reads; there is no background worker."""
+        cutoff = _naive_utc(now or datetime.now(timezone.utc)) - timedelta(
+            seconds=UNDO_WINDOW_SECONDS + UNDO_GRACE_SECONDS
+        )
+        has_pending = (
+            select(RunStopOrder.id)
+            .join(RunStop, RunStopOrder.run_stop_id == RunStop.id)
+            .join(Order, RunStopOrder.order_id == Order.id)
+            .where(
+                RunStop.run_id == DeliveryRun.id,
+                RunStop.plan_version == DeliveryRun.current_plan_version,
+                RunStopOrder.state.notin_(OFF_PLAN_STATES),
+                Order.status.in_(FINALIZABLE_ORDER_STATUSES),
+            )
+            .exists()
+        )
+        runs = db.execute(
+            select(DeliveryRun).where(
+                DeliveryRun.status.in_(CLOSED_RUN_STATES),
+                DeliveryRun.released_at.is_not(None),
+                DeliveryRun.released_at < cutoff,
+                has_pending,
+            ).order_by(DeliveryRun.released_at)
+        ).scalars().all()
+        moved: List[Order] = []
+        for run in runs:
+            moved += LoaderService.finalize_release(db, run, now=now)
+        return moved
+
+    @staticmethod
+    def _decision_defers_order(issue: LoaderIssue, chosen: LoaderIssueOption) -> bool:
+        """Options that push the whole order to another day: "Send without it",
+        a "Defer ..." option, and "Leave the overflow ..." when the overflow is
+        the whole order. A partial overflow keeps the order (it goes short)."""
+        label = chosen.label.strip().lower()
+        if label.startswith("send without") or label.startswith("defer"):
+            return True
+        if label.startswith("leave the overflow"):
+            return (
+                issue.units_affected is not None
+                and issue.units_total is not None
+                and issue.units_affected >= issue.units_total
+            )
+        return False
+
+    @staticmethod
+    def deferral_day(db: Session, run: DeliveryRun, now: Optional[datetime] = None) -> date:
+        """The delivery day an order deferred off this run moves to: the first
+        operating day after the run's delivery day - or after today, when the
+        run's day has already passed - both in depot time. Never today or a
+        day gone by.
+
+        Operating days are calendar_service's: calendar_days when it has the
+        date (holidays, festival closures), otherwise every day but Sunday.
+        """
+        today = _depot_date(now or datetime.now(timezone.utc))
+        after = max(_depot_date(run.departs_at), today)
+        return calendar_service.get_next_operating_day(db, after)
+
+    @staticmethod
+    def _defer_order_for_decision(
+        db: Session, issue: LoaderIssue, chosen: LoaderIssueOption, deferred_to: Optional[date]
+    ) -> None:
+        """The decision defers the order: order_service.defer_order with the
+        decision's date, else deferral_day. An order already DEFERRED
+        (deferred upstream) is left alone."""
+        order = issue.order
+        if order.status == OrderStatus.DEFERRED:
+            return
+        day = deferred_to or LoaderService.deferral_day(db, issue.run)
+        reason = f"{ISSUE_WORDS[issue.issue_type].capitalize()} at the loading dock ({issue.run.code}): {chosen.label}"
+        try:
+            order_service.defer_order(db, order.id, reason, day)
+        except InvalidStateTransitionError as exc:
+            logger.warning("Decision on issue %s: %s not deferred (%s)", issue.id, order.order_number, exc.message)
 
     # --- integration slice 1: loader -> dispatcher ----------------------
 
@@ -3062,6 +3383,8 @@ class LoaderService:
         runs = db.execute(
             select(DeliveryRun).where(DeliveryRun.dispatch_trip_id.in_(dispatch_trip_ids))
         ).scalars().all()
+        for run in runs:
+            LoaderService.finalize_release(db, run)
         return {run.dispatch_trip_id: LoaderService._dispatcher_read(db, run) for run in runs}
 
     @staticmethod

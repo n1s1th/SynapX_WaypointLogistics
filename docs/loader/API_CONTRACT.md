@@ -342,8 +342,7 @@ the truck ("53 of 56 units will be loaded"):
 | Row | `loaded_units` |
 | --- | --- |
 | `loaded`, `re_check`, `take_off` not yet unloaded | `units` — the goods are aboard |
-| `flagged` short · damaged · won't fit | `units − units_affected` of the order's latest issue; `0` when `units_affected` is `null` (the whole order is treated as affected) |
-| `flagged` missing | `0` |
+| `flagged` (any issue type) | `units − units_affected` of the order's issue; `0` when `units_affected` is `null` (the whole order is treated as affected). Missing counts like the others: the tablet sends how many are missing (the whole order by default). Once the dispatcher decides, `units_affected` is the final number not sent, so "Hold" or "Swap to a larger vehicle" shows the order full again (INTEGRATION_DESIGN.md §11) |
 | `to_load`, `new`, `moved` | `0` |
 
 **Released** — `released_at` (UTC, `Z`) and `released_by` (`{id, name}`, the

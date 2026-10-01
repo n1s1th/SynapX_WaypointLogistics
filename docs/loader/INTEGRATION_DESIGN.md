@@ -376,7 +376,12 @@ Each slice is shippable and demoable on its own.
 | Minidu | `ensure_trip_for_run` (upsert trip + stops); `start_trip` → 409 unless released, then calls `mark_gated_out`; `GET /driver/trips/{id}/manifest`; trip screens show loaded vs ordered; migrations #5/#6 if approved |
 | Thisaru | `dispatch_trips.status = en_route` at gate-out (replaces "Publish Run" setting it by hand) |
 
-**Later:** #4 moved/deferred text; websocket/SSE instead of polling; auth on the dispatcher-facing loader endpoints.
+**Later:**
+- #4 moved/deferred text stored on the plan change (today it is read from where the order went).
+- **Item-level shortfalls (rule D):** a nullable `loader_issues.order_item_id` (FK `order_items`) plus picking
+  the item on the tablet's flag sheet, so a short multi-item order gets an exact `quantity_sent` per item
+  instead of null (§10). Needs a migration (Devmith) and a tablet change.
+- websocket/SSE instead of polling; auth on the dispatcher-facing loader endpoints.
 
 ---
 
@@ -622,7 +627,7 @@ Retry: the same body after a timeout returns `200` with `"replayed": true` and t
 
 ```json
 {"option": 102, "note": "Replacement on the 03:00 shuttle", "decided_by": "Kasun P.",
- "client_action_id": "0b7d…"}
+ "client_action_id": "0b7d…", "deferred_to": null}
 ```
 
 `option` is the option's `id` (preferred) or its exact label. Response `200`: the issue as above with
@@ -641,6 +646,17 @@ activity row only. "Hold" does not move the departure: send a `departs_at` plan 
 | `409 INVALID_STATE_TRANSITION` | the run has gone through the gate |
 
 Same option again → `200`, nothing written.
+
+**Deferring options.** "Send without it", any "Defer …" option, and "Leave the overflow for the next run" when the
+overflow is the whole order, defer the order through `order_service.defer_order`. The new day is `deferred_to`
+if sent, otherwise the **deferral day**: the first operating day after the run's delivery day, or after today
+when the run's day has already passed (depot time; never today or a past day). Operating days come from
+`calendar_days` where it has the date, otherwise every day but Sunday. **Calendar coverage:** Neon's
+`calendar_days` ends 2026-06-28 and local has two rows, and `docs/calendar.csv` is not in the repo, so beyond
+that only Sundays are skipped — holidays (Poya days etc.) need the calendar extended (Devmith,
+`scripts/seed_reference_data.py`). The reason reads
+`"Missing at the loading dock (RUN-0024): Send without it"`. The store gets its usual deferral notification.
+An order already `DEFERRED` (deferred upstream) is left alone. The decide-by default does the same.
 
 **Decide-by.** `decide_by` = departure − 20 min. When it passes with no decision, the default option is applied
 (`status: "default_applied"`, `decided_by: "System (decide-by passed)"`, activity `issue_default_applied`).
@@ -733,3 +749,99 @@ Response `200`:
 | `409 RUN_NOT_RELEASED` | not released yet (`not_started` … `loaded`): the driver cannot leave |
 
 Already gated out → `200` with `"replayed": true` and the original `gated_out_at`.
+
+---
+
+## 10. Order status from the loader (agreed with Devmith)
+
+The loader moves orders through `order_service` only (no HTTP, no direct writes to `orders.status`):
+
+```python
+from app.services.order_service import order_service
+from app.models.order import OrderStatus
+order_service.update_order_status(db, order_id, OrderStatus.PROCESSING)
+```
+
+| Loader action | Order effect |
+|---|---|
+| First tick of an order (check → loaded) | `ALLOCATED → PROCESSING`. Already `PROCESSING` or later: nothing. Untick / re-tick: nothing |
+| Acknowledge a plan | nothing |
+| Release (`ready_to_depart`) | nothing yet: the loader may undo within 10 s (+ 2 s grace) |
+| Undo within the window | nothing |
+| Undo window closed | every order on the current plan → `READY_FOR_DISPATCH` (through `PROCESSING` if never ticked), `order_items.quantity_sent` filled. Orders taken off / moved, and orders `DEFERRED` upstream, are left alone |
+| Gate-out | the same, at once (leaving the gate ends the undo window) |
+| Decision that defers the order | `order_service.defer_order(db, order_id, reason, new_date)` (see 8.4) |
+
+**When "after the window" happens.** There is no worker. The first loader or dispatcher read after the window
+finalizes: the queue, summary, run read, issues, `…/loading`, `dispatcher_view`, `…/handoff` (only once the window
+has closed; reading the hand-off inside the window must not defeat undo) and `…/gate-out` (always).
+`LoaderService.finalize_due_releases(db)` / `finalize_release(db, run)` are the functions. Finalizing is idempotent
+without a new column: it only touches orders still in `SUBMITTED`/`CONFIRMED`/`ALLOCATED`/`PROCESSING`.
+
+**`quantity_sent`.** A loader flag is per order (`units_affected`), not per item. `_quantity_sent_for_order`:
+- fully loaded → every item's `quantity`;
+- one item → the loaded units ("43 of 46"), i.e. ordered − the issue's final `units_affected` (§11);
+- short with several items → **null on every item** (rule C). Switch `SHORT_MULTI_ITEM_RULE` to `"B"` to put the
+  whole shortfall on the last item (by `order_items.id`) instead. Rule D (exact, per item) is on the later list (§5).
+
+**Transactions.** `order_service` commits inside each call, so every call comes last in its loader action and its
+commit writes the loader's change with it. A refused move (`InvalidStateTransitionError`) is raised before
+anything commits; the loader logs it and carries on — a tick, read or decision never fails because of the order's
+status. Finalizing commits once per order; a failure halfway is picked up by the next read.
+
+**Known gap.** A plan change after the window (a reopened Ready run) can take an order off the truck that is
+already `READY_FOR_DISPATCH`; there is no move back. The dispatcher's own defer/re-plan handles that order.
+
+---
+
+## 11. For the Store Manager page — shortfalls from `loader_issues`
+
+Devmith's store page reads shortfalls straight from `loader_issues` by `order_id`. What the loader guarantees:
+
+**Which rows.** `issue_type` in short / missing / wont_fit (damaged exists too and follows the same rules).
+Show the number only when `status` is decided or default_applied; before that it is the loader's first count
+and may still change.
+
+**Real stored values (Postgres enums store the member NAME, upper case).** The API shows lower case; raw SQL
+must use these:
+
+| Column (Postgres type) | Stored values |
+|---|---|
+| `status` (`loaderissuestatus`) | `SENT`, `SEEN`, `DECIDED`, `DEFAULT_APPLIED` |
+| `issue_type` (`loaderissuetype`) | `MISSING`, `SHORT`, `DAMAGED`, `WONT_FIT` |
+
+```sql
+SELECT order_id, issue_type, units_affected, units_total
+FROM loader_issues
+WHERE order_id = :order_id
+  AND issue_type IN ('SHORT', 'MISSING', 'WONT_FIT')
+  AND status IN ('DECIDED', 'DEFAULT_APPLIED');
+```
+
+(Through the ORM: `IssueStatus.DECIDED`, `IssueType.SHORT`, … compare correctly.)
+
+**`units_affected` once decided = the final number of units NOT sent; `units_total` = the order's units on the run.**
+Both are always set (never null) once decided: a flag without a count becomes the whole order. Sent = `units_total − units_affected`.
+
+| Issue | Decision (option) | Final `units_affected` |
+|---|---|---|
+| any | "Send without it" (order deferred), "Defer …", "Move to …" (another vehicle) | `units_total` |
+| missing / short / damaged | "Hold the vehicle" (the truck waits for the goods / stock) | `0` |
+| won't fit | "Swap to a larger vehicle" | `0` |
+| short / damaged | "Send N of M" | as flagged (`M − N`) |
+| won't fit | "Leave the overflow for the next run" | as flagged (the overflow); the whole order → also deferred |
+| missing | (default "Send without it") | `units_total` |
+| any | dispatcher sends `units_not_sent` (a partial top-up: 3 short, 2 found → 1) | that number |
+
+The decide-by default (`DEFAULT_APPLIED`) sets it the same way as a dispatcher choosing that option.
+The same number drives `loaded_units` on the tablet, the driver hand-off and `order_items.quantity_sent` (§10),
+so the store page, the hand-off and "sent" never disagree.
+
+**One issue per order per run.** Enforced by the loader (no DB constraint, no migration): a second flag for an
+order on the same run is `409 ORDER_ALREADY_FLAGGED`, including when the order comes back on the plan after a
+plan change. Across runs an order can have more than one issue (e.g. moved to another vehicle and flagged
+there): take the latest decided one (`decided_at`), or sum per run if both runs carried part of it.
+
+**A moved order is not a shortfall for the store.** "Move to …" means not sent *on this run*
+(`units_affected = units_total`), but the order goes on another vehicle. If that matters on the page, show it
+only when the order is not on another run (or rely on the order's own status: a deferred order is `DEFERRED`).

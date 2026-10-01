@@ -25,10 +25,15 @@ from app.services.loader_service import FlagRequestError, IncorrectPinError, loa
 router = APIRouter()
 
 
-def _apply_overdue_defaults(db: Session) -> None:
-    """Reads never show an overdue issue as waiting: apply the default first
-    (runs built from a dispatch trip only; see LoaderService.apply_overdue_defaults)."""
-    if loader_service.apply_overdue_defaults(db):
+def _catch_up(db: Session) -> None:
+    """What would happen on a timer, done on the next read (there is no worker):
+    - an overdue issue gets its default option (runs built from a dispatch
+      trip only; LoaderService.apply_overdue_defaults);
+    - a release whose undo window has closed moves its orders to
+      READY_FOR_DISPATCH (LoaderService.finalize_due_releases)."""
+    changed = bool(loader_service.apply_overdue_defaults(db))
+    changed = bool(loader_service.finalize_due_releases(db)) or changed
+    if changed:
         db.commit()
 
 
@@ -83,7 +88,7 @@ def get_queue(
     db: Session = Depends(deps.get_db),
 ):
     """The dock's loading queue: cards grouped by brand and wave, by departure."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     return loader_service.build_queue(db, loader_service.resolve_dock(db, dock), brand)
 
 
@@ -93,14 +98,14 @@ def get_summary(
     db: Session = Depends(deps.get_db),
 ):
     """The queue's metric cards, counted from the same runs as GET /loader/runs."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     return loader_service.build_summary(db, loader_service.resolve_dock(db, dock))
 
 
 @router.get("/runs/{code}", response_model=schemas.RunDetailRead)
 def get_run(code: str, db: Session = Depends(deps.get_db)):
     """The loading checklist for one run, stops in load order (deepest first)."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     run = loader_service.get_run(db, code)
     return loader_service.build_run_detail(db, run)
 
@@ -260,7 +265,7 @@ def list_issues(
     db: Session = Depends(deps.get_db),
 ):
     """The Issues tab: every issue on the dock's runs, newest first."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     issues = loader_service.list_issues(db, loader_service.resolve_dock(db, dock), run)
     return [loader_service.build_issue_detail(db, issue) for issue in issues]
 
@@ -286,7 +291,7 @@ def undo_release(code: str, payload: schemas.ReleaseRequest, db: Session = Depen
 @router.get("/issues/{issue_id}", response_model=schemas.IssueDetailRead)
 def get_issue(issue_id: int, db: Session = Depends(deps.get_db)):
     """One flagged issue with the options the dispatcher had."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     issue = loader_service.get_issue(db, issue_id)
     return loader_service.build_issue_detail(db, issue)
 
@@ -333,7 +338,7 @@ def create_run_for_dispatch_trip(
 @router.get("/dispatch-trips/{trip_id}/loading", response_model=schemas.DispatcherLoadingRead)
 def get_dispatch_trip_loading(trip_id: int, db: Session = Depends(deps.get_db)):
     """The dock's side of one dispatch trip; 404 when no loader run is built for it."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     trip = _dispatch_trip(db, trip_id)
     view = loader_service.dispatcher_view(db, [trip.id]).get(trip.id)
     if view is None:
@@ -381,7 +386,7 @@ def get_handoff(trip_id: int, db: Session = Depends(deps.get_db)):
     """For the driver: the released run's stops in delivery order, each order's
     loaded vs ordered units and any decided shortfall. 409 RUN_NOT_RELEASED
     until the loader has released it."""
-    _apply_overdue_defaults(db)
+    _catch_up(db)
     run = loader_service.require_run_for_dispatch_trip(db, _dispatch_trip(db, trip_id).id)
     return loader_service.handoff(db, run)
 
