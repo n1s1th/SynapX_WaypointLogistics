@@ -1,212 +1,203 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// Report a problem to dispatch (brief p4: today drivers phone it in, and dispatch
+// learns about problems late). Queued offline like every other record.
+
+import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
-  Signal, BatteryFull, Store, DoorClosed, PackageX,
-  Ellipsis, Check, Map as MapIcon, Home, TriangleAlert, Layers
+  Check,
+  Clock,
+  DoorClosed,
+  PackageSearch,
+  PackageX,
+  Store,
+  Thermometer,
+  TrafficCone,
+  Truck,
 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { PhotoCapture } from "@/components/driver/photo-capture";
+import { cn } from "@/lib/utils";
+import { isStopDone, nextStop } from "@/lib/driver/format";
+import { useActiveTripId, useTrip } from "@/lib/driver/hooks";
+import type { IssuePayload, IssueType } from "@/lib/driver/types";
 
-export default function ReportProblemPage() {
+const CATEGORIES: { label: string; type: IssueType; icon: typeof Store }[] = [
+  { label: "Outlet closed", type: "customer_unavailable", icon: Store },
+  { label: "Mall window missed", type: "customer_unavailable", icon: Clock },
+  { label: "Access blocked or van only", type: "other", icon: DoorClosed },
+  { label: "Damaged goods", type: "damaged_goods", icon: PackageX },
+  { label: "Temperature problem", type: "other", icon: Thermometer },
+  { label: "Short or wrong items", type: "other", icon: PackageSearch },
+  { label: "Vehicle breakdown", type: "vehicle_breakdown", icon: Truck },
+  { label: "Traffic or road closed", type: "traffic_delay", icon: TrafficCone },
+];
+
+function ReportContent() {
   const router = useRouter();
-  
-  const [selectedIssue, setSelectedIssue] = useState("Outlet closed");
-  const [notes, setNotes] = useState("");
-  const [activeTrip, setActiveTrip] = useState<any>(null);
-  const [currentStop, setCurrentStop] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const params = useSearchParams();
+  const active = useActiveTripId();
+  const tripId = Number(params.get("trip")) || active.tripId;
+  const trip = useTrip(tripId);
+  const { perform, online } = useDriver();
+  const data = trip.data;
+  const stopParam = Number(params.get("stop")) || null;
+  const defaultStop = stopParam ?? (data ? nextStop(data.stops)?.id ?? null : null);
 
-  const issues = [
-    { label: "Outlet closed", icon: Store, backendType: "customer_unavailable" },
-    { label: "Access denied", icon: DoorClosed, backendType: "customer_unavailable" },
-    { label: "Order mismatch", icon: PackageX, backendType: "damaged_goods" },
-    { label: "Other", icon: Ellipsis, backendType: "other" },
-  ];
+  const [category, setCategory] = React.useState<string | null>(null);
+  const [stopChoice, setStopChoice] = React.useState<number | "none" | null>(null);
+  const [note, setNote] = React.useState("");
+  const [photo, setPhoto] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const stopId = stopChoice === "none" ? null : stopChoice ?? defaultStop;
 
-  useEffect(() => {
-    async function loadActiveTrip() {
-      try {
-        const trips = await apiFetch<any[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "STARTED");
-        
-        if (startedTrip) {
-          const detail = await apiFetch<any>(`/driver/trips/${startedTrip.id}`);
-          setActiveTrip(detail);
-          
-          const pendingStops = detail.stops?.filter((s: any) => s.status === 'PENDING') || [];
-          if (pendingStops.length > 0) {
-            setCurrentStop(pendingStops[0]);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load active trip:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadActiveTrip();
-  }, []);
-
-  async function handleSubmit() {
-    if (!activeTrip) return;
-    setSubmitting(true);
-    
-    const issueConfig = issues.find(i => i.label === selectedIssue) || issues[3];
-
-    try {
-      await apiFetch(`/driver/trips/${activeTrip.id}/issues`, {
-        method: "POST",
-        body: JSON.stringify({
-          stop_id: currentStop ? currentStop.id : null,
-          issue_type: issueConfig.backendType,
-          description: notes || selectedIssue,
-          photo_url: null
-        })
-      });
-      router.push("/driver/trip");
-    } catch (error) {
-      console.error("Failed to submit issue:", error);
-      setSubmitting(false);
-    }
+  async function submit() {
+    if (!data) return;
+    const picked = CATEGORIES.find((item) => item.label === category);
+    if (!picked) return setError("Pick what the problem is.");
+    const stop = data.stops.find((item) => item.id === stopId);
+    const payload: IssuePayload = {
+      issue_type: picked.type,
+      category: picked.label,
+      description: note.trim() || picked.label,
+      stop_id: stop?.id ?? null,
+    };
+    if (photo) payload.photo_url = photo;
+    setBusy(true);
+    await perform({
+      action_type: "issue",
+      trip_id: data.id,
+      stop_id: null,
+      payload,
+      label: `${picked.label}${stop ? ` · ${stop.name}` : ""}`,
+    });
+    toast.success(online ? "Sent to dispatch." : "Saved on this phone: dispatch gets it when you're back online.");
+    router.push(`/driver/trip?id=${data.id}`);
   }
 
+  if (!data) {
+    return (
+      <DriverShell title="Report a problem" tab="report">
+        <section className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-4 py-8 text-center">
+          <span className="font-bold">{trip.loading || active.loading ? "Loading your trip…" : "No trip on the road"}</span>
+          <span className="text-sm text-muted-foreground">Problems are reported against the trip you&apos;re driving.</span>
+          <Button asChild variant="outline" size="lg" className="h-11">
+            <Link href="/driver">Go to today&apos;s trips</Link>
+          </Button>
+        </section>
+      </DriverShell>
+    );
+  }
+
+  const openStops = data.stops.filter((stop) => !isStopDone(stop) || stop.id === stopId);
+
   return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex flex-col w-full bg-white z-10"
-        style={{ borderBottom: "1px solid #D9E1E8" }}
-      >
-        {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Online</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
-
-        {/* Title bar */}
-        <div className="flex px-5 py-2.5 items-center w-full">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              Report a problem
-            </h1>
-            <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              {loading ? "..." : activeTrip ? `Trip ${activeTrip.id} ${currentStop ? `· Stop ${currentStop.sequence}` : ''}` : "No Active Trip"}
+    <DriverShell
+      title="Report a problem"
+      subtitle={`${data.run?.code ?? `Trip ${data.id}`} · goes to dispatch`}
+      tab="report"
+      footer={
+        <>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {error}
             </p>
-          </div>
+          )}
+          <Button size="lg" className="h-13 text-base font-bold" onClick={submit} disabled={busy}>
+            Send to dispatch
+          </Button>
+        </>
+      }
+    >
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-base font-bold">What&apos;s wrong?</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {CATEGORIES.map((item) => {
+            const Icon = item.icon;
+            const selected = category === item.label;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  setCategory(item.label);
+                  setError(null);
+                }}
+                className={cn(
+                  "flex min-h-14 items-center gap-2 rounded-xl border-2 bg-card px-3 py-2 text-left text-sm font-semibold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  selected ? "border-primary bg-accent" : "border-border",
+                )}
+              >
+                <Icon className="size-5 shrink-0" aria-hidden />
+                <span className="flex-1">{item.label}</span>
+                {selected && <Check className="size-4 text-primary" aria-hidden />}
+              </button>
+            );
+          })}
         </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-base font-bold">Which stop?</legend>
+        <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-card">
+          {openStops.map((stop) => (
+            <label key={stop.id} className="flex min-h-12 items-center gap-3 px-3 py-2">
+              <input
+                type="radio"
+                name="report-stop"
+                className="size-5 accent-primary"
+                checked={stopId === stop.id}
+                onChange={() => setStopChoice(stop.id)}
+              />
+              <span className="text-sm">
+                <span className="font-semibold">Stop {stop.sequence}</span> · {stop.name}
+              </span>
+            </label>
+          ))}
+          <label className="flex min-h-12 items-center gap-3 px-3 py-2">
+            <input
+              type="radio"
+              name="report-stop"
+              className="size-5 accent-primary"
+              checked={stopId === null}
+              onChange={() => setStopChoice("none")}
+            />
+            <span className="text-sm">Not about a stop (on the road)</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="report-note">Details for dispatch</Label>
+        <Textarea
+          id="report-note"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={4}
+          maxLength={1500}
+          className="text-base"
+          placeholder="What happened, and what you need from dispatch"
+        />
       </div>
 
-      {/* Report Content */}
-      <div className="flex flex-col flex-1 px-5 pt-[18px] pb-[100px] gap-3">
-        
-        {/* Delivery issues */}
-        <div className="flex flex-col gap-2 w-full">
-          <h2 className="font-bold text-[18px]" style={{ color: "#12202E" }}>Delivery issue</h2>
-          
-          <div className="flex flex-col gap-2.5 w-full">
-            {issues.map((issue) => {
-              const Icon = issue.icon;
-              const isSelected = selectedIssue === issue.label;
+      <PhotoCapture value={photo} onChange={setPhoto} label="Add a photo (optional)" />
+    </DriverShell>
+  );
+}
 
-              return (
-                <div 
-                  key={issue.label}
-                  onClick={() => setSelectedIssue(issue.label)}
-                  className="flex items-center justify-between p-[11px] rounded-xl cursor-pointer"
-                  style={{
-                    backgroundColor: isSelected ? "#EAF2FF" : "#FFFFFF",
-                    border: `1px solid ${isSelected ? "#2167D5" : "#D9E1E8"}`,
-                    boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)"
-                  }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon size={19} color="#12202E" />
-                    <span 
-                      className={`text-[14px] ${isSelected ? 'font-bold' : 'font-medium'}`} 
-                      style={{ color: "#12202E" }}
-                    >
-                      {issue.label}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="flex justify-center items-center w-[19px] h-[19px] rounded-full"
-                    style={{ 
-                      backgroundColor: isSelected ? "#2167D5" : "#FFFFFF",
-                      border: `2px solid ${isSelected ? "#2167D5" : "#D9E1E8"}`
-                    }}
-                  >
-                    {isSelected && <Check size={11} color="#FFFFFF" strokeWidth={3} />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Optional note */}
-        <div className="flex flex-col gap-1 w-full mt-1">
-          <label className="font-semibold text-[12px]" style={{ color: "#12202E" }}>Optional note</label>
-          <textarea 
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full h-[120px] p-4 rounded bg-white outline-none resize-none font-normal text-[16px]"
-            style={{ border: "1px solid #E0E0E0", color: "#4F4F4F" }}
-            placeholder="Add details for dispatch…"
-          />
-        </div>
-
-        {/* Secondary action */}
-        <button 
-          className="w-full flex justify-center items-center h-[40px] rounded-md mt-1"
-          style={{ border: "1px solid #E5E5E2", backgroundColor: "#FFFFFF" }}
-        >
-          <span className="font-semibold text-[13px]" style={{ color: "#171A1F" }}>Add photo +</span>
-        </button>
-
-        {/* Primary action */}
-        <div className="w-full mt-1">
-          <button 
-            onClick={handleSubmit}
-            disabled={submitting || !activeTrip}
-            className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px] disabled:opacity-50"
-            style={{ backgroundColor: "#092C4C" }}
-          >
-            {submitting ? "Submitting..." : "Submit report"}
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom Nav */}
-      <div
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-between px-8 py-2.5 bg-white z-50"
-        style={{ borderTop: "1px solid #D9E1E8", boxShadow: "0px -8px 28px 0px rgba(11, 39, 67, 0.16)" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <MapIcon size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#163A5F" />
-          <span className="text-[10px] font-bold" style={{ color: "#163A5F" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Queue</span>
-        </Link>
-      </div>
-    </div>
+export default function ReportPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <ReportContent />
+    </React.Suspense>
   );
 }

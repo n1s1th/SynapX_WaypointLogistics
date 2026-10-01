@@ -1,231 +1,155 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+// Emergency alert to dispatch with the phone's location. Sent at once when there's
+// signal; without it, queued and sent the moment it returns, and the screen
+// points to numbers that work without data.
+
+import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft, AlertTriangle, HeartPulse, ShieldAlert,
-  Car, Flame, MoreHorizontal, MapPin, Camera, Route
-} from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { Car, Ellipsis, Flame, HeartPulse, MapPin, Route, ShieldAlert, TriangleAlert } from "lucide-react";
+import { ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { EmergencyCalls } from "@/components/driver/emergency-calls";
+import { cn } from "@/lib/utils";
+import { driverApi } from "@/lib/driver/api";
+import { nextStop } from "@/lib/driver/format";
+import { useActiveTripId, useGeolocation, useTrip } from "@/lib/driver/hooks";
+import type { SosPayload } from "@/lib/driver/types";
 
-export default function SOSPage() {
+const TYPES = [
+  { label: "Accident", icon: TriangleAlert },
+  { label: "Medical emergency", icon: HeartPulse },
+  { label: "Safety or security", icon: ShieldAlert },
+  { label: "Vehicle breakdown", icon: Car },
+  { label: "Dangerous road", icon: Route },
+  { label: "Vehicle fire", icon: Flame },
+  { label: "Other emergency", icon: Ellipsis },
+];
+
+export default function SosPage() {
   const router = useRouter();
-  
-  const [selectedType, setSelectedType] = useState("Vehicle Breakdown");
-  const [notes, setNotes] = useState("");
-  const [activeTrip, setActiveTrip] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const active = useActiveTripId();
+  const trip = useTrip(active.tripId);
+  const { perform, online } = useDriver();
+  const geo = useGeolocation(true);
+  const [type, setType] = React.useState("Accident");
+  const [note, setNote] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const current = trip.data ? nextStop(trip.data.stops) : undefined;
 
-  const emergencyTypes = [
-    { label: "Accident", icon: AlertTriangle },
-    { label: "Medical Emergency", icon: HeartPulse },
-    { label: "Safety / Security", icon: ShieldAlert },
-    { label: "Vehicle Breakdown", icon: Car },
-    { label: "Dangerous Road", icon: Route }, 
-    { label: "Vehicle Fire", icon: Flame },
-    { label: "Other Emergency", icon: MoreHorizontal }
-  ];
-
-  useEffect(() => {
-    async function loadActiveTrip() {
+  async function send() {
+    setBusy(true);
+    setError(null);
+    const payload: SosPayload = {
+      driver_trip_id: trip.data?.id ?? null,
+      latitude: geo.fix?.latitude ?? null,
+      longitude: geo.fix?.longitude ?? null,
+      message: [type, note.trim(), current ? `near stop ${current.sequence} ${current.name}` : ""].filter(Boolean).join(" · "),
+    };
+    if (online) {
       try {
-        const trips = await apiFetch<any[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "STARTED");
-        
-        if (startedTrip) {
-          const detail = await apiFetch<any>(`/driver/trips/${startedTrip.id}`);
-          setActiveTrip(detail);
+        const alert = await driverApi.sos(payload);
+        router.push(`/driver/sos/success?id=${alert.id}`);
+        return;
+      } catch (err) {
+        if (err instanceof ApiError && !err.isNetworkError) {
+          setError(`The alert was refused: ${err.message}. Call one of the numbers above.`);
+          setBusy(false);
+          return;
         }
-      } catch (error) {
-        console.error("Failed to load active trip:", error);
-      } finally {
-        setLoading(false);
+        // No signal after all: queue it below.
       }
     }
-    loadActiveTrip();
-  }, []);
-
-  async function handleSubmit() {
-    setSubmitting(true);
-    
-    try {
-      await apiFetch("/driver/sos", {
-        method: "POST",
-        body: JSON.stringify({
-          trip_id: activeTrip ? activeTrip.id : null,
-          location: "6.9271, 79.8612",
-          notes: `${selectedType} - ${notes}`
-        })
-      });
-      router.push("/driver/sos/success");
-    } catch (error) {
-      console.error("Failed to submit SOS:", error);
-      setSubmitting(false);
-    }
+    await perform({ action_type: "sos", trip_id: trip.data?.id ?? null, payload, label: `SOS · ${type}` });
+    router.push("/driver/sos/success?queued=1");
   }
 
-  const currentStop = activeTrip?.stops?.find((s: any) => s.status === 'PENDING');
-
   return (
-    <div className="h-[100dvh] flex flex-col font-sans overflow-hidden relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex items-center justify-between px-4 h-[60px] bg-white shrink-0"
-        style={{ borderBottom: "1px solid #E5E5E2" }}
-      >
-        <div className="flex items-center gap-2">
-          <Link href="/driver" className="flex justify-center items-center w-5 h-5">
-            <ArrowLeft size={20} color="#171A1F" />
-          </Link>
-          <span className="font-bold text-[18px]" style={{ color: "#171A1F" }}>Emergency</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <AlertTriangle size={18} color="#171A1F" />
-        </div>
-      </div>
+    <DriverShell
+      title="Emergency"
+      subtitle="Dispatch gets your location and trip"
+      backHref="/driver"
+      sos={false}
+      footer={
+        <>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {error}
+            </p>
+          )}
+          <Button size="lg" className="h-14 bg-destructive text-base font-bold text-white hover:bg-destructive/90" onClick={send} disabled={busy}>
+            {busy ? "Sending…" : "Send emergency alert"}
+          </Button>
+          <Button asChild variant="ghost" size="lg" className="h-11">
+            <Link href="/driver">Cancel</Link>
+          </Button>
+        </>
+      }
+    >
+      <EmergencyCalls />
 
-      {/* Scrollable Content */}
-      <div className="flex flex-col flex-1 p-4 gap-4 overflow-y-auto">
-        
-        {/* Emergency Alert Banner */}
-        <div 
-          className="flex p-3 gap-3 rounded-r-lg"
-          style={{ backgroundColor: "#FBEFEF", borderLeft: "4px solid #AD3D3D" }}
-        >
-          <AlertTriangle size={20} color="#AD3D3D" className="shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="font-bold text-[14px]" style={{ color: "#AD3D3D" }}>Emergency Assistance</span>
-            <span className="font-normal text-[12px] leading-[16px]" style={{ color: "#6B7280" }}>
-              For urgent situations only. Your current location will be shared with the dispatcher.
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-base font-bold">What&apos;s happening?</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {TYPES.map((item, index) => {
+            const Icon = item.icon;
+            const selected = type === item.label;
+            return (
+              <button
+                key={item.label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setType(item.label)}
+                className={cn(
+                  "flex min-h-12 items-center gap-2 rounded-lg border-2 px-3 text-left text-sm font-semibold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  selected ? "border-destructive bg-destructive-muted text-destructive" : "border-border bg-card",
+                  index === TYPES.length - 1 && TYPES.length % 2 === 1 && "col-span-2",
+                )}
+              >
+                <Icon className="size-4.5 shrink-0" aria-hidden />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <section className="flex items-start gap-3 rounded-xl border border-border bg-card p-3">
+        <MapPin className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+        <div className="flex flex-col gap-0.5 text-sm">
+          <span className="font-bold">Your location</span>
+          {geo.fix ? (
+            <span className="text-muted-foreground tabular-nums">
+              {geo.fix.latitude.toFixed(5)}, {geo.fix.longitude.toFixed(5)} · ±{Math.round(geo.fix.accuracy)} m
             </span>
-          </div>
+          ) : (
+            <span className="text-muted-foreground">
+              {geo.status === "denied"
+                ? "Location is blocked in the phone settings. The alert still goes with your trip."
+                : geo.status === "unavailable"
+                  ? "Location isn't available. The alert still goes with your trip."
+                  : "Finding your location…"}
+            </span>
+          )}
+          {trip.data && (
+            <span className="text-xs text-muted-foreground">
+              {trip.data.run?.code ?? `Trip ${trip.data.id}`}
+              {current ? ` · next stop ${current.sequence}, ${current.name}` : ""}
+            </span>
+          )}
         </div>
+      </section>
 
-        {/* Emergency Type Section */}
-        <div className="flex flex-col gap-2">
-          <span className="font-bold text-[14px]" style={{ color: "#171A1F" }}>What's happening?</span>
-          
-          <div className="grid grid-cols-2 gap-2">
-            {emergencyTypes.map((type, idx) => {
-              const Icon = type.icon;
-              const isSelected = selectedType === type.label;
-              const isFullWidth = idx === emergencyTypes.length - 1 && emergencyTypes.length % 2 !== 0;
-
-              return (
-                <div 
-                  key={type.label}
-                  onClick={() => setSelectedType(type.label)}
-                  className={`flex items-center p-[10px] gap-2 rounded-md cursor-pointer ${isFullWidth ? 'col-span-2' : ''}`}
-                  style={{
-                    backgroundColor: isSelected ? "#FBEFEF" : "#FFFFFF",
-                    border: `1px solid ${isSelected ? "#AD3D3D" : "#E5E5E2"}`
-                  }}
-                >
-                  <Icon size={16} color={isSelected ? "#AD3D3D" : "#171A1F"} className="shrink-0" />
-                  <span 
-                    className={`text-[12px] ${isSelected ? 'font-bold' : 'font-semibold'}`}
-                    style={{ color: isSelected ? "#AD3D3D" : "#171A1F" }}
-                  >
-                    {type.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Two Column Details */}
-        <div className="flex gap-3 w-full">
-          {/* Delivery Info Card */}
-          <div 
-            className="flex-1 flex flex-col p-3 gap-2 bg-white rounded-lg"
-            style={{ border: "1px solid #E5E5E2", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-          >
-            <span className="font-bold text-[12px]" style={{ color: "#171A1F" }}>Current Delivery</span>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <span className="font-normal text-[11px]" style={{ color: "#6B7280" }}>Order:</span>
-                <span className="font-semibold text-[11px]" style={{ color: "#171A1F" }}>{loading ? "..." : (activeTrip ? `TRIP-${activeTrip.id}` : "None")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-normal text-[11px]" style={{ color: "#6B7280" }}>Trip:</span>
-                <span className="font-semibold text-[11px]" style={{ color: "#171A1F" }}>{loading ? "..." : (activeTrip ? `TRIP-${activeTrip.id}` : "None")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-normal text-[11px]" style={{ color: "#6B7280" }}>Stop:</span>
-                <span className="font-semibold text-[11px] truncate" style={{ color: "#171A1F" }}>{loading ? "..." : (currentStop ? currentStop.customer_name : "None")}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Location Card */}
-          <div 
-            className="flex-1 flex flex-col p-3 gap-2 bg-white rounded-lg"
-            style={{ border: "1px solid #E5E5E2", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-          >
-            <div className="flex flex-col gap-1">
-              <span className="font-bold text-[12px]" style={{ color: "#171A1F" }}>Current Location</span>
-              <div className="flex items-center px-1.5 py-0.5 rounded" style={{ backgroundColor: "#F0F7F2", width: "fit-content" }}>
-                <span className="font-bold text-[9px]" style={{ color: "#3D7954" }}>Location Available</span>
-              </div>
-            </div>
-            <div className="flex justify-center items-center h-[42px] rounded" style={{ backgroundColor: "#DCE3EB" }}>
-              <MapPin size={14} color="#171A1F" />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="font-semibold text-[10px]" style={{ color: "#171A1F" }}>6.9271° N, 79.8612° E</span>
-              <span className="font-normal text-[9px]" style={{ color: "#6B7280" }}>Shared with dispatcher</span>
-              <span className="font-normal text-[9px]" style={{ color: "#6B7280" }}>Location captured automatically</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Input Section */}
-        <div className="flex flex-col gap-2">
-          <span className="font-bold text-[13px]" style={{ color: "#171A1F" }}>Tell us what happened</span>
-          <textarea 
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full h-[120px] p-4 rounded bg-white outline-none resize-none font-normal text-[16px]"
-            style={{ border: "1px solid #E5E5E2", color: "#4F4F4F" }}
-            placeholder="Briefly describe the emergency..."
-          />
-        </div>
-
-        {/* Photo Upload */}
-        <div className="flex items-center p-3 gap-2.5 bg-white rounded-md cursor-pointer" style={{ border: "1px dashed #E5E5E2" }}>
-          <div className="flex justify-center items-center w-[18px] h-[18px]">
-            <Camera size={18} color="#171A1F" />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="font-semibold text-[12px]" style={{ color: "#171A1F" }}>Add Photo</span>
-            <span className="font-normal text-[10px]" style={{ color: "#6B7280" }}>Optional proof of incident</span>
-          </div>
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="sos-note">Tell dispatch what happened (optional)</Label>
+        <Textarea id="sos-note" value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={300} className="text-base" />
       </div>
-
-      {/* Sticky Footer */}
-      <div 
-        className="flex flex-col p-4 gap-3 bg-white shrink-0"
-        style={{ borderTop: "1px solid #E5E5E2" }}
-      >
-        <button 
-          onClick={handleSubmit}
-          disabled={submitting || loading}
-          className="w-full flex justify-center items-center py-3.5 rounded-md text-white font-bold text-[15px] disabled:opacity-50"
-          style={{ backgroundColor: "#AD3D3D" }}
-        >
-          {submitting ? "SENDING..." : "SEND EMERGENCY ALERT"}
-        </button>
-        <Link href="/driver" className="w-full">
-          <button className="w-full flex justify-center items-center py-1">
-            <span className="font-semibold text-[14px]" style={{ color: "#6B7280" }}>Cancel</span>
-          </button>
-        </Link>
-      </div>
-    </div>
+    </DriverShell>
   );
 }

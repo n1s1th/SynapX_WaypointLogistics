@@ -1,100 +1,92 @@
 "use client";
 
-import React from "react";
+// After an SOS: sent (and whether dispatch has seen it), or saved and waiting for
+// signal. Emergency numbers stay on screen either way.
+
+import * as React from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { CheckCircle2, CloudOff, Siren } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DriverShell } from "@/components/driver/driver-shell";
+import { useDriver } from "@/components/driver/driver-provider";
+import { EmergencyCalls } from "@/components/driver/emergency-calls";
+import { Notice } from "@/components/driver/notice";
+import { driverApi } from "@/lib/driver/api";
+import { formatTime } from "@/lib/driver/format";
+import type { SosAlert } from "@/lib/driver/types";
 
-export default function SOSSuccessPage() {
+const POLL_MS = 15_000;
+
+function SuccessContent() {
+  const params = useSearchParams();
+  const alertId = Number(params.get("id")) || null;
+  const queued = params.get("queued") === "1";
+  const { outbox } = useDriver();
+  const [alert, setAlert] = React.useState<SosAlert | null>(null);
+  const stillQueued = queued && outbox.some((item) => item.action_type === "sos" && item.status === "pending");
+
+  React.useEffect(() => {
+    if (!alertId) return;
+    let cancelled = false;
+    const load = () =>
+      driverApi
+        .sosStatus(alertId)
+        .then((latest) => {
+          if (!cancelled) setAlert(latest);
+        })
+        .catch(() => {
+          // Keep the last answer; try again on the next tick.
+        });
+    void load();
+    const timer = window.setInterval(load, POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [alertId]);
+
+  const acknowledged = alert && alert.status !== "triggered";
+
   return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
-      
-      {/* Header */}
-      <div 
-        className="flex items-center px-4 h-[60px] bg-white shrink-0"
-        style={{ borderBottom: "1px solid #E5E5E2" }}
-      >
-        <span className="font-bold text-[18px]" style={{ color: "#171A1F" }}>Emergency Alert</span>
-      </div>
+    <DriverShell title="Emergency alert" backHref="/driver" sos={false}>
+      <section className="flex flex-col items-center gap-3 py-4 text-center">
+        <span className="flex size-18 items-center justify-center rounded-full bg-destructive text-white">
+          <Siren className="size-9" aria-hidden />
+        </span>
+        <h2 className="text-2xl font-bold">
+          {stillQueued ? "Alert saved: waiting for signal" : "Alert sent to dispatch"}
+        </h2>
+        {alert && <p className="text-sm text-muted-foreground">Sent at {formatTime(alert.triggered_at)}</p>}
+      </section>
 
-      {/* Content */}
-      <div className="flex flex-col flex-1 p-6 items-center gap-[28px]">
-        
-        {/* Centered Status */}
-        <div className="flex flex-col items-center gap-4 w-full">
-          <div className="flex justify-center items-center w-[72px] h-[72px] rounded-full shrink-0" style={{ backgroundColor: "#18794E" }}>
-            <Check size={36} color="#FFFFFF" strokeWidth={3} />
-          </div>
-          <div className="flex flex-col items-center gap-2 w-full text-center">
-            <h1 className="font-bold text-[22px]" style={{ color: "#171A1F" }}>Emergency Alert Sent</h1>
-            <p className="font-normal text-[14px] leading-[20px]" style={{ color: "#6B7280" }}>
-              The dispatcher has been notified and your current location has been shared.
-            </p>
-          </div>
-        </div>
+      {stillQueued ? (
+        <Notice tone="warning" icon={CloudOff} title="No signal right now">
+          The alert goes out the moment coverage returns. If you&apos;re in danger, call now: these numbers work without mobile data.
+        </Notice>
+      ) : acknowledged ? (
+        <Notice tone="success" icon={CheckCircle2} title="Dispatch has seen your alert">
+          Stay safe and keep your phone on so dispatch can reach you.
+        </Notice>
+      ) : (
+        <Notice tone="info" icon={Siren} title="Dispatch has your alert and location">
+          Waiting for them to respond. Stay where it&apos;s safe and keep your phone on.
+        </Notice>
+      )}
 
-        {/* Summary Card */}
-        <div 
-          className="flex flex-col p-4 gap-3 w-full bg-white rounded-xl"
-          style={{ border: "1px solid #E5E5E2", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-        >
-          <span className="font-bold text-[13px] uppercase" style={{ color: "#171A1F" }}>Alert details</span>
-          
-          <div className="flex flex-col w-full gap-2.5">
-            {/* Row: Emergency */}
-            <div className="flex justify-between items-center w-full">
-              <span className="font-normal text-[12px]" style={{ color: "#6B7280" }}>Emergency</span>
-              <span className="font-bold text-[12px]" style={{ color: "#AD3D3D" }}>Vehicle Breakdown</span>
-            </div>
-            <div className="w-full h-[1px]" style={{ backgroundColor: "#E5E5E2" }} />
-            
-            {/* Row: Trip */}
-            <div className="flex justify-between items-center w-full">
-              <span className="font-normal text-[12px]" style={{ color: "#6B7280" }}>Trip</span>
-              <span className="font-bold text-[12px]" style={{ color: "#171A1F" }}>TRIP-024</span>
-            </div>
-            <div className="w-full h-[1px]" style={{ backgroundColor: "#E5E5E2" }} />
-            
-            {/* Row: Vehicle */}
-            <div className="flex justify-between items-center w-full">
-              <span className="font-normal text-[12px]" style={{ color: "#6B7280" }}>Vehicle</span>
-              <span className="font-bold text-[12px]" style={{ color: "#171A1F" }}>WP-AB-1234</span>
-            </div>
-            <div className="w-full h-[1px]" style={{ backgroundColor: "#E5E5E2" }} />
-            
-            {/* Row: Location */}
-            <div className="flex justify-between items-center w-full">
-              <span className="font-normal text-[12px]" style={{ color: "#6B7280" }}>Location</span>
-              <span className="font-bold text-[12px]" style={{ color: "#3D7954" }}>Shared ✓</span>
-            </div>
-            <div className="w-full h-[1px]" style={{ backgroundColor: "#E5E5E2" }} />
-            
-            {/* Row: Status */}
-            <div className="flex justify-between items-center w-full">
-              <span className="font-normal text-[12px]" style={{ color: "#6B7280" }}>Status</span>
-              <span className="font-bold text-[12px]" style={{ color: "#3D7954" }}>Dispatcher Notified ✓</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <EmergencyCalls />
 
-      {/* Actions */}
-      <div className="flex flex-col px-[20px] pb-6 gap-[9px] w-full mt-auto">
-        <button 
-          className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
-          style={{ backgroundColor: "#092C4C" }}
-        >
-          Call for dispatcher
-        </button>
-        <Link href="/driver" className="w-full">
-          <button 
-            className="w-full flex justify-center items-center h-[40px] rounded-md font-semibold text-[13px] bg-white"
-            style={{ border: "1px solid #E5E5E2", color: "#171A1F" }}
-          >
-            Return to home
-          </button>
-        </Link>
-      </div>
+      <Button asChild variant="outline" size="lg" className="h-12">
+        <Link href="/driver">Back to today&apos;s trips</Link>
+      </Button>
+    </DriverShell>
+  );
+}
 
-    </div>
+export default function SosSuccessPage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <SuccessContent />
+    </React.Suspense>
   );
 }
