@@ -1,114 +1,140 @@
-import os
+"""Driver login for the demo: a DRIVER user with a profile on the loader's demo vehicle.
+
+The driver sees a run once the loader releases it, through their vehicle
+(driver_profiles.assigned_vehicle_id). The loader's seeds put their demo runs on
+the first Peliyagoda reefer truck (VEH014 on Neon, VEH001 in seed_loader_demo.py),
+so by default the driver is assigned to that same truck.
+
+Insert-only, like seed_reference_data.py: it adds what is missing and changes
+nothing else. An existing profile keeps its vehicle unless --assign-vehicle is
+passed. It writes only to users and driver_profiles: no runs, orders or
+schema changes.
+
+    python scripts/seed_driver.py                       # dry run: shows what it would add
+    python scripts/seed_driver.py --yes                 # add the missing rows
+    python scripts/seed_driver.py --vehicle VEH001 --yes
+
+Writing to a non-local database (the shared Neon database) needs the DB lead's OK
+(docs/database-migrations.md); the target host is printed before anything else.
+"""
+from __future__ import annotations
+
+import argparse
 import sys
-from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
-# Add the backend directory to python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
-from app.core.database import SessionLocal
+
+import app.models  # noqa: F401  (registers every model)
+from app.core.config import settings
 from app.core.security import get_password_hash
+from app.models.fleet import DriverProfile, Vehicle
 from app.models.user import User, UserRole
-from app.models.shipment import DispatchTrip
-from app.models.driver import DriverTrip, DeliveryStop, DeliveryStopStatus
 
-def seed_driver_data(db: Session):
-    print("Seeding driver data...")
-    
-    # 1. Create a driver user
-    driver_email = "driver@waypoint.com"
-    driver = db.query(User).filter(User.email == driver_email).first()
-    if not driver:
-        driver = User(
-            email=driver_email,
-            full_name="John Doe",
-            hashed_password=get_password_hash("driver123"),
-            role=UserRole.DRIVER,
-            is_active=True
-        )
-        db.add(driver)
-        db.commit()
-        db.refresh(driver)
-        print(f"Created driver: {driver.email}")
-    else:
-        print(f"Driver {driver.email} already exists")
+DEFAULT_EMAIL = "driver@waypoint.com"
+DEFAULT_PASSWORD = "driver123"
+DEFAULT_NAME = "Tharindu Fernando"
 
-    # 2. Create a DispatchTrip for today
-    dispatch = db.query(DispatchTrip).filter(DispatchTrip.trip_code == "DT-TODAY-001").first()
-    if not dispatch:
-        dispatch = DispatchTrip(
-            trip_code="DT-TODAY-001",
-            vehicle_number="TRK-900",
-            driver_name="John Doe",
-            origin="Central Depot",
-            destination="Downtown Region",
-            departure_time=datetime.now(timezone.utc) - timedelta(hours=1)
-        )
-        db.add(dispatch)
-        db.commit()
-        db.refresh(dispatch)
-        print("Created dispatch trip: DT-TODAY-001")
-    else:
-        print("Dispatch trip already exists")
 
-    # 3. Create a DriverTrip
-    driver_trip = db.query(DriverTrip).filter(DriverTrip.dispatch_trip_id == dispatch.id).first()
-    if not driver_trip:
-        driver_trip = DriverTrip(
-            driver_id=driver.id,
-            dispatch_trip_id=dispatch.id
-        )
-        db.add(driver_trip)
-        db.commit()
-        db.refresh(driver_trip)
-        print("Created DriverTrip")
-    else:
-        print("DriverTrip already exists")
-
-    # 4. Create DeliveryStops
-    if not db.query(DeliveryStop).filter(DeliveryStop.driver_trip_id == driver_trip.id).first():
-        stops = [
-            DeliveryStop(
-                driver_trip_id=driver_trip.id,
-                sequence=1,
-                address="123 Main St, Downtown",
-                customer_name="Alice Smith",
-                customer_phone="555-0101",
-                latitude=40.7128,
-                longitude=-74.0060,
-                notes="Leave at front desk"
-            ),
-            DeliveryStop(
-                driver_trip_id=driver_trip.id,
-                sequence=2,
-                address="456 Elm St, Downtown",
-                customer_name="Bob Jones",
-                customer_phone="555-0102",
-                latitude=40.7138,
-                longitude=-74.0050,
-                notes="Fragile items"
-            ),
-            DeliveryStop(
-                driver_trip_id=driver_trip.id,
-                sequence=3,
-                address="789 Oak Ave, Uptown",
-                customer_name="Charlie Brown",
-                customer_phone="555-0103",
-                latitude=40.7200,
-                longitude=-74.0100
+def pick_vehicle(db: Session, code: str | None) -> Vehicle | None:
+    if code:
+        return db.execute(select(Vehicle).where(Vehicle.code == code)).scalars().first()
+    # Same rule as scripts/seed_loader_neon.py: the first Peliyagoda reefer truck.
+    return (
+        db.execute(
+            select(Vehicle)
+            .where(
+                func.lower(Vehicle.depot_name) == "peliyagoda",
+                func.lower(Vehicle.temperature_mode) == "reefer",
+                func.lower(Vehicle.vehicle_type) == "truck",
             )
-        ]
-        db.add_all(stops)
-        db.commit()
-        print("Created 3 DeliveryStops")
-    else:
-        print("DeliveryStops already exist")
-        
-    print("Seeding complete! You can log in with driver@waypoint.com / driver123")
+            .order_by(Vehicle.code)
+        )
+        .scalars()
+        .first()
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--email", default=DEFAULT_EMAIL)
+    parser.add_argument("--password", default=DEFAULT_PASSWORD)
+    parser.add_argument("--name", default=DEFAULT_NAME)
+    parser.add_argument("--vehicle", help="vehicle code, e.g. VEH014 (default: first Peliyagoda reefer truck)")
+    parser.add_argument("--assign-vehicle", action="store_true", help="move an existing profile to this vehicle")
+    parser.add_argument("--yes", action="store_true", help="actually write (default is a dry run)")
+    args = parser.parse_args()
+
+    url = settings.DATABASE_URL_UNPOOLED or settings.DATABASE_URL
+    print(f"Target database host: {make_url(url).host or 'local file'}")
+
+    engine = create_engine(url)
+    with Session(engine) as db:
+        vehicle = pick_vehicle(db, args.vehicle)
+        if vehicle is None:
+            print("No matching vehicle. Seed the fleet first, or pass --vehicle.")
+            return 1
+
+        user = db.execute(select(User).where(User.email == args.email)).scalars().first()
+        if user is not None and user.role != UserRole.DRIVER:
+            print(f"{args.email} exists but is a {user.role.value}; pick another --email.")
+            return 1
+        profile = (
+            db.execute(select(DriverProfile).where(DriverProfile.user_id == user.id)).scalars().first()
+            if user is not None
+            else None
+        )
+
+        plan = []
+        if user is None:
+            plan.append(f"users            add {args.email} ({args.name}, DRIVER)")
+        else:
+            plan.append(f"users            keep {args.email} (exists)")
+        if profile is None:
+            plan.append(f"driver_profiles  add profile on {vehicle.code}")
+        elif profile.assigned_vehicle_id == vehicle.id:
+            plan.append(f"driver_profiles  keep profile on {vehicle.code}")
+        elif args.assign_vehicle:
+            plan.append(f"driver_profiles  move profile to {vehicle.code}")
+        else:
+            plan.append("driver_profiles  keep profile on its current vehicle (pass --assign-vehicle to move it)")
+        print("\n".join(plan))
+
+        if not args.yes:
+            print("Dry run — nothing written. Re-run with --yes to apply.")
+            return 0
+
+        created_user = user is None
+        if user is None:
+            user = User(
+                email=args.email,
+                full_name=args.name,
+                hashed_password=get_password_hash(args.password),
+                role=UserRole.DRIVER,
+                is_active=True,
+            )
+            db.add(user)
+            db.flush()
+        if profile is None:
+            db.add(
+                DriverProfile(
+                    user_id=user.id,
+                    license_type="Heavy",
+                    phone="0771000214",
+                    assigned_vehicle_id=vehicle.id,
+                )
+            )
+        elif args.assign_vehicle:
+            profile.assigned_vehicle_id = vehicle.id
+        db.commit()  # one transaction: all rows or none
+        password = args.password if created_user else "(its existing password)"
+        print(f"Done. Sign in as {args.email} / {password}.")
+    return 0
+
 
 if __name__ == "__main__":
-    db = SessionLocal()
-    try:
-        seed_driver_data(db)
-    finally:
-        db.close()
+    raise SystemExit(main())
