@@ -57,8 +57,10 @@ export default function DeliveryRunsPage() {
   const [showShortfall, setShowShortfall] = useState(false);
   const [showManifest, setShowManifest] = useState(false);
 
-  const fetchRuns = useCallback(async () => {
-    setIsLoading(true);
+  const fetchRuns = useCallback(async (background?: unknown) => {
+    // Background refreshes keep the table on screen instead of flashing a loader
+    const silent = background === true;
+    if (!silent) setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/v1/delivery-runs/`);
       if (res.ok) {
@@ -75,12 +77,18 @@ export default function DeliveryRunsPage() {
     } catch {
       toast.error("Failed to load delivery runs — check your connection");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []); // No dependencies — fetchRuns is stable
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchRuns(); }, [fetchRuns]);
+
+  // Keep progress current as drivers' records sync (server-confirmed only)
+  useEffect(() => {
+    const id = setInterval(() => fetchRuns(true), 30_000);
+    return () => clearInterval(id);
+  }, [fetchRuns]);
 
   // Derive "delayed" status on frontend (en_route + overdue ETA)
   const now = new Date();

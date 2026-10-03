@@ -8,7 +8,7 @@ from app.models.allocation import Allocation
 from app.models.notification import Notification
 from app.models.receipts import DeliveryReceipt
 from app.models.outlet_settings import OutletSettings
-from app.models.driver import DriverTrip, DeliveryStop, ProofOfDelivery, IssueReport, SOSAlert
+from app.models.driver import DriverTrip, DeliveryStop, ProofOfDelivery, IssueReport, SOSAlert, DriverSyncEvent
 from app.models.reference import (
     Brand,
     CalendarDay,
@@ -59,6 +59,7 @@ __all__ = [
     "ProofOfDelivery",
     "IssueReport",
     "SOSAlert",
+    "DriverSyncEvent",
     # Loader reference data
     "Brand",
     "CalendarDay",

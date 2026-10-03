@@ -2,25 +2,10 @@
 
 import React, { createContext, useContext } from "react";
 import { useSyncQueue } from "@/lib/useSyncQueue";
-import type { PendingAction, QueueState } from "@/lib/syncQueue";
-import { flush, enqueue, enqueueWithPhoto, dequeue, dismissFailed } from "@/lib/syncQueue";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-interface SyncContextValue {
-  queue: PendingAction[];
-  state: QueueState;
-  online: boolean;
-  lastError: string | null;
-  pendingCount: number;
-  failedCount: number;
-  syncingCount: number;
-  flush: typeof flush;
-  enqueue: typeof enqueue;
-  enqueueWithPhoto: typeof enqueueWithPhoto;
-  dequeue: typeof dequeue;
-  dismissFailed: typeof dismissFailed;
-}
+type SyncContextValue = ReturnType<typeof useSyncQueue>;
 
 const SyncContext = createContext<SyncContextValue | null>(null);
 

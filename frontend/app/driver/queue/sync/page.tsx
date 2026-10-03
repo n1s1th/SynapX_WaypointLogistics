@@ -4,27 +4,29 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Signal, BatteryFull, Wifi, CloudUpload,
-  CircleCheck, Map, Home, TriangleAlert, Layers, RefreshCw
+  CloudUpload, CircleCheck, Map, Home, TriangleAlert, Layers, RefreshCw, AlertCircle,
 } from "lucide-react";
 import { useSyncContext } from "@/components/SyncProvider";
+import StatusStrip from "@/components/driver/StatusStrip";
+import SyncChip from "@/components/driver/SyncChip";
 
 export default function SyncingQueuePage() {
   const router = useRouter();
-  const { queue, state, flush, pendingCount, failedCount } = useSyncContext();
+  const { queue, state, flush, online, pendingCount, outstandingCount } = useSyncContext();
 
+  // Progress over today's records: confirmed by the server vs. still on the phone
   const total   = queue.length;
-  const synced  = queue.filter((a) => a.status !== "pending" && a.status !== "syncing").length; // rough proxy
-  const done    = total - pendingCount;
+  const done    = queue.filter((a) => a.sync_status === "SYNCED").length;
+  const settled = total - pendingCount;
   const pct     = total > 0 ? Math.round((done / total) * 100) : 100;
 
-  // Auto-navigate away once everything is synced
+  // Back to the queue once nothing is left to send
   useEffect(() => {
-    if (state === "idle" && pendingCount === 0 && failedCount === 0 && total === 0) {
+    if (state === "idle" && pendingCount === 0) {
       const t = setTimeout(() => router.push("/driver/queue"), 1500);
       return () => clearTimeout(t);
     }
-  }, [state, pendingCount, failedCount, total, router]);
+  }, [state, pendingCount, router]);
 
   // Kick off flush when this page mounts
   useEffect(() => { flush(); }, []); // eslint-disable-line
@@ -34,21 +36,12 @@ export default function SyncingQueuePage() {
 
       {/* Header */}
       <div className="flex flex-col w-full bg-white z-10" style={{ borderBottom: "1px solid #D9E1E8" }}>
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>
-            {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#18794E" }}>Syncing</span>
-            <Wifi size={16} color="#18794E" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
+        <StatusStrip />
         <div className="flex px-5 py-2.5 items-center w-full">
           <div className="flex flex-col gap-0.5">
             <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>Sync Queue</h1>
             <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              {state === "syncing" ? `Uploading ${done} / ${total}` : total === 0 ? "All records synced" : `${pendingCount} remaining`}
+              {state === "syncing" ? `Uploading ${settled} / ${total}` : outstandingCount === 0 ? "All records synced" : `${outstandingCount} not confirmed yet`}
             </p>
           </div>
         </div>
@@ -65,10 +58,10 @@ export default function SyncingQueuePage() {
           <div className="flex justify-between items-baseline w-full">
             <div className="flex flex-col gap-[3px]">
               <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>
-                {total === 0 ? "All done!" : `Uploading ${done} / ${total}`}
+                {outstandingCount === 0 ? "All done!" : `${done} / ${total} confirmed`}
               </span>
               <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>
-                {state === "syncing" ? "Uploading records securely…" : "Connection restored"}
+                {state === "syncing" ? "Uploading records securely…" : online ? "Connected" : "Waiting for connection"}
               </span>
             </div>
             <span className="font-bold text-[24px]" style={{ color: "#2167D5" }}>{pct}%</span>
@@ -84,7 +77,7 @@ export default function SyncingQueuePage() {
           <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#2167D5" }}>
             {state === "syncing"
               ? <span className="flex items-center gap-1"><RefreshCw size={12} className="animate-spin" /> Uploading securely…</span>
-              : "Connection restored"}
+              : online ? "Records and photos are confirmed one by one." : "Records stay on this phone until signal returns."}
           </span>
         </div>
 
@@ -92,12 +85,11 @@ export default function SyncingQueuePage() {
         {queue.length > 0 && (
           <div className="flex flex-col gap-[9px] w-full">
             {queue.map((record) => {
-              const isSyncing = record.status === "syncing";
-              const isFailed  = record.status === "failed";
-              const color = isFailed ? "#D32F2F" : isSyncing ? "#2167D5" : "#18794E";
-              const bg    = isFailed ? "#FFEBEB" : isSyncing ? "#EAF2FF" : "#E8F6EF";
-              const label = isFailed ? "Failed" : isSyncing ? "Uploading" : "Queued";
-              const Icon  = isSyncing ? CloudUpload : CircleCheck;
+              const isSyncing = record.sync_status === "SYNCING";
+              const isProblem = record.sync_status === "SYNC_FAILED" || record.sync_status === "CONFLICT";
+              const color = isProblem ? "#C9363E" : isSyncing ? "#2167D5" : record.sync_status === "SYNCED" ? "#18794E" : "#A85D00";
+              const bg    = isProblem ? "#FDECEF" : isSyncing ? "#EAF2FF" : record.sync_status === "SYNCED" ? "#E8F6EF" : "#FFF4D6";
+              const Icon  = isProblem ? AlertCircle : isSyncing ? CloudUpload : CircleCheck;
 
               return (
                 <div
@@ -109,13 +101,14 @@ export default function SyncingQueuePage() {
                     <div className="flex justify-center items-center w-[38px] h-[38px] rounded-lg shrink-0" style={{ backgroundColor: bg }}>
                       <Icon size={19} color={color} />
                     </div>
-                    <div className="flex flex-col gap-0.5 w-full">
-                      <span className="font-bold text-[10px]" style={{ color }}>{record.action_type.toUpperCase()}</span>
-                      <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>{record.label}</span>
+                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                      <span className="font-bold text-[10px]" style={{ color }}>{record.action_type.replace("_", " ").toUpperCase()}</span>
+                      <span className="font-bold text-[14px] truncate" style={{ color: "#12202E" }}>{record.label}</span>
+                      {isProblem && record.last_error && (
+                        <span className="text-[11px]" style={{ color: "#C9363E" }}>{record.last_error}</span>
+                      )}
                     </div>
-                    <div className="flex items-center px-[9px] py-[5px] rounded-full shrink-0" style={{ backgroundColor: bg }}>
-                      <span className="font-medium text-[10px]" style={{ color }}>{label}</span>
-                    </div>
+                    <SyncChip status={record.sync_status} short />
                   </div>
                 </div>
               );
@@ -128,10 +121,10 @@ export default function SyncingQueuePage() {
           <CircleCheck size={18} color="#18794E" className="shrink-0 mt-0.5" />
           <div className="flex flex-col gap-0.5">
             <span className="font-bold text-[12px] leading-[1.45em]" style={{ color: "#18794E" }}>
-              {total === 0 ? "All records synced!" : "Almost done — you can keep driving."}
+              {outstandingCount === 0 ? "All records synced!" : "You can keep driving."}
             </span>
             <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#18794E" }}>
-              Sync continues safely in the background.
+              Sync continues safely in the background — nothing is removed from this phone until the server confirms it.
             </span>
           </div>
         </div>

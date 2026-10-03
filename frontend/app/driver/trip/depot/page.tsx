@@ -18,7 +18,7 @@ export default function ArrivedAtDepotPage() {
       try {
         const trips = await apiFetch<any[]>("/driver/trips/today");
         // Could be completed but not yet checked-in at depot
-        const trip = trips.find(t => t.status === "COMPLETED" || t.status === "STARTED");
+        const trip = trips.find(t => t.status === "completed" || t.status === "started");
         setActiveTrip(trip);
       } catch (error) {
         console.error("Failed to load active trip:", error);

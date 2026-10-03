@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
+from app.core.error_middleware import UnhandledErrorMiddleware
 
 # Tables are created and changed only through Alembic migrations (alembic upgrade head).
 app = FastAPI(
@@ -19,6 +20,10 @@ app = FastAPI(
 
 # Register Domain Exception Handlers
 register_exception_handlers(app)
+
+# Unhandled errors become a JSON 500 that still gets CORS headers (added before
+# CORSMiddleware so CORS wraps it); otherwise browsers report "Failed to fetch".
+app.add_middleware(UnhandledErrorMiddleware)
 
 # Configure CORS
 if settings.BACKEND_CORS_ORIGINS:

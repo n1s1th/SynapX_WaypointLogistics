@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 import { DeliveryRun, DeliveryRunStop } from "@/app/dispatcher/delivery-runs/page";
+import { DriverDeliveriesSection } from "@/components/dispatcher/DriverDeliveriesSection";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
 
@@ -132,6 +133,9 @@ export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest,
             )}
           </div>
         </div>
+
+        {/* What the driver has delivered (server-confirmed) */}
+        <DriverDeliveriesSection runId={run.id} />
       </div>
 
       {/* Actions */}

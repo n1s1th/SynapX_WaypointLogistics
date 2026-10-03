@@ -6,6 +6,9 @@ import {
   MapPin, Signal, BatteryFull, Map, Home, TriangleAlert, Layers, User
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { loadTodayTrips, loadTrip } from "@/lib/driverStop";
+import { cacheProfile, getCachedProfile } from "@/lib/syncQueue";
+import StatusStrip from "@/components/driver/StatusStrip";
 
 interface UserProfile {
   id: number;
@@ -25,20 +28,31 @@ export default function DriverDashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [trips, setTrips] = useState<DriverTripSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fromCache, setFromCache] = useState(false);
   const [readyForTomorrow, setReadyForTomorrow] = useState(false);
   const [submittingReady, setSubmittingReady] = useState(false);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const [profileData, tripsData] = await Promise.all([
-          apiFetch<UserProfile>("/driver/me"),
-          apiFetch<DriverTripSummary[]>("/driver/trips/today"),
-        ]);
+        const profileData = await apiFetch<UserProfile>("/driver/me");
         setProfile(profileData);
-        setTrips(tripsData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
+        cacheProfile(profileData);
+      } catch {
+        setProfile((await getCachedProfile()) as UserProfile | null);
+      }
+      try {
+        const res = await loadTodayTrips();
+        setTrips(res.data);
+        setFromCache(res.source === "cache");
+        // Save today's active trips (stops, orders, POD rules) on the phone while online
+        if (res.source === "server") {
+          res.data
+            .filter((t) => t.status === "started" || t.status === "assigned")
+            .forEach((t) => loadTrip(t.id).catch(() => undefined));
+        }
+      } catch {
+        setTrips([]);
       } finally {
         setLoading(false);
       }
@@ -50,7 +64,7 @@ export default function DriverDashboard() {
   const currentHour = new Date().getHours();
   
   // Show if: has ongoing trip, before 6 PM (18:00), and hasn't confirmed yet
-  const showTomorrowButton = trips.some(t => t.status === "STARTED") && currentHour < 18 && !readyForTomorrow;
+  const showTomorrowButton = trips.some(t => t.status === "started") && currentHour < 18 && !readyForTomorrow;
 
   async function handleReadyForTomorrow() {
     setSubmittingReady(true);
@@ -73,14 +87,7 @@ export default function DriverDashboard() {
         style={{ borderBottom: "1px solid #D9E1E8" }}
       >
         {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-xs font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-normal text-[#BDBDBD]">Synced</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
+        <StatusStrip />
 
         {/* Title bar */}
         <div className="flex px-5 py-2.5 items-center justify-between w-full">
@@ -126,13 +133,20 @@ export default function DriverDashboard() {
             <span className="font-bold text-[12px]" style={{ color: "#2167D5" }}>✓ You're confirmed for tomorrow's schedule</span>
           </div>
         )}
+        {fromCache && (
+          <div className="flex p-3 gap-2.5 rounded-xl" style={{ backgroundColor: "#FFF4D6", border: "1px solid rgba(168, 93, 0, 0.21)" }}>
+            <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#A85D00" }}>
+              Offline · showing trips saved on this phone. Open the Queue to work any stop.
+            </span>
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">Loading your trips...</div>
         ) : trips.length === 0 ? (
           <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">No trips assigned for today.</div>
         ) : (
           trips.map((trip, index) => {
-            const isActive = trip.status === "STARTED" || (index === 0 && trip.status === "ASSIGNED");
+            const isActive = trip.status === "started" || (index === 0 && trip.status === "assigned");
             
             if (isActive) {
               return (
@@ -222,7 +236,7 @@ export default function DriverDashboard() {
           </div>
           <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1 bg-white" style={{ border: "1px solid #D9E1E8" }}>
             <span className="font-bold text-[22px]" style={{ color: "#12202E" }}>
-              {loading ? "-" : trips.filter(t => t.status === "COMPLETED").length}
+              {loading ? "-" : trips.filter(t => t.status === "completed").length}
             </span>
             <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Completed</span>
           </div>

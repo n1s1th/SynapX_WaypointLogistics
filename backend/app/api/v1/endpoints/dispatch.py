@@ -8,6 +8,8 @@ from app.models.allocation import Allocation, AllocationStatus
 from app.models.fleet import DriverProfile
 from app.schemas.shipment import DispatchTripCreate, DispatchTripRead, DeliveryRunResponse, DeliveryRunUpdate, LoadingEventIn
 from app.models.order import Order, OrderItem
+from app.services import driver_service
+from pydantic import BaseModel, Field
 
 router = APIRouter()
 
@@ -34,6 +36,40 @@ def get_delivery_run(id: int, db: Session = Depends(deps.get_db)):
     if not run:
         raise HTTPException(status_code=404, detail="Delivery run not found")
     return run
+
+
+@router.get("/{id}/deliveries")
+def get_run_deliveries(
+    id: int,
+    db: Session = Depends(deps.get_db),
+    current_user=Depends(deps.require_dispatcher_or_admin),
+):
+    """Server-confirmed driver progress for this run: outcome, quantities, POD
+    availability and timestamps per stop, plus sync conflicts awaiting review."""
+    if not db.query(DispatchTrip.id).filter(DispatchTrip.id == id).first():
+        raise HTTPException(status_code=404, detail="Delivery run not found")
+    return driver_service.dispatch_deliveries(db, id)
+
+
+class ConflictReviewIn(BaseModel):
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
+@router.post("/{id}/sync-conflicts/{event_id}/review")
+def review_sync_conflict(
+    id: int,
+    event_id: int,
+    body: ConflictReviewIn,
+    db: Session = Depends(deps.get_db),
+    current_user=Depends(deps.require_dispatcher_or_admin),
+):
+    """Dispatcher acknowledges a driver sync conflict. Nothing is applied
+    automatically; the driver's phone stops flagging it once reviewed."""
+    data = driver_service.dispatch_deliveries(db, id)
+    if event_id not in {c["event_id"] for c in data["conflicts"]}:
+        raise HTTPException(status_code=404, detail="Conflict not found for this run")
+    event = driver_service.review_sync_conflict(db, event_id, current_user.id, body.note)
+    return {"event_id": event.id, "reviewed_at": event.reviewed_at, "review_note": event.review_note}
 
 
 @router.post("/", response_model=DeliveryRunResponse, status_code=status.HTTP_201_CREATED)

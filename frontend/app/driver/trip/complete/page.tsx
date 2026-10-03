@@ -29,7 +29,7 @@ function StopCompleteContent() {
     async function loadData() {
       try {
         const trips = await apiFetch<any[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "STARTED");
+        const startedTrip = trips.find(t => t.status === "started");
         
         if (startedTrip) {
           const detail = await apiFetch<any>(`/driver/trips/${startedTrip.id}`);
@@ -49,9 +49,9 @@ function StopCompleteContent() {
     loadData();
   }, [stopId]);
 
-  const completedCount = tripDetail?.stops?.filter((s: any) => s.status === 'COMPLETED').length || 0;
+  const completedCount = tripDetail?.stops?.filter((s: any) => !['pending', 'arrived'].includes(s.status)).length || 0;
   const totalCount = tripDetail?.stops?.length || 0;
-  const pendingStops = tripDetail?.stops?.filter((s: any) => s.status === 'PENDING') || [];
+  const pendingStops = tripDetail?.stops?.filter((s: any) => s.status === 'pending') || [];
   const nextStop = pendingStops[0];
 
   return (

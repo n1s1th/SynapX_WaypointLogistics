@@ -4,11 +4,12 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  Signal, BatteryFull, MapPinCheck, LocateFixed,
+  MapPinCheck, LocateFixed,
   Map as MapIcon, Home, TriangleAlert, Layers
 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
-import { fetchStopDetail, parseWindow, type StopDetail } from "@/lib/driverStop";
+import { loadStop, parseWindow, type StopDetail } from "@/lib/driverStop";
+import { saveRecord } from "@/lib/syncQueue";
+import StatusStrip from "@/components/driver/StatusStrip";
 
 function ArrivalContent() {
   const searchParams = useSearchParams();
@@ -23,18 +24,23 @@ function ArrivalContent() {
 
     async function loadDataAndArrive() {
       try {
-        // Step 1: Load stop details for display (always do this first)
-        setStop(await fetchStopDetail(stopId!));
-      } catch (error) {
-        console.error("Failed to load stop details:", error);
-      }
+        // Step 1: Load stop details (server, or the trip saved on this phone)
+        const { data } = await loadStop(stopId!);
+        setStop(data);
 
-      // Step 2: Mark arrival — idempotent on backend (safe to call even if already arrived)
-      try {
-        await apiFetch(`/driver/stops/${stopId}/arrive`, { method: "PATCH" });
-      } catch (error) {
-        // Swallow — backend returns the stop cleanly if already arrived
-        console.warn("Arrive call skipped (stop may already be arrived):", error);
+        // Step 2: Record the arrival on the phone with its real time; it syncs
+        // when there's signal. Only once per stop (a reload doesn't re-record it).
+        if (data.status === "pending") {
+          await saveRecord({
+            action_type: "arrive",
+            trip_id: data.driver_trip_id,
+            stop_id: data.id,
+            payload: {},
+            label: `Arrived · ${data.customer_name}`,
+          });
+        }
+      } catch {
+        // Details unavailable offline (trip never opened online) — handled in the UI
       } finally {
         setLoading(false);
       }
@@ -53,14 +59,7 @@ function ArrivalContent() {
         style={{ borderBottom: "1px solid #D9E1E8" }}
       >
         {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Online</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
+        <StatusStrip />
 
         {/* Title bar */}
         <div className="flex px-5 py-2.5 items-center w-full">

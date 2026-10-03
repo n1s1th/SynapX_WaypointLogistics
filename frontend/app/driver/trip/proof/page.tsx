@@ -3,15 +3,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Signal, BatteryFull, CloudOff, Cloud, Camera, X, Plus,
-  Map as MapIcon, Home, TriangleAlert, Layers
-} from "lucide-react";
+import { CloudOff, Cloud, Camera, X, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
-import { apiFetch, apiFetchUpload, ApiError } from "@/lib/api";
-import { fetchStopDetail, type StopDetail } from "@/lib/driverStop";
+import { loadStop, type StopDetail } from "@/lib/driverStop";
+import { saveRecord, waitForRecord, LocalSaveError } from "@/lib/syncQueue";
+import { isOpenStatus } from "@/lib/driverSync/engine";
 import { useSyncContext } from "@/components/SyncProvider";
 import SignaturePad from "@/components/driver/SignaturePad";
+import StatusStrip from "@/components/driver/StatusStrip";
 
 const MAX_PHOTOS = 3;
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -25,28 +24,34 @@ function ProofOfDeliveryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stopId = searchParams.get("stop_id");
-  const { online, enqueueWithPhoto } = useSyncContext();
+  const outcome: "delivered" | "partial" = searchParams.get("outcome") === "partial" ? "partial" : "delivered";
+  const { online } = useSyncContext();
 
   const [stop, setStop] = useState<StopDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [recipientName, setRecipientName] = useState("");
   const [signature, setSignature] = useState<string | null>(null);
   const [photos, setPhotos] = useState<PhotoDraft[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!stopId) return;
-    fetchStopDetail(stopId)
-      .then((detail) => {
-        if (detail.pod) {
+    loadStop(stopId)
+      .then(({ data }) => {
+        // Already recorded here or on the server — never capture a second proof
+        if (!isOpenStatus(data.status)) {
+          toast.info(`Stop ${data.sequence} is already recorded as ${data.status}.`);
           router.replace("/driver/trip");
           return;
         }
-        setStop(detail);
+        setStop(data);
+        setQuantities(Object.fromEntries((data.order?.items ?? []).map((i) => [i.sku, i.quantity])));
       })
-      .catch((err) => console.error("Failed to fetch stop data:", err))
+      .catch(() => setStop(null))
       .finally(() => setLoading(false));
   }, [stopId, router]);
 
@@ -77,78 +82,86 @@ function ProofOfDeliveryContent() {
     });
   }
 
+  const items = stop?.order?.items ?? [];
+  const setQty = (sku: string, value: number, max: number) =>
+    setQuantities((q) => ({ ...q, [sku]: Math.max(0, Math.min(max, value)) }));
+  const short = items.some((i) => (quantities[i.sku] ?? i.quantity) < i.quantity);
+  const deliveredTotal = items.reduce((sum, i) => sum + (quantities[i.sku] ?? 0), 0);
+
+  // Same rules the server enforces (POD requirements)
   const missing = [
     !recipientName.trim() && "recipient name",
     !signature && "signature",
     photos.length === 0 && "at least one photo",
   ].filter(Boolean) as string[];
 
-  async function saveOffline(payload: Record<string, unknown>) {
-    await enqueueWithPhoto(
-      { action_type: "pod", stop_id: Number(stopId), payload, label: `Proof of delivery · ${stop?.customer_name ?? "stop"}` },
-      photos[0].file
-    );
-    toast.success("Saved on this device", { description: "Proof will sync automatically when signal returns." });
-    router.push("/driver/trip");
+  function validate(): string | null {
+    if (missing.length) return `Add the ${missing.join(", ")} before submitting.`;
+    if (outcome === "partial" && items.length) {
+      if (!short) return "Every item is at its full quantity — go back and choose Full delivery, or reduce the short items.";
+      if (deliveredTotal === 0) return "Nothing was delivered — go back and choose Could not deliver.";
+    }
+    return null;
   }
 
   async function handleSubmit() {
-    if (!stopId || !stop) return;
-    if (missing.length) {
-      setError(`Add the ${missing.join(", ")} before submitting.`);
+    if (!stop) return;
+    const problem = validate();
+    if (problem) {
+      setError(problem);
       return;
     }
     setSubmitting(true);
     setError(null);
 
-    const payload = {
-      recipient_name: recipientName.trim(),
-      signature_data: signature,
-      notes: "",
-    };
-
-    if (!online) {
-      await saveOffline(payload);
+    let record;
+    try {
+      // 1. Durable on the phone first: outcome, quantities, signature and photos together
+      record = await saveRecord(
+        {
+          action_type: "deliver",
+          trip_id: stop.driver_trip_id,
+          stop_id: stop.id,
+          payload: {
+            outcome,
+            recipient_name: recipientName.trim(),
+            signature_data: signature,
+            delivered_items: items.length ? quantities : undefined,
+            notes: notes.trim() || undefined,
+          },
+          label: `${outcome === "partial" ? "Partial delivery" : "Delivered"} · ${stop.customer_name}`,
+        },
+        photos.map((p) => p.file),
+      );
+    } catch (err) {
+      setError(err instanceof LocalSaveError ? err.message : "Couldn't save on this phone. Nothing was saved — try again.");
+      setSubmitting(false);
       return;
     }
 
-    try {
-      // Arrived straight here without choosing an outcome — record a full delivery
-      if (stop.status === "pending" || stop.status === "arrived") {
-        await apiFetch(`/driver/stops/${stopId}/outcome`, {
-          method: "PATCH",
-          body: JSON.stringify({ outcome: "delivered" }),
-        });
-      }
-
-      const photoUrls: string[] = [];
-      for (const photo of photos) {
-        const form = new FormData();
-        form.append("file", photo.file);
-        const { photo_url } = await apiFetchUpload<{ photo_url: string }>("/driver/upload/photo", form);
-        photoUrls.push(photo_url);
-      }
-
-      // The POD endpoint also marks the stop complete
-      await apiFetch(`/driver/stops/${stopId}/pod`, {
-        method: "POST",
-        body: JSON.stringify({ ...payload, photo_url: JSON.stringify(photoUrls) }),
-      });
-
+    // 2. With signal, wait briefly for the server's answer; without, it syncs later
+    const settled = online ? await waitForRecord(record.action_id, 12_000) : null;
+    const label = outcome === "partial" ? "partially delivered" : "delivered";
+    if (settled?.sync_status === "SYNCED") {
       const remaining = stop.total_stops - stop.sequence;
-      toast.success(`Stop ${stop.sequence} completed`, {
+      toast.success(`Stop ${stop.sequence} ${label} · synced`, {
         description: remaining > 0 ? "Head to your next stop." : "All stops done. Return to depot.",
       });
-      router.push("/driver/trip");
-    } catch (err) {
-      // Lost signal mid-submit — keep the proof on the device instead of losing it
-      if (err instanceof ApiError && err.isNetworkError) {
-        await saveOffline(payload);
-        return;
-      }
-      setError(err instanceof Error ? err.message : "Couldn't submit proof of delivery.");
+    } else if (settled?.sync_status === "CONFLICT") {
+      toast.error("The plan changed for this stop", { description: "Your record and photos are kept for dispatcher review." });
+      router.push(`/driver/queue/conflict?id=${record.action_id}`);
+      return;
+    } else if (settled?.sync_status === "SYNC_FAILED" && !settled.retryable) {
+      // Rejected by the server: stay here so the driver can fix and resubmit
+      setError(settled.last_error ?? "The server did not accept this proof of delivery.");
       setSubmitting(false);
+      return;
+    } else {
+      toast.success(`Stop ${stop.sequence} saved on this phone`, {
+        description: "Not synced yet — it uploads automatically when signal returns.",
+      });
     }
+    router.push("/driver/trip");
   }
 
   return (
@@ -160,16 +173,7 @@ function ProofOfDeliveryContent() {
         style={{ borderBottom: "1px solid #D9E1E8" }}
       >
         {/* Device status */}
-        <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>
-            {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>{online ? "Online" : "Saving offline"}</span>
-            <Signal size={16} color="#BDBDBD" />
-            <BatteryFull size={18} color="#BDBDBD" />
-          </div>
-        </div>
+        <StatusStrip />
 
         {/* Title bar */}
         <div className="flex px-5 py-2.5 items-center w-full">
@@ -193,7 +197,7 @@ function ProofOfDeliveryContent() {
           >
             <span className="font-semibold text-[13px]" style={{ color: "#18385F" }}>You&apos;re offline</span>
             <span className="font-normal text-[12px] mt-1" style={{ color: "#6B7280" }}>
-              Your proof will be saved on this device and synced when signal returns.
+              Your proof is saved on this phone first and syncs automatically when signal returns.
             </span>
           </div>
         </div>
@@ -208,8 +212,8 @@ function ProofOfDeliveryContent() {
         {/* Order summary */}
         <div className="flex justify-between items-center w-full shrink-0">
           <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="font-bold text-[10px] uppercase" style={{ color: stop?.status === "partial" ? "#A85D00" : "#18794E" }}>
-              {stop?.status === "partial" ? "Partial delivery" : "Full delivery"}
+            <span className="font-bold text-[10px] uppercase" style={{ color: outcome === "partial" ? "#A85D00" : "#18794E" }}>
+              {outcome === "partial" ? "Partial delivery" : "Full delivery"}
               {stop?.order && ` · ${stop.order.order_number}`}
             </span>
             <span className="font-bold text-[18px] truncate" style={{ color: "#12202E" }}>{stop?.customer_name || "Unknown"}</span>
@@ -222,6 +226,61 @@ function ProofOfDeliveryContent() {
           </div>
           {online ? <Cloud size={22} color="#8793A0" /> : <CloudOff size={22} color="#8793A0" />}
         </div>
+
+        {/* Units actually handed over (partial delivery) */}
+        {outcome === "partial" && items.length > 0 && (
+          <div className="flex flex-col gap-1.5 w-full shrink-0">
+            <label className="font-semibold text-[12px]" style={{ color: "#12202E" }}>Units delivered</label>
+            <div className="flex flex-col rounded-xl overflow-hidden" style={{ border: "1px solid #D9E1E8" }}>
+              {items.map((item, idx) => {
+                const qty = quantities[item.sku] ?? item.quantity;
+                return (
+                  <div
+                    key={item.sku}
+                    className="flex items-center gap-3 px-3.5 py-2.5"
+                    style={{ borderTop: idx ? "1px solid #F2F5F8" : "none", backgroundColor: qty < item.quantity ? "#FFF4D6" : "#FFFFFF" }}
+                  >
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="font-semibold text-[13px] truncate" style={{ color: "#12202E" }}>{item.item_name}</span>
+                      <span className="text-[11px]" style={{ color: qty < item.quantity ? "#A85D00" : "#8793A0" }}>
+                        {qty < item.quantity ? `${item.quantity - qty} short · ` : ""}of {item.quantity} ordered
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`One less ${item.item_name}`}
+                      onClick={() => setQty(item.sku, qty - 1, item.quantity)}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg"
+                      style={{ backgroundColor: "#F2F5F8", border: "1px solid #D9E1E8" }}
+                    >
+                      <Minus size={16} color="#12202E" />
+                    </button>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={item.quantity}
+                      value={qty}
+                      onChange={(e) => setQty(item.sku, Number(e.target.value) || 0, item.quantity)}
+                      className="w-12 h-9 text-center rounded-lg text-[15px] font-bold outline-none"
+                      style={{ border: "1px solid #D9E1E8", color: "#12202E" }}
+                      aria-label={`${item.item_name} units delivered`}
+                    />
+                    <button
+                      type="button"
+                      aria-label={`One more ${item.item_name}`}
+                      onClick={() => setQty(item.sku, qty + 1, item.quantity)}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg"
+                      style={{ backgroundColor: "#F2F5F8", border: "1px solid #D9E1E8" }}
+                    >
+                      <Plus size={16} color="#12202E" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Form field (Recipient name) */}
         <div className="flex flex-col gap-1.5 w-full shrink-0">
@@ -308,6 +367,23 @@ function ProofOfDeliveryContent() {
           )}
         </div>
 
+        {/* Note for dispatch */}
+        {outcome === "partial" && (
+          <div className="flex flex-col gap-1.5 w-full shrink-0">
+            <label htmlFor="pod-notes" className="font-semibold text-[12px]" style={{ color: "#12202E" }}>Note for dispatch (optional)</label>
+            <textarea
+              id="pod-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              maxLength={300}
+              placeholder="e.g. 2 cartons damaged, returned to truck"
+              className="w-full p-3 rounded-md text-[13px] outline-none resize-none"
+              style={{ border: "1px solid #E5E5E2", color: "#12202E" }}
+            />
+          </div>
+        )}
+
         {error && (
           <div className="w-full p-3 rounded-lg text-[12px] shrink-0" style={{ backgroundColor: "#FDECEC", color: "#C9363E" }}>
             {error}
@@ -322,7 +398,7 @@ function ProofOfDeliveryContent() {
             className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px] disabled:opacity-50"
             style={{ backgroundColor: "#092C4C" }}
           >
-            {submitting ? (online ? "Uploading proof..." : "Saving...") : "Submit & complete stop"}
+            {submitting ? (online ? "Saving & syncing..." : "Saving on this phone...") : "Submit & complete stop"}
           </button>
         </div>
       </div>

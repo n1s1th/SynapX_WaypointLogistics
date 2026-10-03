@@ -17,7 +17,7 @@ export default function TripSummaryPage() {
       try {
         const trips = await apiFetch<any[]>("/driver/trips/today");
         // Prioritize started trip, otherwise take the most recently completed one
-        const targetTrip = trips.find(t => t.status === "STARTED") || trips.find(t => t.status === "COMPLETED");
+        const targetTrip = trips.find(t => t.status === "started") || trips.find(t => t.status === "completed");
         
         if (targetTrip) {
           const detail = await apiFetch<any>(`/driver/trips/${targetTrip.id}`);
@@ -33,9 +33,9 @@ export default function TripSummaryPage() {
   }, []);
 
   const totalStops = tripDetail?.stops?.length || 0;
-  const processedStops = tripDetail?.stops?.filter((s: any) => s.status === 'COMPLETED').length || 0;
+  const processedStops = tripDetail?.stops?.filter((s: any) => !['pending', 'arrived'].includes(s.status)).length || 0;
   // Based on DeliveryStop model and outcome updates:
-  const fullDeliveries = tripDetail?.stops?.filter((s: any) => s.status === 'COMPLETED').length || 0; 
+  const fullDeliveries = tripDetail?.stops?.filter((s: any) => s.status === 'delivered').length || 0; 
   const partialDeliveries = 0; // if we tracked partial, we'd count it here
   const podComplete = processedStops; 
 

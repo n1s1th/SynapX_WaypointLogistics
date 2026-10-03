@@ -20,7 +20,7 @@
  *  - Bottom sheet pattern for mobile (swipe-friendly)
  */
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +29,13 @@ import {
   List, AlertCircle, RefreshCw, Loader2
 } from "lucide-react";
 import { type Map as MapLibreMap } from "maplibre-gl";
-import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
+import {
+  loadActiveTrip, loadTrip, localCompletion, withLocalState, failureMessage, failureReason, type FailureReason,
+} from "@/lib/driverStop";
+import { saveRecord, waitForRecord, LocalSaveError } from "@/lib/syncQueue";
+import { useSyncContext } from "@/components/SyncProvider";
+import SyncChip from "@/components/driver/SyncChip";
 import type { DriverTripDetail, DeliveryStop, GPSPosition } from "@/types/driver-map";
 
 // Heavy map canvas loaded client-side only
@@ -59,9 +65,15 @@ export default function DriverRouteMapPage() {
   const mapRef = useRef<MapLibreMap | null>(null);
 
   // ── Data state ─────────────────────────────────────────────────
-  const [trip, setTrip] = useState<DriverTripDetail | null>(null);
+  const { queue, online } = useSyncContext();
+  const [rawTrip, setTrip] = useState<DriverTripDetail | null>(null);
+  // Server/cached copy overlaid with records saved on this phone (recomputed as they sync)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const trip = useMemo(() => (rawTrip ? withLocalState(rawTrip) : null), [rawTrip, queue]);
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
+  // Why the saved copy is shown: no signal, expired session, or a server error
+  const [failReason, setFailReason] = useState<FailureReason | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [completing, setCompleting] = useState(false);
 
@@ -102,37 +114,35 @@ export default function DriverRouteMapPage() {
   }
 
   // ─── Load trip data ───────────────────────────────────────────
-  const loadTrip = useCallback(async () => {
+  // Server first (and cache it); the phone's saved copy when the server can't be reached.
+  const loadTripData = useCallback(async () => {
     try {
-      const trips = await apiFetch<any[]>("/driver/trips/today");
-      // Prioritise STARTED, then ASSIGNED
-      const target =
-        trips.find((t) => t.status === "started") ??
-        trips.find((t) => t.status === "assigned") ??
-        null;
-
-      if (target) {
-        const detail = await apiFetch<DriverTripDetail>(`/driver/trips/${target.id}`);
-        setTrip(detail);
-        setLastUpdated(new Date());
-        setOffline(false);
-      } else {
-        setTrip(null);
-        setOffline(false);
-      }
-    } catch {
+      const res = await loadActiveTrip();
+      setTrip(res?.data ?? null);
+      setOffline(res?.source === "cache");
+      setFailReason(res?.source === "cache" ? res.reason ?? "offline" : null);
+      setLastUpdated(res?.source === "cache" && res.cachedAt ? new Date(res.cachedAt) : new Date());
+    } catch (err) {
       setOffline(true);
+      setFailReason(failureReason(err));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadTrip();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadTripData();
     // Poll for stop status changes every 30 seconds (passive refresh)
-    const interval = setInterval(loadTrip, 30_000);
-    return () => clearInterval(interval);
-  }, [loadTrip]);
+    const interval = setInterval(loadTripData, 30_000);
+    // Refresh with server-confirmed state as soon as records sync
+    const onSynced = () => loadTripData();
+    window.addEventListener("driver-sync:flushed", onSynced);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("driver-sync:flushed", onSynced);
+    };
+  }, [loadTripData]);
 
   // ─── GPS watch ────────────────────────────────────────────────
   const startGps = useCallback(() => {
@@ -166,6 +176,7 @@ export default function DriverRouteMapPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     startGps();
     return () => {
       if (gpsWatchId.current !== null) {
@@ -190,13 +201,31 @@ export default function DriverRouteMapPage() {
   }, [gpsPosition, startGps]);
 
   // ─── Complete trip ────────────────────────────────────────────
+  // Saved on the phone first; the server completes the trip only once it has
+  // every stop. Until then the trip shows as "completed · waiting to sync".
+  const completion = trip ? localCompletion(trip.id) : null;
+
   async function handleCompleteTrip() {
     if (!trip) return;
     setCompleting(true);
     try {
-      await apiFetch(`/driver/trips/${trip.id}/complete`, { method: "POST" });
-      router.push("/driver/trip/summary");
-    } catch {
+      const record = completion && completion.sync_status !== "SYNC_FAILED"
+        ? completion
+        : await saveRecord({ action_type: "complete_trip", trip_id: trip.id, payload: {}, label: `Trip R-${trip.id} completed` });
+      const settled = online ? await waitForRecord(record.action_id, 10_000) : null;
+      if (settled?.sync_status === "SYNCED") {
+        await loadTrip(trip.id).catch(() => undefined);
+        router.push("/driver/trip/summary");
+        return;
+      }
+      if (settled?.sync_status === "SYNC_FAILED" || settled?.sync_status === "CONFLICT") {
+        toast.error("The server can't complete this trip yet", { description: settled.last_error ?? undefined });
+      } else {
+        toast.success("Trip completion saved on this phone", { description: "It will be confirmed when every stop has synced." });
+      }
+    } catch (err) {
+      toast.error(err instanceof LocalSaveError ? err.message : "Couldn't save the trip completion.");
+    } finally {
       setCompleting(false);
     }
   }
@@ -291,10 +320,10 @@ export default function DriverRouteMapPage() {
         >
           <AlertCircle size={14} color="#A85D00" />
           <span className="text-[12px] font-medium text-[#A85D00] flex-1">
-            Connection lost · Showing last known route
+            {failureMessage(failReason, Boolean(trip))}
           </span>
           <button
-            onClick={() => { setOffline(false); loadTrip(); }}
+            onClick={() => { setOffline(false); loadTripData(); }}
             className="text-[12px] font-bold text-[#A85D00] underline"
           >
             Retry
@@ -332,7 +361,7 @@ export default function DriverRouteMapPage() {
                 style={{ backgroundColor: "rgba(9,44,76,0.92)", backdropFilter: "blur(4px)" }}
               >
                 <span className="text-[11px] font-bold text-white">
-                  {stops.filter(s => s.status === "delivered" || s.status === "partial").length}
+                  {stops.filter(s => !["pending", "arrived"].includes(s.status)).length}
                   /{stops.length} stops done
                 </span>
               </div>
@@ -346,7 +375,7 @@ export default function DriverRouteMapPage() {
             {mapState === "OFFLINE" && (
               <MapOfflineState
                 lastUpdated={lastUpdated}
-                onRetry={() => { setOffline(false); loadTrip(); }}
+                onRetry={() => { setOffline(false); loadTripData(); }}
               />
             )}
 
@@ -383,6 +412,9 @@ export default function DriverRouteMapPage() {
                 tripId={trip!.id}
                 completing={completing}
                 onComplete={handleCompleteTrip}
+                completionSync={completion?.sync_status ?? null}
+                completionError={completion?.sync_status === "SYNC_FAILED" || completion?.sync_status === "CONFLICT" ? completion.last_error : null}
+                serverCompleted={trip!.status === "completed"}
               />
             )}
 
@@ -414,7 +446,7 @@ export default function DriverRouteMapPage() {
           {mapState === "OFFLINE" && (
             <MapOfflineState
               lastUpdated={lastUpdated}
-              onRetry={() => { setOffline(false); loadTrip(); }}
+              onRetry={() => { setOffline(false); loadTripData(); }}
             />
           )}
 
@@ -445,6 +477,9 @@ export default function DriverRouteMapPage() {
               tripId={trip!.id}
               completing={completing}
               onComplete={handleCompleteTrip}
+              completionSync={completion?.sync_status ?? null}
+              completionError={completion?.sync_status === "SYNC_FAILED" || completion?.sync_status === "CONFLICT" ? completion.last_error : null}
+              serverCompleted={trip!.status === "completed"}
             />
           )}
 
@@ -525,11 +560,18 @@ function AllDoneCard({
   tripId,
   completing,
   onComplete,
+  completionSync,
+  completionError,
+  serverCompleted,
 }: {
   tripId: number;
   completing: boolean;
   onComplete: () => void;
+  completionSync: string | null;
+  completionError: string | null;
+  serverCompleted: boolean;
 }) {
+  const waiting = !serverCompleted && (completionSync === "PENDING_SYNC" || completionSync === "SYNCING");
   return (
     <div
       className="flex flex-col gap-3 p-4 rounded-2xl"
@@ -537,16 +579,31 @@ function AllDoneCard({
     >
       <div className="flex items-center gap-2">
         <div
-          className="flex items-center justify-center w-10 h-10 rounded-full"
+          className="flex items-center justify-center w-10 h-10 rounded-full shrink-0"
           style={{ backgroundColor: "#18794E" }}
         >
           <span className="text-white text-[18px]">✓</span>
         </div>
-        <div className="flex flex-col">
-          <span className="text-[15px] font-bold text-[#12202E]">All Stops Completed!</span>
-          <span className="text-[12px] text-[#5D6A78]">Return to depot and complete the trip.</span>
+        <div className="flex flex-col flex-1">
+          <span className="text-[15px] font-bold text-[#12202E]">
+            {serverCompleted ? "Trip completed" : waiting ? "Trip completed on this phone" : "All Stops Completed!"}
+          </span>
+          <span className="text-[12px] text-[#5D6A78]">
+            {serverCompleted
+              ? "Confirmed by dispatch."
+              : waiting
+                ? "Waiting to sync — dispatch confirms it once every stop is on the server."
+                : "Return to depot and complete the trip."}
+          </span>
         </div>
+        {!serverCompleted && <SyncChip status={completionSync} short />}
       </div>
+
+      {completionError && (
+        <div className="p-2.5 rounded-lg text-[12px]" style={{ backgroundColor: "#FDECEF", color: "#C9363E" }}>
+          {completionError}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Link href="/driver/trip/depot">
@@ -557,15 +614,17 @@ function AllDoneCard({
             Return to Depot
           </button>
         </Link>
-        <button
-          id="driver-complete-trip-btn"
-          onClick={onComplete}
-          disabled={completing}
-          className="w-full h-[44px] flex items-center justify-center rounded-xl font-bold text-[14px] disabled:opacity-50 transition-all"
-          style={{ backgroundColor: "#F2F5F8", color: "#5D6A78" }}
-        >
-          {completing ? "Completing…" : "Complete Trip"}
-        </button>
+        {!serverCompleted && (
+          <button
+            id="driver-complete-trip-btn"
+            onClick={onComplete}
+            disabled={completing || waiting}
+            className="w-full h-[44px] flex items-center justify-center rounded-xl font-bold text-[14px] disabled:opacity-50 transition-all"
+            style={{ backgroundColor: "#F2F5F8", color: "#5D6A78" }}
+          >
+            {completing ? "Saving…" : waiting ? "Completion waiting to sync" : `Complete Trip R-${tripId}`}
+          </button>
+        )}
       </div>
     </div>
   );

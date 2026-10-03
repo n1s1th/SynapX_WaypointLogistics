@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
+import { prepareSignOut } from "@/lib/syncQueue";
+import { useSyncContext } from "@/components/SyncProvider";
 
 interface UserProfile {
   id: number;
@@ -21,6 +23,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { outstandingCount, online, retryAll, state } = useSyncContext();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -36,7 +40,14 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
+    // Unsynced records would need this session to upload — warn first
+    if (outstandingCount > 0 && !confirmLogout) {
+      setConfirmLogout(true);
+      return;
+    }
+    // Keeps unsynced records + evidence; clears cached customer data only when nothing is waiting
+    await prepareSignOut();
     clearToken();
     router.push("/driver/login");
   }
@@ -147,14 +158,36 @@ export default function ProfilePage() {
         </div>
 
         {/* Logout Action */}
-        <div className="w-full mt-6">
+        <div className="w-full mt-6 flex flex-col gap-2.5">
+          {confirmLogout && outstandingCount > 0 && (
+            <div className="flex flex-col p-3 gap-2 rounded-xl" style={{ backgroundColor: "#FFF4D6", border: "1px solid rgba(168, 93, 0, 0.21)" }}>
+              <span className="font-bold text-[12px] leading-[1.45em]" style={{ color: "#A85D00" }}>
+                {outstandingCount} record{outstandingCount === 1 ? " hasn't" : "s haven't"} synced yet
+              </span>
+              <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#A85D00" }}>
+                They stay safely on this phone and upload after you sign in again — but dispatch won&apos;t see them until then.
+              </span>
+              {online && (
+                <button
+                  onClick={() => { setConfirmLogout(false); retryAll(); }}
+                  disabled={state === "syncing"}
+                  className="w-full h-[40px] rounded-md font-semibold text-[13px] text-white disabled:opacity-50"
+                  style={{ backgroundColor: "#092C4C" }}
+                >
+                  {state === "syncing" ? "Syncing…" : "Sync now first"}
+                </button>
+              )}
+            </div>
+          )}
           <button 
             onClick={handleLogout}
             className="w-full flex justify-center items-center gap-2 h-[55px] rounded-lg bg-white"
             style={{ border: "2px solid #C9363E" }}
           >
             <LogOut size={18} color="#C9363E" />
-            <span className="font-bold text-[16px]" style={{ color: "#C9363E" }}>Log out</span>
+            <span className="font-bold text-[16px]" style={{ color: "#C9363E" }}>
+              {confirmLogout && outstandingCount > 0 ? "Log out anyway" : "Log out"}
+            </span>
           </button>
         </div>
       </div>

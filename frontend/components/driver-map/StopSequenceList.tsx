@@ -3,6 +3,7 @@
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import type { DeliveryStop } from "@/types/driver-map";
+import SyncChip from "@/components/driver/SyncChip";
 
 interface StopSequenceListProps {
   stops: DeliveryStop[];
@@ -80,12 +81,12 @@ export default function StopSequenceList({ stops, onStopClick }: StopSequenceLis
               </span>
             </div>
 
-            {/* Status label */}
-            <span
-              className="text-[10px] font-bold shrink-0 ml-1"
-              style={{ color: cfg.text }}
-            >
-              {stop.status.toUpperCase()}
+            {/* Delivery status, and separately whether the server has it yet */}
+            <span className="flex flex-col items-end gap-1 shrink-0 ml-1">
+              <span className="text-[10px] font-bold" style={{ color: cfg.text }}>
+                {stop.status.toUpperCase()}
+              </span>
+              <SyncChip status={stop.local_sync} short />
             </span>
           </button>
         );

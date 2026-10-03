@@ -1,7 +1,7 @@
 import os
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, status, UploadFile, File, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, status, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.user import User
@@ -36,8 +36,8 @@ def get_trip_detail(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.require_driver)
 ):
-    """Returns single DriverTrip with full stop list."""
-    return driver_service.get_trip_detail(db, trip_id, current_user.id)
+    """Returns a trip with every stop's order and POD requirements (cached on the phone for offline use)."""
+    return driver_service.get_trip_view(db, trip_id, current_user.id)
 
 
 # --- Group B: Trip Actions ---
@@ -121,34 +121,53 @@ from app.schemas.driver import IssueReportCreate, IssueReportRead
 
 
 # --- Photo Upload ---
-UPLOAD_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "static", "uploads")
-)
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+EXTENSIONS = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 @router.post("/upload/photo")
 async def upload_photo(
     file: UploadFile = File(...),
+    client_file_id: Optional[str] = Form(None),
     current_user: User = Depends(deps.require_driver)
 ):
-    """Accepts a multipart image upload, saves to disk, returns its public URL."""
+    """Accepts a multipart image upload, saves to disk, returns its public URL.
+
+    client_file_id (a UUID made on the phone when the photo was taken) makes the
+    upload idempotent: a retry after a lost response returns the same URL
+    instead of storing a second copy.
+    """
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {file.content_type}")
+
+    if client_file_id:
+        try:
+            stem = uuid.UUID(client_file_id).hex
+        except ValueError:
+            raise HTTPException(status_code=422, detail="client_file_id must be a UUID")
+    else:
+        stem = uuid.uuid4().hex
+    filename = f"{stem}.{EXTENSIONS[file.content_type]}"
+    save_path = os.path.join(driver_service.UPLOAD_DIR, filename)
+    public_url = f"{driver_service.UPLOAD_URL_PREFIX}{filename}"
+
+    if client_file_id and os.path.isfile(save_path):
+        return {"photo_url": public_url}
 
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
+    if not contents:
+        raise HTTPException(status_code=422, detail="The photo file is empty.")
 
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else "jpg"
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    save_path = os.path.join(UPLOAD_DIR, filename)
-
-    with open(save_path, "wb") as f:
+    os.makedirs(driver_service.UPLOAD_DIR, exist_ok=True)
+    # Write then rename so a half-written file is never served as evidence
+    tmp_path = f"{save_path}.{uuid.uuid4().hex}.part"
+    with open(tmp_path, "wb") as f:
         f.write(contents)
+    os.replace(tmp_path, save_path)
 
-    return {"photo_url": f"/static/uploads/{filename}"}
+    return {"photo_url": public_url}
 
 @router.post("/trips/{trip_id}/issues", response_model=IssueReportRead)
 def report_issue(
@@ -210,6 +229,7 @@ def depot_checkin(
 
 
 # --- Group D: Offline Sync ---
+MAX_SYNC_BATCH = 50
 from app.schemas.driver import SyncAction, SyncResult
 
 @router.post("/sync", response_model=SyncResult)
@@ -218,5 +238,11 @@ def process_sync(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.require_driver)
 ):
-    """Batch processes offline actions and returns conflicts."""
+    """Applies offline actions one by one, each idempotent on its action_id.
+
+    Every action gets its own result (applied / conflict / rejected); a
+    replayed action_id returns the stored result with duplicate=true.
+    """
+    if len(actions) > MAX_SYNC_BATCH:
+        raise HTTPException(status_code=413, detail=f"Send at most {MAX_SYNC_BATCH} actions per request.")
     return driver_service.process_sync_batch(db, actions, current_user.id)

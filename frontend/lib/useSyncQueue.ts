@@ -1,10 +1,12 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  getQueue, getState, getLastError,
-  subscribe, flush, enqueue, enqueueWithPhoto, dequeue, dismissFailed,
-  initSyncQueue, PendingAction, QueueState
+  getQueue, getState, getLastError, getAuthBlocked, getLastSyncAt,
+  subscribe, flush, enqueue, enqueueWithPhoto, saveRecord, dequeue, dismissFailed,
+  dismissRecord, retryRecord, retryAll, recheckConflict, outstandingFor, currentSession,
+  initSyncQueue, type QueuedAction, type QueueState,
 } from "./syncQueue";
+import { belongsTo, selectSendable } from "./driverSync/engine";
 
 // ─── Active connectivity probe ────────────────────────────────────────────────
 // navigator.onLine is unreliable — it only checks if a network interface is UP,
@@ -42,18 +44,22 @@ let _initialized  = false;
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useSyncQueue() {
-  const [queue, setQueue]         = useState<PendingAction[]>([]);
+  const [queue, setQueue]         = useState<QueuedAction[]>([]);
   const [state, setState]         = useState<QueueState>("idle");
   const [online, setOnline]       = useState<boolean>(true);   // optimistic default
   const [lastError, setLastError] = useState<string | null>(null);
+  const [authBlocked, setAuthBlocked] = useState(false);
+  const [lastSyncAt, setLastSyncAt]   = useState<string | null>(null);
+  const [driverId, setDriverId]       = useState<number | null>(null);
   const intervalRef               = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Probe & update online state ───────────────────────────────────────────
   const checkOnline = useCallback(async () => {
     const reachable = await probeConnectivity();
     setOnline(reachable);
-    // If we just came back online and there are pending items, flush
-    if (reachable && getQueue().filter((a) => a.status === "pending").length > 0) {
+    setDriverId(currentSession().driverId);
+    // Reachable and something is due (new records, or a failed one whose backoff ran out)
+    if (reachable && selectSendable(getQueue(), Date.now(), currentSession().driverId).length > 0) {
       flush();
     }
   }, []);
@@ -70,11 +76,14 @@ export function useSyncQueue() {
       setQueue([...getQueue()]);
       setState(getState());
       setLastError(getLastError());
+      setAuthBlocked(getAuthBlocked());
+      setLastSyncAt(getLastSyncAt());
     };
     sync();
     const unsubscribe = subscribe(sync);
 
     // ── Initial probe (don't wait for the interval) ─────────────────────────
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkOnline();
 
     // ── Recurring probe ─────────────────────────────────────────────────────
@@ -95,18 +104,33 @@ export function useSyncQueue() {
     };
   }, [checkOnline]);
 
+  const mine = queue.filter((a) => belongsTo(a, driverId));
+
   return {
-    queue,
+    queue: mine,
     state,
     online,
     lastError,
-    pendingCount:  queue.filter((a) => a.status === "pending").length,
-    failedCount:   queue.filter((a) => a.status === "failed").length,
-    syncingCount:  queue.filter((a) => a.status === "syncing").length,
+    authBlocked,
+    lastSyncAt,
+    driverId,
+    /** Waiting to be sent (new, uploading, or failed and due to retry). */
+    pendingCount:  mine.filter((a) => a.sync_status === "PENDING_SYNC" || a.sync_status === "SYNCING").length,
+    failedCount:   mine.filter((a) => a.sync_status === "SYNC_FAILED").length,
+    syncingCount:  mine.filter((a) => a.sync_status === "SYNCING").length,
+    conflictCount: mine.filter((a) => a.sync_status === "CONFLICT").length,
+    syncedCount:   mine.filter((a) => a.sync_status === "SYNCED").length,
+    /** Not yet confirmed by the server (or a conflict nobody has reviewed). */
+    outstandingCount: outstandingFor(driverId).length,
     flush,
+    retryAll,
+    retryRecord,
+    recheckConflict,
+    saveRecord,
     enqueue,
     enqueueWithPhoto,
     dequeue,
     dismissFailed,
+    dismissRecord,
   };
 }

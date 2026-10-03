@@ -13,6 +13,37 @@ export type StopStatus =
 
 export type TripStatus = "assigned" | "started" | "completed";
 
+export interface StopOrderItem {
+  sku: string;
+  item_name: string;
+  quantity: number;
+}
+
+export interface StopOrderInfo {
+  order_number: string;
+  brand: string | null;
+  temperature_zone: string | null;
+  delivery_window: string | null;
+  units: number | null;
+  weight_kg: number | null;
+  volume_m3: number | null;
+  notes: string | null;
+  items: StopOrderItem[];
+}
+
+/** What the server requires before it accepts a stop (backend POD_REQUIREMENTS). */
+export interface PodRequirements {
+  recipient_name: boolean;
+  signature: boolean;
+  min_photos: number;
+  max_photos: number;
+  delivered_quantities: string;
+  failure_reason: boolean;
+}
+
+/** Sync state of a locally recorded change; absent/null = server-confirmed. */
+export type LocalSyncStatus = "PENDING_SYNC" | "SYNCING" | "SYNCED" | "SYNC_FAILED" | "CONFLICT";
+
 export interface DeliveryStop {
   id: number;
   driver_trip_id: number;
@@ -25,9 +56,15 @@ export interface DeliveryStop {
   longitude: number | null;
   notes: string | null;
   status: StopStatus;
+  outcome_reason?: string | null;
   arrived_at: string | null;
   completed_at: string | null;
   created_at: string;
+  order?: StopOrderInfo | null;
+  pod_requirements?: PodRequirements;
+  pod?: { id: number; recipient_name: string } | null;
+  /** Set when status comes from a record on this phone the server hasn't confirmed. */
+  local_sync?: LocalSyncStatus | null;
 }
 
 export interface DriverTripDetail {

@@ -32,7 +32,7 @@ export default function SOSPage() {
     async function loadActiveTrip() {
       try {
         const trips = await apiFetch<any[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "STARTED");
+        const startedTrip = trips.find(t => t.status === "started");
         
         if (startedTrip) {
           const detail = await apiFetch<any>(`/driver/trips/${startedTrip.id}`);
@@ -66,7 +66,7 @@ export default function SOSPage() {
     }
   }
 
-  const currentStop = activeTrip?.stops?.find((s: any) => s.status === 'PENDING');
+  const currentStop = activeTrip?.stops?.find((s: any) => s.status === 'pending' || s.status === 'arrived');
 
   return (
     <div className="h-[100dvh] flex flex-col font-sans overflow-hidden relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
