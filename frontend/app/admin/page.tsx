@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UserNotificationBell } from "@/components/notifications/user-notification-bell";
 
 import { AdminSidebar, AdminTab } from "@/components/admin/admin-sidebar";
 import { OverviewTab } from "@/components/admin/overview-tab";
@@ -194,6 +195,7 @@ function AdminDashboardContent() {
           </div>
 
           <div className="flex items-center gap-3">
+            <UserNotificationBell />
             <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded bg-slate-100 text-xs border border-border">
               <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
               <span className="text-muted-foreground">Keycloak Realm:</span>

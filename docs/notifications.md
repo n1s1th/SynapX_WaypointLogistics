@@ -1,0 +1,9 @@
+# In-app notifications
+
+`user_notifications` is the private inbox for accounts in `users` (admin, dispatcher, driver, warehouse/store manager, and any Keycloak loader account). Each recipient gets a separate row and read state. Producers call `notify_user` or `notify_role` from `backend/app/services/user_notification_service.py` with a stable `event_key` while their operational transaction is open. The caller commits once; a rollback removes the event and its notification together. Repeating the same event key for the same recipient does not add a duplicate.
+
+Apply `backend/alembic/versions/0017_user_notifications.py` with `alembic upgrade head`. The API is `GET /api/v1/notifications/inbox`, `PATCH /api/v1/notifications/inbox/{id}/read`, and `POST /api/v1/notifications/inbox/read-all`. All use the authenticated user; callers cannot read or mark another user's messages. The shared frontend bell is `frontend/components/notifications/user-notification-bell.tsx`. It is mounted in Dispatcher, Admin, Driver, and Warehouse. It refreshes when the window regains focus and every 30 seconds while visible.
+
+Current producers create in-app entries for loader flags, driver issues, driver SOS, store issues, and driver trip assignments. Store Manager's existing outlet-scoped `/notifications` feed and screen remain in use for order and delivery updates. That feed is shared by outlet, including its read state. Loader tablets use `loader_users` and PIN sessions instead of `users`/Keycloak; their bell needs a separately authenticated loader inbox before private user notifications can be exposed safely there. The current loader issue badge remains on the loader shell.
+
+To add an event, choose the responsible user or role, include a stable key such as `event-name:{record.id}`, set an internal destination URL, and call the service before the event's commit. Keep email as a separate delivery channel; in-app entries do not depend on SMTP configuration.

@@ -1,337 +1,163 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { type Order } from "@/types/order";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
-import { fetchWithFallback } from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { apiFetch, ApiError } from "@/lib/api";
+import { confirmAllocation, getAllocationRecommendation } from "@/lib/allocation-api";
+import type { Order } from "@/types/order";
+import type { AllocationRecommendation, VehicleRecommendation } from "@/types/allocation";
 import { ConstraintReviewModal } from "./ConstraintReviewModal";
+import { AllocationBlockers } from "./AllocationBlockers";
 
-interface Vehicle {
-  id: number;
-  code: string;
-  vehicle_type: string;
-  capacity_kg: number;
-  capacity_vol_m3: number;
-  status: string;
-  temperature_mode: string;
-  depot_name: string;
+function RecommendationVehicleCard({ vehicle, selected, onSelect }: {
+  vehicle: VehicleRecommendation;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { weight, volume, trips_today, fuel, driver, access, delivery_windows } = vehicle.constraints;
+  const value = (input: unknown) => input == null ? "?" : String(input);
+  const fuelLabel = fuel?.status === "fail" ? "FAIL" : fuel?.status === "pass" ? "PASS" : "WARNING";
+  const driverLabel = driver?.status === "pass" ? "PASS" : driver?.status === "fail" ? "FAIL" : "WARNING";
+  return <button type="button" disabled={!vehicle.eligible} onClick={onSelect}
+    aria-pressed={selected}
+    className={`w-full text-left rounded-lg border p-3 space-y-1 text-xs focus-visible:ring-2 focus-visible:ring-ring ${selected ? "border-primary bg-accent" : "border-border bg-card"} ${vehicle.eligible ? "hover:border-primary" : "opacity-70 cursor-not-allowed"}`}>
+    <div className="flex justify-between gap-2 font-semibold text-sm"><span>{vehicle.vehicle_code}</span>
+      <span>{vehicle.eligible ? `${vehicle.recommendation_level.replaceAll("_", " ")} · ${vehicle.recommendation_score}%` : "INELIGIBLE"}</span></div>
+    <div className="text-muted-foreground">Weight: {value(weight?.required)} / {value(weight?.capacity)} kg · Volume: {value(volume?.required)} / {value(volume?.capacity)} m³</div>
+    <div className="text-muted-foreground">Trips: {value(trips_today?.trips_on_date)} / {value(trips_today?.maximum)}</div>
+    <div className={fuel?.status === "fail" ? "text-destructive" : "text-warning"}>Fuel quota: {fuelLabel} · {fuel?.message ?? "Not verified"}</div>
+    <div className={driver?.status === "pass" ? "text-muted-foreground" : "text-warning"}>Driver: {driverLabel} · {driver?.message ?? "Not assigned"}</div>
+    <div className="text-muted-foreground">Access: {access?.status ?? "unknown"} · Windows: {delivery_windows?.status ?? "unknown"}</div>
+    <div>{vehicle.eligible ? `Why recommended: ${vehicle.reasons.join(" ") || "All required constraints pass."}` : vehicle.reasons.join(" · ") || Object.values(vehicle.constraints).filter((check) => check.status !== "pass").map((check) => check.message).join(" · ")}</div>
+  </button>;
 }
 
-interface QuickAllocationDrawerProps {
+const eligibleOrder = (order: Order) =>
+  (order.status === "CONFIRMED" || order.status === "SUBMITTED") && !order.allocation_id && !order.is_late;
+
+export function QuickAllocationDrawer({ isOpen, onClose, initialOrderIds, onAllocationSuccess }: {
   isOpen: boolean;
   onClose: () => void;
-  selectedOrders: Order[];
+  initialOrderIds: number[];
   onAllocationSuccess: (vehicleCode: string, count: number) => void;
-}
-
-export function QuickAllocationDrawer({
-  isOpen,
-  onClose,
-  selectedOrders,
-  onAllocationSuccess,
-}: QuickAllocationDrawerProps) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+}) {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [orderIds, setOrderIds] = useState<number[]>(initialOrderIds);
+  const [departure, setDeparture] = useState("");
+  const [recommendation, setRecommendation] = useState<AllocationRecommendation | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isConstraintReviewOpen, setIsConstraintReviewOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
-  // Total weight and temperature check
-  const totalWeight = useMemo(() => {
-    return selectedOrders.reduce((sum, o) => sum + (o.weight_kg || 0), 0);
-  }, [selectedOrders]);
-
-  const requiresChilled = useMemo(() => {
-    return selectedOrders.some(
-      (o) => o.temperature_zone?.toLowerCase() === "chilled" || o.temperature_zone?.toLowerCase() === "reefer"
-    );
-  }, [selectedOrders]);
-
-  // Fetch available vehicles
   useEffect(() => {
     if (!isOpen) return;
+    let active = true;
+    apiFetch<Order[]>("/orders/?is_late=false&limit=1000").then((data) => {
+      if (!active) return;
+      setOrders(data);
+      const day = data.find((order) => initialOrderIds.includes(order.id))?.operating_date;
+      setDeparture(day ? `${day}T06:00` : "");
+    }).catch((err) => { if (active) { setError(err instanceof Error ? err.message : "Could not load orders."); setLoading(false); } });
+    return () => { active = false; };
+  }, [isOpen, initialOrderIds]);
 
-    async function fetchVehicles() {
-      try {
-        const res = await fetchWithFallback("/api/v1/fleet/vehicles?status=AVAILABLE");
-        if (res.ok) {
-          const data: Vehicle[] = await res.json();
-          setVehicles(data);
-          // Auto select first compatible vehicle
-          const compatible = data.find((v) => {
-            const isTempMatch = !requiresChilled || v.temperature_mode?.toLowerCase() === "reefer";
-            const isAvail = v.status === "AVAILABLE";
-            return isTempMatch && isAvail;
-          });
-          if (compatible) {
-            setSelectedVehicleId(compatible.id);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load vehicles:", err);
-      }
+  const departureTime = departure ? `${departure}:00+05:30` : "";
+  useEffect(() => {
+    if (!isOpen || orderIds.length === 0 || !departureTime) {
+      return;
     }
+    let active = true;
+    getAllocationRecommendation(orderIds, departureTime).then((data) => {
+      if (!active) return;
+      setRecommendation(data);
+      setError(null);
+      setSelectedVehicleId((id) => data.vehicles.some((v) => v.vehicle_id === id && v.eligible) ? id : null);
+    }).catch((err) => { if (active) setError(err instanceof Error ? err.message : "Could not load recommendations."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [isOpen, orderIds, departureTime, refresh]);
 
-    fetchVehicles();
-  }, [isOpen, requiresChilled]);
+  const selectedOrders = useMemo(() => orders.filter((order) => orderIds.includes(order.id)), [orders, orderIds]);
+  const selectedVehicle = recommendation?.vehicles.find((vehicle) => vehicle.vehicle_id === selectedVehicleId) ?? null;
+  const eligibleVehicles = recommendation?.vehicles.filter((vehicle) => vehicle.eligible) ?? [];
+  const blockedVehicles = recommendation?.vehicles.filter((vehicle) => !vehicle.eligible) ?? [];
+  const firstOrder = selectedOrders[0];
+  const addableOrders = orders.filter((order) => eligibleOrder(order) && !orderIds.includes(order.id) && firstOrder &&
+    order.brand === firstOrder.brand && order.district === firstOrder.district && order.operating_date === firstOrder.operating_date);
+  const groupError = recommendation?.group_violations.map((violation) => violation.message).join(" ");
+  const groupContext = selectedOrders.map((order) => `${order.order_number}: ${order.brand ?? "unknown brand"} / ${order.district ?? "unknown district"} / ${order.operating_date ?? "unknown date"}`).join("; ");
 
-  const selectedVehicle = useMemo(() => {
-    return vehicles.find((v) => v.id === selectedVehicleId) || null;
-  }, [vehicles, selectedVehicleId]);
-
-  const handleConfirmAllocation = async () => {
-    if (!selectedVehicleId || selectedOrders.length === 0) return;
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    let allocationId: number | null = null;
-
+  async function handleConfirm() {
+    if (!selectedVehicle?.eligible || !departureTime || !recommendation || groupError) return;
+    setSubmitting(true);
+    setConfirmationError(null);
     try {
-      // Step 1: Create the Allocation record for the selected vehicle
-      const allocRes = await fetchWithFallback("/api/v1/allocations/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vehicle_id: selectedVehicleId,
-          status: "ALLOCATED",
-          departure_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
-        }),
-      });
-
-      if (!allocRes.ok) {
-        const err = await allocRes.json();
-        throw new Error(
-          typeof err.detail === "string" ? err.detail : "Failed to create allocation"
-        );
-      }
-
-      const allocation = await allocRes.json();
-      allocationId = allocation.id;
-
-      // Step 2: Link the selected orders to the new allocation
-      const res = await fetchWithFallback("/api/v1/orders/bulk-allocate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order_ids: selectedOrders.map((o) => o.id),
-          allocation_id: allocation.id
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(
-          typeof err.detail === "string" ? err.detail : "Failed to link orders to allocation"
-        );
-      }
-
-      // Success
-      const vehicleCode = selectedVehicle?.code || "VEH014";
-      const count = selectedOrders.length;
-      allocationId = null; // Mark as committed — no rollback needed
-      setIsConstraintReviewOpen(false);
-      onAllocationSuccess(vehicleCode, count);
+      await confirmAllocation(orderIds, selectedVehicle.vehicle_id, departureTime, selectedVehicle.route_summary.route_fingerprint);
+      setReviewOpen(false);
+      onAllocationSuccess(selectedVehicle.vehicle_code, orderIds.length);
       onClose();
-    } catch (err: unknown) {
-      // Rollback: If Step 1 succeeded but Step 2 failed, cancel the orphan allocation
-      // so the vehicle is freed back to AVAILABLE and no ghost record is left behind.
-      if (allocationId !== null) {
-        try {
-          await fetchWithFallback(`/api/v1/allocations/${allocationId}`, {
-            method: "DELETE",
-          });
-        } catch {
-          // Rollback failed silently — the dispatcher can manually cancel from the board
-          console.error(`[QuickAllocation] Rollback failed for allocation #${allocationId}`);
-        }
-      }
-      setErrorMessage(err instanceof Error ? err.message : "Allocation error");
+    } catch (err) {
+      const violations = err instanceof ApiError && Array.isArray(err.details.violations)
+        ? (err.details.violations as { message: string }[]).map((item) => item.message).join(" ") : "";
+      setConfirmationError(violations || (err instanceof Error ? err.message : "Allocation failed."));
+      setReviewOpen(false);
+      setLoading(true);
+      setRecommendation(null);
+      setRefresh((count) => count + 1);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
-  };
+  }
 
-
-  return (
-    <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent
-          showCloseButton={false}
-          className="sm:max-w-[480px] w-full p-6 rounded-[18px] bg-white border border-[#E5E5E2] shadow-2xl text-[#171A1F] overflow-hidden"
-        >
-          {/* Header matching Figma #44:2311 */}
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-[20px] font-bold tracking-tight text-[#171A1F]">
-                Allocate Selected Orders
-              </h2>
-              <p className="text-[12px] text-[#6B7280] mt-1 font-normal">
-                {selectedOrders.length} {selectedOrders.length === 1 ? "order" : "orders"} · {Math.round(totalWeight)} kg · {requiresChilled ? "Chilled" : "Ambient"}
-              </p>
-            </div>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold bg-[#F6F6F3] text-[#18385F] border border-[#E5E5E2] shrink-0">
-              Compatible only
-            </span>
+  return <>
+    <Dialog open={isOpen && !reviewOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[540px] max-h-[88vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Allocate selected orders</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground">Review the order group, departure and ranked vehicles.</p>
+        {recommendation?.order_group.required_vehicle_type === "van" && <p className="rounded-md border border-warning/30 bg-warning-muted p-2 text-xs text-warning">
+          <strong>{recommendation.order_group.required_temperature === "chilled" ? "Reefer van required" : "Van required"}</strong>
+          {" · "}{recommendation.order_group.van_only_outlets?.join(", ")}. Trucks / lorries cannot access these outlets.
+        </p>}
+        <label className="text-xs font-semibold" htmlFor="allocation-departure">Departure time (Colombo)</label>
+        <Input id="allocation-departure" type="datetime-local" value={departure} onChange={(event) => { setDeparture(event.target.value); setRecommendation(null); setError(null); setConfirmationError(null); setLoading(true); }} />
+        <section className="space-y-2"><h3 className="text-sm font-semibold">Selected orders ({orderIds.length})</h3>
+          {selectedOrders.map((order) => <div key={order.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-xs">
+            <span>{order.order_number} · {order.client_name}</span>
+            <Button size="sm" variant="ghost" onClick={() => { setOrderIds((ids) => ids.filter((id) => id !== order.id)); setRecommendation(null); setError(null); setConfirmationError(null); setLoading(true); }}>Remove</Button>
+          </div>)}
+          {orders.length > 0 && selectedOrders.length !== orderIds.length && <p role="alert" className="text-xs text-destructive">Some selected orders are no longer available. Refresh the Orders page.</p>}
+          {addableOrders.length > 0 && <label className="block text-xs">Add an eligible order
+            <select aria-label="Add an eligible order" className="mt-1 w-full rounded-md border border-input bg-card p-2" value="" onChange={(event) => { setOrderIds((ids) => [...ids, Number(event.target.value)]); setRecommendation(null); setError(null); setConfirmationError(null); setLoading(true); }}>
+              <option value="">Choose an order</option>{addableOrders.map((order) => <option key={order.id} value={order.id}>{order.order_number} · {order.client_name}</option>)}
+            </select></label>}
+        </section>
+        {groupError && <p role="alert" className="rounded-md bg-destructive-muted p-3 text-xs text-destructive">These orders cannot share one run: {groupContext}. {groupError}</p>}
+        {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+        {confirmationError && <p role="alert" className="text-xs text-destructive">Allocation could not be confirmed: {confirmationError} Recommendations are being refreshed.</p>}
+        {orderIds.length === 0 && <p className="text-xs text-muted-foreground">Select at least one order to continue.</p>}
+        {!departure && <p className="text-xs text-muted-foreground">Choose a departure time to check delivery windows.</p>}
+        {loading && orderIds.length > 0 && departure && <p className="text-xs text-muted-foreground">Recalculating recommendations…</p>}
+        {!loading && recommendation && <section className="space-y-2">
+          <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Compatible vehicles ({eligibleVehicles.length})</h3>
+            <Button size="sm" variant="outline" onClick={() => { setLoading(true); setRecommendation(null); setSelectedVehicleId(null); setRefresh((count) => count + 1); }}>Refresh recommendations</Button>
           </div>
-
-          <div className="w-full h-px bg-[#E5E5E2] my-1" />
-
-          {/* Section: Selected Orders */}
-          <div className="space-y-2.5">
-            <div className="text-[12px] font-bold text-[#171A1F]">Selected orders</div>
-            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-              {selectedOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-3.5 rounded-[8px] bg-[#F6F6F3] border border-[#E5E5E2] h-[56px] gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[12px] font-semibold text-[#171A1F] truncate">
-                      {order.order_number} · {order.client_name}
-                    </div>
-                    <div className="text-[11px] text-[#6B7280] truncate mt-0.5">
-                      {order.district || "Colombo"} · {order.delivery_window || "Standard window"}
-                    </div>
-                  </div>
-                  <div className="text-[12px] font-bold text-[#171A1F] whitespace-nowrap shrink-0 pr-1">
-                    {Math.round(order.weight_kg)} kg
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Section: Compatible Vehicles */}
-          <div className="space-y-2.5 mt-1">
-            <div className="text-[12px] font-bold text-[#171A1F]">Compatible vehicles</div>
-            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-              {vehicles.map((v) => {
-                const isTempCompatible = !requiresChilled || v.temperature_mode?.toLowerCase() === "reefer";
-                const isOperational = v.status?.toLowerCase() !== "unavailable";
-                const isEligible = isTempCompatible && isOperational;
-
-                // Projected capacity calculation
-                const baseWeight = v.capacity_kg * 0.45;
-                const projectedPct = Math.min(100, Math.round(((baseWeight + totalWeight) / v.capacity_kg) * 100));
-
-                let matchLabel = "";
-                let matchBadgeClass = "";
-                let subLabel = "";
-
-                if (!isTempCompatible) {
-                  subLabel = "Incompatible";
-                  matchLabel = "Temp mismatch";
-                  matchBadgeClass = "bg-rose-50 text-rose-700 border-rose-200";
-                } else if (!isOperational) {
-                  subLabel = "Offline";
-                  matchLabel = "Under maintenance";
-                  matchBadgeClass = "bg-slate-100 text-slate-600 border-slate-200";
-                } else if (projectedPct > 90) {
-                  subLabel = `${projectedPct}% after allocation`;
-                  matchLabel = "Near limit";
-                  matchBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
-                } else {
-                  subLabel = `${projectedPct}% after allocation`;
-                  matchLabel = "Best match";
-                  matchBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-                }
-
-                const isSelected = selectedVehicleId === v.id;
-
-                return (
-                  <div
-                    key={v.id}
-                    onClick={() => {
-                      if (isEligible) setSelectedVehicleId(v.id);
-                    }}
-                    className={`relative flex items-center justify-between p-3.5 rounded-[8px] border transition-all h-[68px] gap-3 ${
-                      isSelected
-                        ? "bg-[#F0FDF4] border-[#18385F] ring-1 ring-[#18385F]"
-                        : isEligible
-                        ? "bg-white border-[#E5E5E2] hover:border-slate-400 cursor-pointer"
-                        : "bg-[#FAFAFA] border-[#E5E5E2] opacity-60 cursor-not-allowed"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Radio button circle */}
-                      <div
-                        className={`size-4 rounded-full border flex items-center justify-center shrink-0 ${
-                          isSelected
-                            ? "border-[#18385F] bg-[#18385F]"
-                            : "border-slate-300 bg-white"
-                        }`}
-                      >
-                        {isSelected && <div className="size-1.5 rounded-full bg-white" />}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="text-[13px] font-bold text-[#171A1F]">
-                          {v.code}
-                        </div>
-                        <div className="text-[11px] text-[#6B7280] truncate capitalize mt-0.5">
-                          {v.vehicle_type} ({v.temperature_mode}) · {v.depot_name}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                      <div className="text-[11px] font-medium text-[#171A1F]">
-                        {subLabel}
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${matchBadgeClass}`}>
-                        {matchLabel}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {errorMessage && (
-            <div className="p-3 text-[11px] rounded-[6px] bg-[#FDF2F2] border border-[#FEE2E2] text-[#DC2626] flex items-center gap-2">
-              <AlertTriangle className="size-3.5 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Footer matching Figma #44:2341 & #44:2343 */}
-          <div className="flex items-center justify-between gap-3 pt-3 mt-1 border-t border-[#E5E5E2]">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="w-[120px] h-10 text-[12px] font-semibold text-[#171A1F] border-[#E5E5E2] hover:bg-slate-50 rounded-[6px]"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="button"
-              onClick={() => setIsConstraintReviewOpen(true)}
-              disabled={!selectedVehicleId || isSubmitting}
-              className="flex-1 h-10 text-[12px] font-semibold bg-[#18385F] hover:bg-[#122b49] text-white rounded-[6px] shadow-sm flex items-center justify-center gap-1.5"
-            >
-              <ShieldCheck className="size-4" />
-              Review Constraints
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Constraint Review Modal (Figma Frame 163:2021) */}
-      <ConstraintReviewModal
-        isOpen={isConstraintReviewOpen}
-        onClose={() => setIsConstraintReviewOpen(false)}
-        onConfirm={handleConfirmAllocation}
-        selectedOrders={selectedOrders}
-        selectedVehicle={selectedVehicle}
-        isSubmitting={isSubmitting}
-      />
-    </>
-  );
+          {eligibleVehicles.length === 0 && <AllocationBlockers vehicles={recommendation.vehicles} depot={recommendation.order_group.depot} />}
+          {eligibleVehicles.map((vehicle) => <RecommendationVehicleCard key={vehicle.vehicle_id} vehicle={vehicle} selected={selectedVehicleId === vehicle.vehicle_id} onSelect={() => setSelectedVehicleId(vehicle.vehicle_id)} />)}
+          {blockedVehicles.length > 0 && <details key={eligibleVehicles.length === 0 ? "blocked" : "ready"} open={eligibleVehicles.length === 0} className="text-xs"><summary className="cursor-pointer font-semibold">Vehicles needing attention ({blockedVehicles.length})</summary>
+            <div className="space-y-2 mt-2">{blockedVehicles.map((vehicle) => <RecommendationVehicleCard key={vehicle.vehicle_id} vehicle={vehicle} selected={false} onSelect={() => {}} />)}</div>
+          </details>}
+        </section>}
+        <div className="flex justify-end gap-2 border-t border-border pt-3"><Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={!selectedVehicle?.eligible || !!groupError || loading || selectedOrders.length !== orderIds.length} onClick={() => setReviewOpen(true)}>Review constraints</Button></div>
+      </DialogContent>
+    </Dialog>
+    <ConstraintReviewModal isOpen={isOpen && reviewOpen} onClose={() => setReviewOpen(false)} onAdjustOrders={() => setReviewOpen(false)} onConfirm={handleConfirm}
+      vehicle={selectedVehicle} depot={recommendation?.order_group.depot ?? "Depot"} isSubmitting={submitting || loading} error={confirmationError} />
+  </>;
 }

@@ -55,12 +55,19 @@ export function OrderStatusPill({
   order,
   context = "request",
 }: {
-  order: Pick<StoreOrder, "status" | "deliveryAlert">;
+  order: Pick<StoreOrder, "status" | "deliveryAlert"> & {
+    eta?: string;
+    delivery?: { estimatedArrival?: string | null } | null;
+  };
   /** Deliveries wording: "On the Way" instead of "In Transit". */
   context?: "request" | "delivery";
 }) {
   if (context === "delivery" && order.deliveryAlert === "vehicle_unavailable") {
     return <StorePill tone="destructive">Vehicle Unavailable</StorePill>;
+  }
+  const hasEta = Boolean(order.eta || order.delivery?.estimatedArrival);
+  if (order.status === "dispatched" && hasEta) {
+    return <StorePill tone="info">Arriving</StorePill>;
   }
   const display = orderStatusDisplay[order.status];
   const label = context === "delivery" && order.status === "dispatched" ? "On the Way" : display.label;

@@ -1,172 +1,101 @@
-import React, { useState } from "react";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
+import type { DeliveryRun } from "@/app/dispatcher/delivery-runs/page";
+import type { RouteComparison } from "@/types/allocation";
+import { applyRoute, previewRoute } from "@/lib/route-planning-api";
+import { ApiError } from "@/lib/api";
+import { RoutePlanDetails } from "./RoutePlanDetails";
 
-import { DeliveryRun, DeliveryRunStop } from "@/app/dispatcher/delivery-runs/page";
+export function RouteOptimizationDialog({ run, onClose, onApply }: {
+  run: DeliveryRun; onClose: () => void; onApply: () => void;
+}) {
+  const [comparison, setComparison] = useState<RouteComparison | null>(null);
+  const [stopOrder, setStopOrder] = useState<string[] | undefined>();
+  const [refresh, setRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const actionId = useRef<string | null>(null);
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
-
-interface RouteOptimizationDialogProps {
-  run: DeliveryRun;
-  onClose: () => void;
-  onApply: () => void;
-}
-
-export function RouteOptimizationDialog({ run, onClose, onApply }: RouteOptimizationDialogProps) {
-  const [isApplying, setIsApplying] = useState(false);
-  
-  const currentStops: DeliveryRunStop[] = (run.stop_sequence || [])
-    .filter((s): s is DeliveryRunStop => typeof s === "object");
-
-  const [proposedStops, setProposedStops] = useState<DeliveryRunStop[]>(() => {
-    const passing = currentStops.filter(s => s.sla_ok);
-    const failing = currentStops.filter(s => !s.sla_ok);
-    return [...failing, ...passing.sort((a, b) => a.name.localeCompare(b.name))];
-  });
+  useEffect(() => {
+    let active = true;
+    previewRoute(run.id, stopOrder).then((data) => {
+      if (active) { setComparison(data); actionId.current = null; }
+    }).catch((err) => {
+      if (active) setError(err instanceof Error ? err.message : "Could not calculate route.");
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [run.id, stopOrder, refresh]);
 
   const moveStop = (index: number, direction: -1 | 1) => {
-    setProposedStops(previous => {
-      const next = [...previous];
-      [next[index], next[index + direction]] = [next[index + direction], next[index]];
-      return next;
-    });
+    if (!comparison) return;
+    const next = [...comparison.proposed.ordered_outlet_codes];
+    [next[index], next[index + direction]] = [next[index + direction], next[index]];
+    setLoading(true);
+    setError(null);
+    setStopOrder(next);
   };
-  // Mark moved-earlier stops as "SLA recovered"
-  const proposedWithSLA = proposedStops.map((stop, i) => {
-    const originalIdx = currentStops.findIndex(s => s.id === stop.id);
-    const recovered = !stop.sla_ok && i < originalIdx;
-    return { ...stop, sla_ok: recovered ? true : stop.sla_ok, sla_note: recovered ? "SLA recovered" : stop.sla_note };
-  });
-  const hasRouteChange = proposedWithSLA.some((stop, index) => stop.id !== currentStops[index]?.id);
+
+  const recalculate = () => {
+    setLoading(true);
+    setError(null);
+    setStopOrder(undefined);
+    setRefresh((value) => value + 1);
+  };
 
   const handleApply = async () => {
-    setIsApplying(true);
+    if (!comparison?.proposed.route_feasible || loading || applying || error) return;
+    setApplying(true);
+    actionId.current ??= crypto.randomUUID();
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (proposedWithSLA.some(s => !s.outlet_code)) throw new Error("A stop has no outlet code. Refresh the run.");
-      const p1 = await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/plan`, {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            stop_sequence: proposedWithSLA,
-            plan: {
-            client_action_id: crypto.randomUUID(),
-            base_version: run.loader?.plan_version ?? 1,
-            stop_order: proposedWithSLA.map(s => s.outlet_code),
-            dispatcher: "Dispatcher"
-          }}),
-        });
-        if (p1.status === 409) {
-            const data = await p1.json();
-            if (data.detail && data.detail.code === 'PLAN_LOCKED') {
-                toast.error("Released — ask the dock to undo");
-                return;
-            } else {
-                toast.error("Plan changed by someone else. Please refresh.");
-                return;
-            }
-        } else if (!p1.ok) {
-            throw new Error("Failed to update the dock plan");
-        }
-      
-      toast.success("Optimized route applied");
+      await applyRoute(run.id, comparison, actionId.current);
+      toast.success("Route applied. Loader plan updated.");
       onApply();
       onClose();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to apply optimized route");
-    } finally {
-      setIsApplying(false);
-    }
+    } catch (err) {
+      const violations = err instanceof ApiError && Array.isArray(err.details.violations)
+        ? (err.details.violations as { message: string }[]).map((item) => item.message).join(" ") : "";
+      setError(violations || (err instanceof Error ? err.message : "Could not apply route."));
+    } finally { setApplying(false); }
   };
 
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-2xl bg-white border-0 p-0 rounded-[10px] overflow-hidden">
-        <div className="p-6">
-          <DialogHeader className="mb-6 flex flex-row items-start justify-between">
-            <div>
-              <DialogTitle className="text-xl font-bold text-slate-900 mb-1">Route Optimization Review</DialogTitle>
-              <DialogDescription className="text-slate-500">
-                Proposed route clusters stops by destination area and prioritises urgent deliveries first.
-              </DialogDescription>
-            </div>
-            <div className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shrink-0 ml-4">
-              <AlertCircle className="h-3.5 w-3.5" />
-              Human confirmation required
-            </div>
-          </DialogHeader>
+  const changed = comparison && comparison.proposed.ordered_outlet_codes.join("|") !== comparison.current.ordered_outlet_codes.join("|");
+  const distanceSaving = comparison && comparison.current.estimated_distance_km != null && comparison.proposed.estimated_distance_km != null
+    ? comparison.current.estimated_distance_km - comparison.proposed.estimated_distance_km : null;
+  const minutesSaving = comparison && comparison.current.scheduled_elapsed_minutes != null && comparison.proposed.scheduled_elapsed_minutes != null
+    ? comparison.current.scheduled_elapsed_minutes - comparison.proposed.scheduled_elapsed_minutes : null;
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Current Route */}
-            <div className="border border-slate-200 rounded-[8px] overflow-hidden">
-              <div className="bg-slate-50 py-2.5 px-4 border-b border-slate-200">
-                <h4 className="font-semibold text-slate-700 text-sm">Current Route</h4>
-              </div>
-              <div className="p-3 space-y-2 max-h-[300px] overflow-y-auto bg-white">
-                {currentStops.map((stop, i) => (
-                  <div key={stop.id} className={`p-3 rounded-[6px] border ${!stop.sla_ok ? 'bg-red-50 border-red-100' : 'border-slate-100'}`}>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-slate-500 w-4">{i + 1}</span>
-                      <span className="text-sm font-semibold text-slate-900">{stop.name} · {stop.eta}</span>
-                    </div>
-                    <p className={`text-xs font-medium mt-0.5 ml-6 ${!stop.sla_ok ? 'text-red-600' : 'text-slate-500'}`}>
-                      {stop.sla_note}
-                    </p>
-                  </div>
-                ))}
-                {currentStops.length === 0 && <p className="text-sm text-slate-500 italic p-2">No stops</p>}
-              </div>
-            </div>
-
-            {/* Proposed Route */}
-            <div className="border border-emerald-200 rounded-[8px] overflow-hidden ring-1 ring-emerald-500/20">
-              <div className="bg-emerald-50 py-2.5 px-4 border-b border-emerald-200 flex justify-between items-center">
-                <h4 className="font-semibold text-emerald-900 text-sm">Proposed Route</h4>
-              </div>
-              <div className="p-3 space-y-2 max-h-[300px] overflow-y-auto bg-emerald-50/30">
-                {proposedWithSLA.map((stop, i) => (
-                  <div key={stop.id} className="p-3 rounded-[6px] border bg-white border-slate-200 shadow-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-sm text-slate-500 w-4">{i + 1}</span>
-                        <span className="text-sm font-semibold text-slate-900">{stop.name} · {stop.eta}</span>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="outline" size="icon" aria-label={`Move ${stop.name} earlier`} disabled={i === 0 || isApplying} onClick={() => moveStop(i, -1)}>
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" aria-label={`Move ${stop.name} later`} disabled={i === proposedWithSLA.length - 1 || isApplying} onClick={() => moveStop(i, 1)}>
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className={`text-xs font-medium mt-0.5 ml-6 ${stop.sla_note === "SLA recovered" ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
-                      {stop.sla_note}
-                    </p>
-                  </div>
-                ))}
-                {proposedWithSLA.length === 0 && <p className="text-sm text-slate-500 italic p-2">No stops</p>}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 p-3 bg-slate-50 rounded-[6px] border border-slate-200 text-xs text-slate-600">
-            <span className="font-semibold text-slate-700">How this works: </span>
-            SLA-at-risk deliveries are moved to the front of the route. Remaining stops are 
-            clustered alphabetically by destination to group nearby areas together.
-          </div>
-          
-          <div className="flex justify-between gap-3 mt-6 pt-5 border-t border-slate-100">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-11 border-slate-200 text-slate-700 font-semibold">
-              Keep Current
-            </Button>
-            <Button onClick={handleApply} disabled={isApplying || !hasRouteChange}
-              className="flex-1 h-11 bg-[#18385F] hover:bg-[#12294a] text-white font-semibold">
-              {isApplying ? "Applying..." : "Apply Optimized Route"}
-            </Button>
-          </div>
+  return <Dialog open onOpenChange={(open) => !open && !applying && onClose()}>
+    <DialogContent showCloseButton={false} className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader><DialogTitle>Route optimization review</DialogTitle>
+        <DialogDescription>Review estimated arrival windows before publishing a new Loader plan. All times are Colombo time.</DialogDescription>
+      </DialogHeader>
+      {loading && <p role="status" className="text-sm text-muted-foreground">Calculating route and delivery windows…</p>}
+      {error && <div role="alert" className="rounded-md bg-destructive-muted p-3 text-sm text-destructive">{error} <Button variant="outline" size="sm" disabled={loading || applying} onClick={recalculate}>Refresh preview</Button></div>}
+      {comparison && <>
+        <div className="grid gap-4 md:grid-cols-2" aria-busy={loading}>
+          <section className="space-y-3 rounded-lg border border-border p-3"><h3 className="font-semibold">Current route</h3><RoutePlanDetails route={comparison.current} /></section>
+          <section className="space-y-3 rounded-lg border border-primary p-3"><h3 className="font-semibold">Proposed route</h3>
+            {!loading && <RoutePlanDetails route={comparison.proposed} onMove={moveStop} disabled={applying} />}
+          </section>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
+        {!loading && <div className="text-sm">
+          <p>Savings: {distanceSaving == null ? "distance unavailable" : `${Number(distanceSaving.toFixed(2))} km`} · {minutesSaving == null ? "duration unavailable" : `${Number(minutesSaving.toFixed(1))} min`}</p>
+          {!changed && <p className="text-muted-foreground">The current sequence already matches this proposal.</p>}
+          {!comparison.proposed.route_feasible && <p className="text-destructive">Cannot apply: failed or unknown constraints must be resolved. There is no override for an invalid route.</p>}
+          {comparison.proposed.violations.map((item, index) => <p key={index} className="text-xs text-destructive">{item.outlet_code}: {item.message}</p>)}
+          {comparison.proposed.warnings.map((warning) => <p key={warning} className="text-xs text-muted-foreground mt-1">{warning}</p>)}
+        </div>}
+        <p className="text-xs text-muted-foreground">Uses delivery windows, service allowances and district travel estimates. Manual movements are recalculated before they can be applied.</p>
+      </>}
+      <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <Button variant="outline" disabled={applying} onClick={onClose}>Keep Current</Button>
+        <Button onClick={handleApply} disabled={loading || applying || !!error || !changed || !comparison?.proposed.route_feasible}>{applying ? "Applying…" : "Apply Optimized Route"}</Button>
+      </div>
+    </DialogContent>
+  </Dialog>;
 }

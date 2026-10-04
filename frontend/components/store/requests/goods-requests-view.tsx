@@ -32,6 +32,7 @@ import { DateRangeFilter } from "@/components/store/requests/date-range-filter";
 import {
   applyRequestFilters,
   getRequestSummary,
+  isOrderDeferred,
   ordersInTab,
   requestTabs,
   totalUnits,
@@ -205,6 +206,14 @@ export function GoodsRequestsView({
           </Alert>
         )}
 
+        {tab === "deferred" && (
+          <Alert className="border-warning/30 bg-warning-muted text-warning-muted-foreground">
+            <AlertDescription className="text-warning-muted-foreground">
+              These requests could not be dispatched as originally scheduled and have been deferred by the depot. Review the updated delivery schedule and reasons below.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-4">
           <div className="relative md:w-80">
             <Label htmlFor="request-search" className="sr-only">
@@ -319,6 +328,12 @@ export function GoodsRequestsView({
                       </StoreTableCell>
                       <StoreTableCell>
                         <OrderStatusPill order={order} />
+                        {isOrderDeferred(order) && (
+                          <span className="mt-1 block max-w-xs truncate text-xs text-warning-muted-foreground" title={order.deferralReason ?? "Deferred / partial fulfillment by depot"}>
+                            {order.deferralCount && order.deferralCount > 1 ? `(${order.deferralCount}×) ` : ""}
+                            {order.deferralReason ?? "Partial fulfillment / deferral"}
+                          </span>
+                        )}
                       </StoreTableCell>
                       <StoreTableCell>
                         <Link
@@ -345,6 +360,14 @@ export function GoodsRequestsView({
                       </Link>
                       <OrderStatusPill order={order} />
                     </div>
+                    {isOrderDeferred(order) && (
+                      <div className="flex flex-col gap-0.5 rounded bg-warning-muted/50 p-2 text-xs text-warning-muted-foreground">
+                        <span className="font-semibold">
+                          {order.status === "deferred" ? "Deferred" : "Partial Deferral"} {order.deferralCount && order.deferralCount > 1 ? `(${order.deferralCount}×)` : ""}
+                        </span>
+                        {order.deferralReason && <span>{order.deferralReason}</span>}
+                      </div>
+                    )}
                     <dl className="flex flex-col gap-2 text-sm">
                       <div className="flex justify-between gap-2">
                         <dt className="text-muted-foreground">Delivery window</dt>

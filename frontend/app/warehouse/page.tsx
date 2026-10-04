@@ -6,6 +6,7 @@ import { Boxes, ArrowLeft, ScanBarcode, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { UserNotificationBell } from "@/components/notifications/user-notification-bell";
 
 export default function WarehouseDashboard() {
   return (
@@ -18,9 +19,12 @@ export default function WarehouseDashboard() {
               <span>Back to Portal</span>
             </Link>
           </Button>
-          <Badge variant="outline" className="text-accent border-accent/30 bg-accent/5">
-            Role: Warehouse Manager &amp; Loader
-          </Badge>
+          <div className="flex items-center gap-2">
+            <UserNotificationBell />
+            <Badge variant="outline" className="text-accent border-accent/30 bg-accent/5">
+              Role: Warehouse Manager &amp; Loader
+            </Badge>
+          </div>
         </div>
 
         <div className="border-b border-border pb-4">

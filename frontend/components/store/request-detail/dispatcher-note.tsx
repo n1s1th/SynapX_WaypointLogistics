@@ -48,7 +48,7 @@ export function DispatcherNoteDialog({
   const isMobile = useIsMobile();
   const note = item?.dispatcherNote;
   const open = item !== null && note !== undefined;
-  const unit = item?.unitLabel.toLowerCase() ?? "";
+  const formatCount = (count: number) => `${count} ${count === 1 ? "item" : "items"}`;
   const difference = item && sent !== undefined ? sent - item.quantity : 0;
 
   const body = item && note && (
@@ -57,19 +57,19 @@ export function DispatcherNoteDialog({
         <div className="flex flex-col gap-2">
           <dt className="text-muted-foreground">Requested</dt>
           <dd className="font-bold text-foreground">
-            {item.quantity} {unit}
+            {formatCount(item.quantity)}
           </dd>
         </div>
         <div className="flex flex-col gap-2">
           <dt className="text-muted-foreground">Sent</dt>
           <dd className="font-bold text-foreground">
-            {sent ?? 0} {unit}
+            {formatCount(sent ?? 0)}
           </dd>
         </div>
         <div className="flex flex-col gap-2">
           <dt className="text-muted-foreground">Difference</dt>
           <dd className="font-bold text-destructive">
-            {difference < 0 ? `−${Math.abs(difference)}` : difference} {unit}
+            {difference < 0 ? `−${Math.abs(difference)} ${Math.abs(difference) === 1 ? "item" : "items"}` : formatCount(difference)}
           </dd>
         </div>
       </dl>

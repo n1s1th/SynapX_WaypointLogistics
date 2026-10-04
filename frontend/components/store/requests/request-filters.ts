@@ -6,6 +6,7 @@ export type RequestTab =
   | "arrived"
   | "in_progress"
   | "completed"
+  | "deferred"
   | "cancelled"
   | "shortfalls"
   | "all";
@@ -17,6 +18,7 @@ const TAB_STATUSES: Partial<Record<RequestTab, OrderStatus[]>> = {
   arrived: ["delivered"],
   in_progress: ["processing", "ready_for_dispatch"],
   completed: ["completed"],
+  deferred: ["deferred"],
   cancelled: ["cancelled"],
 };
 
@@ -26,6 +28,7 @@ export const requestTabs: { value: RequestTab; label: string }[] = [
   { value: "arrived", label: "Arrived" },
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
+  { value: "deferred", label: "Deferred" },
   { value: "cancelled", label: "Cancelled" },
   { value: "shortfalls", label: "Shortfalls" },
   { value: "all", label: "All" },
@@ -35,6 +38,15 @@ export function isRequestTab(value: unknown): value is RequestTab {
   return requestTabs.some((tab) => tab.value === value);
 }
 
+/** An order is deferred if fully deferred, has a deferral reason, or has line-item partial deferral. */
+export function isOrderDeferred(order: StoreOrder): boolean {
+  if (order.status === "deferred") return true;
+  if (Boolean(order.deferralReason)) return true;
+  if (order.items.some((item) => item.quantitySent !== undefined && item.quantitySent < item.quantity)) return true;
+  if (order.items.some((item) => Boolean(item.dispatcherNote || item.depotNote))) return true;
+  return false;
+}
+
 export function ordersInTab(
   orders: StoreOrder[],
   tab: RequestTab,
@@ -42,6 +54,7 @@ export function ordersInTab(
 ) {
   if (tab === "all") return orders.filter((order) => order.status !== "draft");
   if (tab === "shortfalls") return orders.filter((order) => shortfallOrderNumbers.has(order.orderNumber));
+  if (tab === "deferred") return orders.filter(isOrderDeferred);
   const statuses = TAB_STATUSES[tab] ?? [];
   return orders.filter((order) => statuses.includes(order.status));
 }
@@ -85,6 +98,7 @@ export function getRequestSummary(orders: StoreOrder[], now: Date) {
     inPreparation: orders.filter((order) => order.status === "processing").length,
     inTransit: inTransit.length,
     nextInTransit: inTransit.find((order) => order.eta),
+    deferred: orders.filter(isOrderDeferred).length,
     completed30d: orders.filter(
       (order) => order.status === "completed" && differenceInCalendarDays(now, parseISO(order.orderDate)) <= 30
     ).length,

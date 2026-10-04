@@ -7,6 +7,7 @@ export const PROGRESS_STEPS = [
   { key: "processing", label: "Being Prepared" },
   { key: "ready_for_dispatch", label: "Ready for Dispatch" },
   { key: "dispatched", label: "Dispatched" },
+  { key: "arriving", label: "Arriving" },
   { key: "delivered", label: "Delivered" },
   { key: "completed", label: "Completed" },
 ] as const satisfies readonly { key: keyof OrderStatusTimes; label: string }[];
@@ -18,13 +19,25 @@ const STEP_INDEX: Partial<Record<OrderStatus, number>> = {
   processing: 1,
   ready_for_dispatch: 2,
   dispatched: 3,
-  delivered: 4,
-  completed: 5,
+  delivered: 5,
+  completed: 6,
 };
 
+/** Checks if a dispatched order has an ETA indicating it is actively approaching/arriving. */
+export function isArriving(order: StoreOrder): boolean {
+  return order.status === "dispatched" && Boolean(order.eta || order.delivery?.estimatedArrival);
+}
+
 /** Index of the current step, or null for statuses outside the normal flow (draft, deferred, cancelled). */
-export function currentStepIndex(status: OrderStatus) {
-  return STEP_INDEX[status] ?? null;
+export function currentStepIndex(orderOrStatus: StoreOrder | OrderStatus) {
+  if (typeof orderOrStatus === "string") {
+    return STEP_INDEX[orderOrStatus] ?? null;
+  }
+  const order = orderOrStatus;
+  if (isArriving(order)) {
+    return 4; // "arriving" step index
+  }
+  return STEP_INDEX[order.status] ?? null;
 }
 
 const PICKED_STATUSES: OrderStatus[] = ["ready_for_dispatch", "dispatched", "delivered", "completed"];

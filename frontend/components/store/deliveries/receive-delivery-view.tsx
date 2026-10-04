@@ -214,6 +214,26 @@ export function ReceiveDeliveryView({
         </Alert>
       ) : (
         <>
+          {order.status === "dispatched" && Boolean(order.eta || delivery?.estimatedArrival) && state === "idle" && (
+            <Alert className="border-info/30 bg-info-muted" role="status">
+              <CircleAlert className="text-info" aria-hidden="true" />
+              <AlertTitle className="font-bold text-info-muted-foreground">Delivery is Arriving</AlertTitle>
+              <AlertDescription className="text-foreground/80">
+                Vehicle {delivery?.vehicleCode ?? "assigned"} is en route with an estimated arrival at{" "}
+                {time(delivery?.estimatedArrival ?? order.eta)}. Prepare your dock to receive and verify items.
+              </AlertDescription>
+            </Alert>
+          )}
+          {order.status === "delivered" && state === "idle" && (
+            <Alert className="border-success/30 bg-success-muted" role="status">
+              <CircleCheck className="text-success" aria-hidden="true" />
+              <AlertTitle className="font-bold text-success-muted-foreground">Vehicle at your dock</AlertTitle>
+              <AlertDescription className="text-foreground/80">
+                The vehicle has reached your rear dock. Count what was unloaded and verify below.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <StoreSectionCard
             title="Count what arrived"
             description={`The depot sent ${formatUnitCount(totalSent)}. Change anything that doesn't match.`}

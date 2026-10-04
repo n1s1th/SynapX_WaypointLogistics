@@ -1,10 +1,12 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_, and_, func
 from app.api import deps
 from app.models.order import Order, OrderStatus
 from app.models.reference import Depot
+from app.models.allocation import Allocation, AllocationStatus
+from app.models.fleet import Vehicle
 from app.schemas.order import OrderCreate, OrderRead, OrderUpdate
 from app.services.order_service import TRANSITIONS, order_service
 from pydantic import BaseModel
@@ -74,12 +76,13 @@ def list_orders(
     is_late: Optional[bool] = None,
     operating_date: Optional[str] = None,
     search: Optional[str] = None,
+    sort_order: Literal["newest", "oldest"] = "newest",
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(deps.get_db),
     depot: Depot = Depends(deps.get_dispatcher_depot),
 ):
-    query = db.query(Order).options(selectinload(Order.items)).filter(Order.depot == depot)
+    query = db.query(Order).options(selectinload(Order.items), selectinload(Order.outlet)).filter(Order.depot == depot)
 
     if is_late is not None:
         query = query.filter(Order.is_late == is_late)
@@ -128,7 +131,8 @@ def list_orders(
             )
         )
 
-    return query.order_by(Order.id.asc()).offset(skip).limit(limit).all()
+    ordering = (Order.created_at.asc(), Order.id.asc()) if sort_order == "oldest" else (Order.created_at.desc(), Order.id.desc())
+    return query.order_by(*ordering).offset(skip).limit(limit).all()
 
 
 @router.post("/", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
@@ -150,30 +154,59 @@ def bulk_allocate_orders(
     req: BulkAllocateRequest,
     db: Session = Depends(deps.get_db),
     depot: Depot = Depends(deps.get_dispatcher_depot),
+    _: object = Depends(deps.require_dispatcher_or_admin),
 ):
-    orders = db.query(Order).filter(Order.id.in_(req.order_ids), Order.depot == depot).all()
-    if not orders:
-        raise HTTPException(status_code=404, detail="No matching orders found")
+    if not req.order_ids or len(req.order_ids) != len(set(req.order_ids)):
+        raise HTTPException(status_code=422, detail="Supply distinct order IDs")
+    try:
+        allocation = None
+        if req.allocation_id is not None:
+            # Match /allocations/confirm lock order: vehicle first, orders next.
+            allocation = db.query(Allocation).filter_by(id=req.allocation_id).first()
+            if allocation is None:
+                raise HTTPException(status_code=404, detail="Allocation not found")
+            vehicle = db.query(Vehicle).filter_by(id=allocation.vehicle_id, depot_name=depot.value).with_for_update().first()
+            if vehicle is None:
+                raise HTTPException(status_code=404, detail="Allocation vehicle not found in this depot")
+            if allocation.status not in (AllocationStatus.DRAFT, AllocationStatus.ALLOCATED):
+                raise HTTPException(status_code=409, detail="Allocation is no longer open for orders")
 
-    # Up-front validation
-    from app.services.order_service import TRANSITIONS
-    for order in orders:
-        if order.status != OrderStatus.ALLOCATED and OrderStatus.ALLOCATED not in TRANSITIONS.get(order.status, set()):
-            raise HTTPException(
-                status_code=409,
-                detail=f"{order.order_number} can't move from {order.status.value.lower()} to allocated."
-            )
+        if allocation is None:
+            # Historic status-only callers have no vehicle to validate. Keep
+            # their contract while preventing them from stealing linked rows.
+            orders = db.query(Order).filter(Order.id.in_(req.order_ids), Order.depot == depot).order_by(Order.id).with_for_update().all()
+            if len(orders) != len(req.order_ids):
+                raise HTTPException(status_code=404, detail="One or more orders not found in this depot")
+            for order in orders:
+                if order.allocation_id is not None or (
+                    order.status != OrderStatus.ALLOCATED and OrderStatus.ALLOCATED not in TRANSITIONS.get(order.status, set())
+                ):
+                    raise HTTPException(status_code=409, detail=f"{order.order_number} cannot be allocated")
+                order.status = OrderStatus.ALLOCATED
+            db.commit()
+            return {"message": f"Successfully allocated {len(orders)} orders", "count": len(orders)}
 
-    # Apply changes
-    for order in orders:
-        if req.allocation_id:
-            order.allocation_id = req.allocation_id
-        
-        if order.status != OrderStatus.ALLOCATED:
-            order_service.update_order_status(db, order.id, OrderStatus.ALLOCATED, commit=False)
-            
-    db.commit()
-    return {"message": f"Successfully allocated {len(orders)} orders", "count": len(orders)}
+        # Legacy two-step UI path: keep its contract until the UI moves to
+        # /allocations/confirm, while guarding against stale/duplicate links.
+        orders = db.query(Order).filter(
+            Order.id.in_(req.order_ids), Order.depot == depot
+        ).order_by(Order.id).with_for_update().all()
+        if len(orders) != len(req.order_ids):
+            raise HTTPException(status_code=404, detail="One or more orders not found in this depot")
+        for order in orders:
+            if order.allocation_id is not None or (
+                order.status != OrderStatus.ALLOCATED and OrderStatus.ALLOCATED not in TRANSITIONS.get(order.status, set())
+            ):
+                raise HTTPException(status_code=409, detail=f"{order.order_number} cannot be allocated")
+        for order in orders:
+            order.allocation_id = allocation.id
+            if order.status != OrderStatus.ALLOCATED:
+                order_service.update_order_status(db, order.id, OrderStatus.ALLOCATED, commit=False)
+        db.commit()
+        return {"message": f"Successfully allocated {len(orders)} orders", "count": len(orders)}
+    except Exception:
+        db.rollback()
+        raise
 
 
 @router.post("/{order_id}/defer", response_model=OrderRead)
@@ -203,7 +236,7 @@ def get_order(
     db: Session = Depends(deps.get_db),
     depot: Depot = Depends(deps.get_dispatcher_depot),
 ):
-    order = db.query(Order).options(selectinload(Order.items)).filter(Order.id == order_id, Order.depot == depot).first()
+    order = db.query(Order).options(selectinload(Order.items), selectinload(Order.outlet)).filter(Order.id == order_id, Order.depot == depot).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order

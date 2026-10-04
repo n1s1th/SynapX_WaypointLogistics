@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { type Order, type OrderMetrics } from "@/types/order";
 import { OrdersTable } from "@/components/dispatcher/orders/OrdersTable";
 import { OrdersFilterBar } from "@/components/dispatcher/orders/OrdersFilterBar";
 import { QuickAllocationDrawer } from "@/components/dispatcher/orders/QuickAllocationDrawer";
+import { RouteGroupSuggestions } from "@/components/dispatcher/orders/RouteGroupSuggestions";
 import { LateOrdersDrawer } from "@/components/dispatcher/orders/LateOrdersDrawer";
 import { CapacityShortfallModal } from "@/components/dispatcher/orders/CapacityShortfallModal";
 import { AllocationSuccessBanner } from "@/components/dispatcher/orders/AllocationSuccessBanner";
@@ -33,6 +34,9 @@ export default function DispatcherOrdersPage() {
 
   // Drawers and Modals
   const [isAllocationOpen, setIsAllocationOpen] = useState(false);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const closeSuggestions = useCallback(() => setIsSuggestionsOpen(false), []);
+  const [allocationOrderIds, setAllocationOrderIds] = useState<number[]>([]);
   const [isLateOrdersOpen, setIsLateOrdersOpen] = useState(false);
   const [isCapacityShortfallOpen, setIsCapacityShortfallOpen] = useState(false);
   const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
@@ -51,7 +55,9 @@ export default function DispatcherOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
   const [districtFilter, setDistrictFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("27 Jun 2026");
+  const [dateFilter, setDateFilter] = useState("");
+  const [temperatureFilter, setTemperatureFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   // Fetch orders and metrics on filter change or refresh
   useEffect(() => {
@@ -59,7 +65,7 @@ export default function DispatcherOrdersPage() {
 
     async function loadOrdersAndMetrics() {
       try {
-        const metricsRes = await fetchWithFallback("/api/v1/orders/metrics");
+        const metricsRes = await fetchWithFallback(`/api/v1/orders/metrics${dateFilter ? `?operating_date=${dateFilter}` : ""}`);
         if (metricsRes.ok && !ignore) {
           const mData = await metricsRes.json();
           setMetrics(mData);
@@ -70,6 +76,9 @@ export default function DispatcherOrdersPage() {
         if (brandFilter && brandFilter !== "all") queryParams.append("brand", brandFilter);
         if (districtFilter && districtFilter !== "all") queryParams.append("district", districtFilter);
         if (searchQuery.trim()) queryParams.append("search", searchQuery.trim());
+        if (dateFilter) queryParams.append("operating_date", dateFilter);
+        if (temperatureFilter !== "all") queryParams.append("temperature_zone", temperatureFilter);
+        queryParams.append("sort_order", sortOrder);
         queryParams.append("is_late", "false");
 
         const ordersRes = await fetchWithFallback(`/api/v1/orders/?${queryParams.toString()}`);
@@ -106,7 +115,7 @@ export default function DispatcherOrdersPage() {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener(DEPOT_CHANGE_EVENT, onDepotChange);
     };
-  }, [statusFilter, brandFilter, districtFilter, searchQuery, refreshCount]);
+  }, [statusFilter, brandFilter, districtFilter, searchQuery, dateFilter, temperatureFilter, sortOrder, refreshCount]);
 
   // Late orders (fetched separately for late drawer)
   const [lateOrders, setLateOrders] = useState<Order[]>([]);
@@ -131,11 +140,6 @@ export default function DispatcherOrdersPage() {
       ignore = true;
     };
   }, [refreshCount]);
-
-  // Selected orders array
-  const selectedOrders = useMemo(() => {
-    return orders.filter((o) => selectedOrderIds.includes(o.id));
-  }, [orders, selectedOrderIds]);
 
   // Selection handlers
   const handleToggleSelectOrder = (orderId: number) => {
@@ -300,6 +304,19 @@ export default function DispatcherOrdersPage() {
             onDistrictChange={setDistrictFilter}
             dateFilter={dateFilter}
             onDateChange={setDateFilter}
+            temperatureFilter={temperatureFilter}
+            onTemperatureChange={setTemperatureFilter}
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            onReset={() => {
+              setSearchQuery("");
+              setStatusFilter("all");
+              setBrandFilter("all");
+              setDistrictFilter("all");
+              setDateFilter("");
+              setTemperatureFilter("all");
+              setSortOrder("newest");
+            }}
           />
 
           {/* 03 Summary Metrics Cards matching Figma 03 Summary Metrics */}
@@ -328,11 +345,12 @@ export default function DispatcherOrdersPage() {
 
           {/* 04 Main Orders Queue Table matching Figma 04 Main Workspace */}
           <OrdersTable
+            onSuggestGroups={() => setIsSuggestionsOpen(true)}
             orders={orders}
             selectedOrderIds={selectedOrderIds}
             onToggleSelectOrder={handleToggleSelectOrder}
             onToggleSelectAll={handleToggleSelectAll}
-            onOpenAllocation={() => setIsAllocationOpen(true)}
+            onOpenAllocation={() => { setAllocationOrderIds(selectedOrderIds); setIsAllocationOpen(true); }}
             onDeferOrder={handleDeferOrder}
             onViewOrder={(order) => setInspectingOrder(order)}
             isLoading={isLoading}
@@ -347,6 +365,7 @@ export default function DispatcherOrdersPage() {
         onClose={() => setInspectingOrder(null)}
         onAllocate={(order) => {
           setSelectedOrderIds([order.id]);
+          setAllocationOrderIds([order.id]);
           setIsAllocationOpen(true);
         }}
         onOrderUpdated={() => {
@@ -356,12 +375,24 @@ export default function DispatcherOrdersPage() {
       />
 
       {/* Quick Allocation Sheet Drawer with Constraint Review (Figma Frames 9:370 & 163:2021) */}
-      <QuickAllocationDrawer
+      {isAllocationOpen && <QuickAllocationDrawer
         isOpen={isAllocationOpen}
         onClose={() => setIsAllocationOpen(false)}
-        selectedOrders={selectedOrders}
+        initialOrderIds={allocationOrderIds}
         onAllocationSuccess={handleAllocationSuccess}
-      />
+      />}
+      {isSuggestionsOpen && <RouteGroupSuggestions
+        initialBrand={brandFilter}
+        initialDistrict={districtFilter}
+        initialDate={dateFilter}
+        open={isSuggestionsOpen}
+        onClose={closeSuggestions}
+        onReview={(ids) => {
+          setAllocationOrderIds(ids);
+          setIsSuggestionsOpen(false);
+          setIsAllocationOpen(true);
+        }}
+      />}
 
       {/* Queued Late Orders Drawer (Figma Frame 148:1331) */}
       <LateOrdersDrawer

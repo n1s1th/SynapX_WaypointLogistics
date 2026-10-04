@@ -41,6 +41,7 @@ class DispatchTrip(Base):
     stop_count = Column(Integer, default=0, nullable=False)
     stops_completed = Column(Integer, default=0, nullable=False)
     stop_sequence = Column(JSON, nullable=True)
+    route_plan = Column(JSON, nullable=True)
     
     open_shortfalls = Column(Integer, default=0, nullable=False)
     loading_events = Column(JSON, nullable=True)

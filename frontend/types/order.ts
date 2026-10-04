@@ -46,6 +46,7 @@ export interface Order {
   deferral_reason?: string | null;
   notes?: string | null;
   allocation_id?: number | null;
+  requires_van?: boolean;
   created_at: string;
   updated_at: string;
   items?: OrderItem[];

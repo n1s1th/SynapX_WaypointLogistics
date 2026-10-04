@@ -21,3 +21,20 @@ class NotificationRead(BaseModel):
 
 class NotificationsMarkedRead(BaseModel):
     updated: int
+
+
+class UserNotificationRead(BaseModel):
+    id: int
+    category: str
+    title: str
+    message: str
+    target_url: Optional[str] = None
+    created_at: datetime
+    read_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserNotificationPage(BaseModel):
+    items: list[UserNotificationRead]
+    unread_count: int

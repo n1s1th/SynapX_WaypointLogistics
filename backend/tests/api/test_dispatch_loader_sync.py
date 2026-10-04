@@ -1,6 +1,7 @@
 """Dispatch and dock plans must agree, including when the dock rejects a change."""
 
 from uuid import uuid4
+from datetime import time
 
 from app.models.allocation import Allocation, AllocationStatus
 from app.models.delivery_run import DeliveryRun
@@ -37,6 +38,9 @@ def test_plan_rejection_does_not_update_dispatch_trip(loader_client, trip_setup)
 
 def test_departure_change_updates_trip_and_dock_together(loader_client, trip_setup):
     db = trip_setup["db"]
+    # Fixture timestamps are UTC; route validation uses Colombo windows.
+    for order in trip_setup["orders"]:
+        order.outlet.window_end = time(18)
     trip = make_trip(db, trip_setup["vehicle"], trip_setup["orders"])
     dock_run = LoaderService.create_run_for_dispatch_trip(db, trip)
 
@@ -56,6 +60,8 @@ def test_departure_change_updates_trip_and_dock_together(loader_client, trip_set
 
 def test_stop_order_updates_trip_and_dock_together(loader_client, trip_setup):
     db = trip_setup["db"]
+    for order in trip_setup["orders"]:
+        order.outlet.window_end = time(18)
     trip = make_trip(db, trip_setup["vehicle"], trip_setup["orders"])
     dock_run = LoaderService.create_run_for_dispatch_trip(db, trip)
     codes = [stop.outlet.code for stop in sorted(
@@ -84,6 +90,8 @@ def test_stop_order_updates_trip_and_dock_together(loader_client, trip_setup):
 
 def test_stop_order_updates_trip_without_dock_run(loader_client, trip_setup):
     db = trip_setup["db"]
+    for order in trip_setup["orders"]:
+        order.outlet.window_end = time(18)
     trip = make_trip(db, trip_setup["vehicle"], trip_setup["orders"])
     codes = list(dict.fromkeys(order.outlet.code for order in trip_setup["orders"]))
     reversed_stops = [
@@ -100,7 +108,8 @@ def test_stop_order_updates_trip_without_dock_run(loader_client, trip_setup):
 
     assert response.status_code == 200, response.text
     db.refresh(trip)
-    assert trip.stop_sequence == reversed_stops
+    assert [stop["outlet_code"] for stop in trip.stop_sequence] == list(reversed(codes))
+    assert all(stop["arrival_at"] and stop["window_status"] == "PASS" for stop in trip.stop_sequence)
     assert response.json()["loader"] is None
 
 
@@ -138,7 +147,7 @@ def test_unbuildable_dock_run_keeps_trip_and_exposes_retry_warning(loader_client
     assert db_session.query(DispatchTrip).filter_by(allocation_id=allocation.id).count() == 1
     assert db_session.query(DeliveryRun).filter_by(dispatch_trip_id=body["id"]).count() == 0
     db_session.refresh(allocation)
-    assert allocation.status == AllocationStatus.DISPATCHED
+    assert allocation.status == AllocationStatus.LOADING
     publish = loader_client.patch(f"/api/v1/delivery-runs/{body['id']}", json={"status": "en_route"})
     assert publish.status_code == 409
 
@@ -174,7 +183,7 @@ def test_taken_run_code_keeps_dispatch_trip(loader_client, trip_setup):
     assert "already exists" in body["loader_warning"]
     assert db.query(DispatchTrip).filter_by(allocation_id=allocation.id).count() == 1
     db.refresh(allocation)
-    assert allocation.status == AllocationStatus.DISPATCHED
+    assert allocation.status == AllocationStatus.LOADING
 
 
 def test_order_on_another_run_keeps_dispatch_trip(loader_client, trip_setup):
@@ -196,7 +205,7 @@ def test_order_on_another_run_keeps_dispatch_trip(loader_client, trip_setup):
     assert "already on another loader run" in body["loader_warning"]
     assert db.query(DispatchTrip).filter_by(allocation_id=allocation.id).count() == 1
     db.refresh(allocation)
-    assert allocation.status == AllocationStatus.DISPATCHED
+    assert allocation.status == AllocationStatus.LOADING
 
 
 def test_unexpected_loader_error_keeps_dispatch_trip(loader_client, db_session, monkeypatch):
@@ -222,4 +231,4 @@ def test_unexpected_loader_error_keeps_dispatch_trip(loader_client, db_session, 
     assert body["loader_warning"] == "Loader temporarily unavailable"
     assert db_session.query(DispatchTrip).filter_by(allocation_id=allocation.id).count() == 1
     db_session.refresh(allocation)
-    assert allocation.status == AllocationStatus.DISPATCHED
+    assert allocation.status == AllocationStatus.LOADING

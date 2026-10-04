@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     # combined cross-depot view.
     DISPATCHER_DEFAULT_DEPOT: str = "peliyagoda"
 
+    # Allocation policy. Counts are calculated from allocations, never from the
+    # denormalized `vehicles.trips_today` presentation field.
+    ALLOCATION_MAX_TRIPS_PER_DAY: int = 2
+    SERVICE_ALLOWANCE_CSV: str = "app/reference_data/service_allowance.csv"
+    DISTRICT_TRAVEL_CSV: str = "app/reference_data/district_travel.csv"
+
     # Loader module
     # Mounts /loader/dev/* which simulates dispatcher actions while there is no
     # dispatcher UI. Never mounted when ENVIRONMENT == "production".

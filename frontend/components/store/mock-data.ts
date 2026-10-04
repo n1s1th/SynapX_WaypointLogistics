@@ -141,7 +141,7 @@ export interface OrderVehicle {
 
 /** When each progress step was reached (Figma 04 Request Progress). */
 export type OrderStatusTimes = Partial<
-  Record<"submitted" | "processing" | "ready_for_dispatch" | "dispatched" | "delivered" | "completed", string>
+  Record<"submitted" | "processing" | "ready_for_dispatch" | "dispatched" | "arriving" | "delivered" | "completed", string>
 >;
 
 export interface StoreOrder {
@@ -164,6 +164,7 @@ export interface StoreOrder {
   notes?: string;
   activity?: { at: string; text: string }[];
   deferralReason?: string;
+  deferralCount?: number;
   /** The window chosen for this delivery, when it differs from the outlet's usual one. */
   deliveryWindow?: { windowStart: string; windowEnd: string };
   /** Order-level shortfall from the loader (the loader flags per order, not per item). */

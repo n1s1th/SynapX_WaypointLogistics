@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   Building2, 
   Lock, 
-  Bell, 
   AlertTriangle, 
   MapPin, 
   ShieldCheck, 
@@ -20,6 +18,7 @@ import {
   type DispatcherDepot 
 } from "@/lib/dispatcher-depot";
 import { fetchWithFallback } from "@/lib/api";
+import { UserNotificationBell } from "@/components/notifications/user-notification-bell";
 
 interface DepotScopeData {
   depot: DispatcherDepot | null;
@@ -55,7 +54,7 @@ export function DispatcherNavbar() {
   };
 
   useEffect(() => {
-    checkScope();
+    queueMicrotask(() => void checkScope());
 
     const handleDepotChange = (e: Event) => {
       const customEvent = e as CustomEvent<DispatcherDepot>;
@@ -165,12 +164,7 @@ export function DispatcherNavbar() {
 
         {/* Right: User Information & Notifications */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="text-muted-foreground size-8">
-            <span className="relative">
-              <Bell className="size-4" />
-              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-destructive border-2 border-card" />
-            </span>
-          </Button>
+          <UserNotificationBell />
 
           <div className="h-4 w-px bg-border" />
 

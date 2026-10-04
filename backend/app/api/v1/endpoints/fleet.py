@@ -418,16 +418,32 @@ def assign_vehicle_driver(
 def update_vehicle_status(
     vehicle_id: int,
     status: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: User = Depends(require_dispatcher_or_admin),
+    depot: Depot = Depends(get_dispatcher_depot),
 ) -> Any:
     """
     Quick status toggle/update for vehicle.
     """
-    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.id == vehicle_id, Vehicle.depot_name == depot.value,
+    ).with_for_update().first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
-    
-    vehicle.status = status.upper()
+
+    try:
+        next_status = VehicleStatus(status.upper())
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Unknown vehicle status") from None
+    if next_status not in (VehicleStatus.AVAILABLE, VehicleStatus.UNAVAILABLE):
+        raise HTTPException(status_code=422, detail="Only manual availability updates are supported")
+    active = db.query(Allocation.id).filter(
+        Allocation.vehicle_id == vehicle.id,
+        Allocation.status.notin_([AllocationStatus.COMPLETED, AllocationStatus.CANCELLED]),
+    ).first()
+    if next_status == VehicleStatus.AVAILABLE and active is not None:
+        raise HTTPException(status_code=409, detail="Vehicle has an active allocation")
+    vehicle.status = next_status
     db.commit()
     db.refresh(vehicle)
     return vehicle

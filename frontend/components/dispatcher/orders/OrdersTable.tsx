@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { TableLoading } from "@/components/ui/table-loading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Snowflake, Package, Clock, ShieldAlert, ArrowRight, Ban, CheckCircle2, Eye } from "lucide-react";
+import { Snowflake, Package, Clock, ShieldAlert, ArrowRight, Ban, CheckCircle2, Eye, Route } from "lucide-react";
 import { RepeatDeferralModal } from "./RepeatDeferralModal";
 
 interface OrdersTableProps {
@@ -15,6 +15,7 @@ interface OrdersTableProps {
   onToggleSelectOrder: (orderId: number) => void;
   onToggleSelectAll: (eligibleOrderIds: number[]) => void;
   onOpenAllocation: () => void;
+  onSuggestGroups: () => void;
   onDeferOrder: (order: Order, reason?: string) => Promise<void> | void;
   onViewOrder?: (order: Order) => void;
   isLoading?: boolean;
@@ -26,6 +27,7 @@ export function OrdersTable({
   onToggleSelectOrder,
   onToggleSelectAll,
   onOpenAllocation,
+  onSuggestGroups,
   onDeferOrder,
   onViewOrder,
   isLoading,
@@ -138,13 +140,16 @@ export function OrdersTable({
         {/* Header bar of Table */}
         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E5E2] bg-white">
           <div>
-            <h2 className="text-[18px] font-bold text-[#171A1F] tracking-tight">Today&apos;s Order Queue</h2>
+            <h2 className="text-lg font-bold text-foreground tracking-tight">Order Queue <span className="ml-2 text-xs font-normal text-muted-foreground">{orders.length} shown</span></h2>
             <p className="text-[12px] text-[#6B7280] mt-0.5">
               Select eligible orders to allocate. Allocated or deferred orders cannot be selected.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" onClick={onSuggestGroups} className="h-10 text-xs font-semibold text-primary">
+              <Route className="size-4" />Suggest route groups
+            </Button>
             {selectedOrderIds.length > 0 && (
               <span className="text-xs font-semibold text-[#18385F] bg-[#F6F6F3] border border-[#E5E5E2] px-3 py-1.5 rounded-md">
                 {selectedOrderIds.length} {selectedOrderIds.length === 1 ? "order" : "orders"} selected
@@ -260,6 +265,9 @@ export function OrdersTable({
                       <td className="py-3.5 px-4 font-bold text-xs text-[#18385F] whitespace-nowrap">
                         <span className="hover:underline flex items-center gap-1 font-mono">
                           {order.order_number}
+                        </span>
+                        <span className="mt-1 block text-[11px] font-normal text-muted-foreground">
+                          {new Date(/[zZ]|[+-]\d{2}:\d{2}$/.test(order.created_at) ? order.created_at : order.created_at + "Z").toLocaleString("en-GB", { timeZone: "Asia/Colombo", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 min-w-[180px]">

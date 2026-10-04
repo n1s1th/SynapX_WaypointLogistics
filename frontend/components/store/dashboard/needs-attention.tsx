@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StoreArrowLink, StoreSectionCard } from "@/components/store/store-cards";
 import { StorePill } from "@/components/store/status-pill";
-import { formatTime } from "@/components/store/format";
+import { formatLongDate, formatTime } from "@/components/store/format";
 import { MobileSectionTitle } from "@/components/store/dashboard/mobile-section-title";
 import type { AttentionItem } from "@/components/store/dashboard/dashboard-data";
 
@@ -21,6 +21,21 @@ function itemContent(item: AttentionItem) {
       linkLabel: "Confirm Delivery",
       mobileLinkLabel: "Confirm Delivery",
       isPrimaryAction: true,
+    };
+  }
+  if (item.kind === "deferred") {
+    const { order } = item;
+    const reason = order.deferralReason ? `: ${order.deferralReason}` : "";
+    return {
+      key: `deferred-${order.id}`,
+      title: `${order.orderNumber} deferred by depot`,
+      mobileTitle: `${order.orderNumber} deferred`,
+      pill: <StorePill tone="warning">Deferred</StorePill>,
+      body: `Delivery rescheduled for ${formatLongDate(order.orderDate)}${reason}.`,
+      href: `/store/requests/${order.orderNumber}`,
+      linkLabel: "View Request Details",
+      mobileLinkLabel: "View Request",
+      isPrimaryAction: false,
     };
   }
   const { issue } = item;

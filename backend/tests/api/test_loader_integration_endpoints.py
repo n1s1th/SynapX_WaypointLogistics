@@ -1,7 +1,7 @@
 """Loader-side integration endpoints: dispatcher plan change, dispatcher
 decision (with the decide-by default), driver hand-off and gate-out
 (docs/loader/INTEGRATION_DESIGN.md, sections 8 and 9)."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from uuid import uuid4
 
 import pytest
@@ -199,6 +199,8 @@ def test_an_order_of_another_brand_or_on_another_run_is_refused(loader_client, t
 
 def test_a_new_stop_order_resequences_and_rechecks_the_load(loader_client, trip_setup):
     db = trip_setup["db"]
+    for order in trip_setup["orders"]:
+        order.outlet.window_end = time(18)  # Fixture departure is UTC, windows are Colombo.
     trip, run = built(trip_setup)  # v1: OUT027, OUT026, OUT030 (by window, then code)
     load(db, run, "ORD1001")
 
@@ -231,6 +233,8 @@ def test_taking_an_order_off_rechecks_only_what_is_in_the_way(trip_setup):
 
 def test_a_new_departure_time_alone_is_not_a_new_version(loader_client, trip_setup):
     db = trip_setup["db"]
+    for order in trip_setup["orders"]:
+        order.outlet.window_end = time(18)
     trip, run = built(trip_setup)
 
     response = plan(loader_client, trip, departs_at="2026-05-28T04:00:00Z")
@@ -504,6 +508,8 @@ def test_trips_without_a_loader_run_are_404(loader_client, trip_setup):
 
 def test_runs_without_a_trip_are_untouched_by_all_of_it(loader_client, trip_setup):
     db = trip_setup["db"]
+    for order in trip_setup["orders"]:
+        order.outlet.window_end = time(18)
     seeded = make_run(db, trip_setup["vehicle"], trip_setup["dock"], code="LDR-RUN-1002", plan_version=1)
     make_revision(db, seeded, version=1)
     before = (seeded.status, seeded.current_plan_version, seeded.departs_at, seeded.gated_out_at)

@@ -110,4 +110,6 @@ class OrderRead(OrderBase):
     def temp_requirement(self) -> str:
         return self.temperature_zone or "Ambient"
 
+    requires_van: bool = False
+
     model_config = ConfigDict(from_attributes=True)

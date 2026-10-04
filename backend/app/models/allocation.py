@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, ForeignKey, DateTime, Enum, Integer
+from sqlalchemy import String, Float, ForeignKey, DateTime, Enum, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -28,6 +28,8 @@ class Allocation(Base):
     load_percentage: Mapped[float] = mapped_column(Float, default=0.0)
     volume_percentage: Mapped[float] = mapped_column(Float, default=0.0)
     departure_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    planned_stop_codes: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    route_plan: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     status: Mapped[AllocationStatus] = mapped_column(Enum(AllocationStatus), default=AllocationStatus.DRAFT, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

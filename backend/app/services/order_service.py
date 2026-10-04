@@ -471,6 +471,7 @@ class OrderService:
             target_item.quantity_sent = quantity_sent
             target_item.dispatcher_note = reason
             order.deferral_reason = f"Partial fulfillment: {quantity_sent} of {target_item.quantity} assigned for {target_item.item_name} ({reason})"
+            order.deferral_count = (order.deferral_count or 0) + 1
             db.flush()
             queue_store_change(db, order, partial=True, reason=reason, item_name=target_item.item_name,
                                assigned=quantity_sent, requested=target_item.quantity)

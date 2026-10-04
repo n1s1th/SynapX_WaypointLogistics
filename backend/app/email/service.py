@@ -16,6 +16,7 @@ from app.models.outlet_settings import OutletSettings
 from app.models.reference import Depot
 from app.models.shipment import DispatchTrip
 from app.models.user import User, UserRole
+from app.services.user_notification_service import notify_role
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,12 @@ def store_email(db: Session, order: Order) -> str | None:
 
 def queue_loader_issue(db: Session, issue) -> None:
     depot = issue.run.dock.depot
+    notify_role(
+        db, role=UserRole.DISPATCHER, depot=depot, event_key=f"loader-issue:{issue.id}",
+        category="issue", title=f"Loading decision needed: {issue.order.order_number}",
+        message=f"Run {issue.run.code}: {issue.issue_type.value.replace('_', ' ')}. Review the loading flag before departure.",
+        target_url="/dispatcher/exceptions",
+    )
     queue(
         db, key=f"loader-issue:{issue.id}", kind="loader_issue",
         recipient=dispatcher_email(db, depot),
@@ -119,6 +126,12 @@ def queue_loader_issue(db: Session, issue) -> None:
 def queue_driver_issue(db: Session, issue) -> None:
     trip = issue.driver_trip.dispatch_trip
     depot = trip_depot(db, trip) or driver_depot(db, issue.driver_trip.driver_id)
+    notify_role(
+        db, role=UserRole.DISPATCHER, depot=depot, event_key=f"driver-issue:{issue.id}",
+        category="issue", title=f"Driver issue: {issue.issue_type.value.replace('_', ' ')}",
+        message=f"Trip {trip.trip_code if trip else 'unknown'}: {issue.description}",
+        target_url="/dispatcher/exceptions",
+    )
     queue(
         db, key=f"driver-issue:{issue.id}", kind="driver_issue",
         recipient=dispatcher_email(db, depot),
@@ -132,6 +145,16 @@ def queue_driver_issue(db: Session, issue) -> None:
 def queue_sos(db: Session, alert) -> None:
     trip = alert.driver_trip.dispatch_trip if alert.driver_trip else None
     depot = trip_depot(db, trip) or driver_depot(db, alert.driver_id)
+    notify_role(
+        db, role=UserRole.DISPATCHER, depot=depot, event_key=f"driver-sos:{alert.id}",
+        category="urgent", title=f"Driver SOS: {trip.trip_code if trip else 'unlinked trip'}",
+        message=alert.message or "A driver requested immediate help.", target_url="/dispatcher/exceptions",
+    )
+    notify_role(
+        db, role=UserRole.ADMIN, event_key=f"driver-sos:{alert.id}", category="urgent",
+        title=f"Driver SOS: {trip.trip_code if trip else 'unlinked trip'}",
+        message=alert.message or "A driver requested immediate help.", target_url="/admin",
+    )
     driver = db.get(User, alert.driver_id)
     location = (f"{alert.latitude}, {alert.longitude}" if alert.latitude is not None and alert.longitude is not None else "Not supplied")
     recipient = dispatcher_email(db, depot)

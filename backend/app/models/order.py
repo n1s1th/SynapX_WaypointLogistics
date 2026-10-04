@@ -89,6 +89,10 @@ class Order(Base):
                 return dt.estimated_arrival
         return None
 
+    @property
+    def requires_van(self) -> bool:
+        return self.outlet.van_only if self.outlet else False
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"

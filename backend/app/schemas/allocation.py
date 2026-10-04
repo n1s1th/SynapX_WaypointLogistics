@@ -26,6 +26,8 @@ class AllocationUpdate(BaseModel):
 class AllocationResponse(AllocationBase):
     id: int
     driver_id: Optional[int] = None
+    planned_stop_codes: Optional[List[str]] = None
+    route_plan: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
     

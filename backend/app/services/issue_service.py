@@ -9,6 +9,8 @@ from app.models.order import Order
 from app.schemas.delivery_issue import DeliveryIssueCreate, DeliveryIssueUpdate
 from app.schemas.store_order import summarise_delivery
 from app.services.notification_service import notification_service
+from app.services.user_notification_service import notify_role
+from app.models.user import UserRole
 
 
 class IssueService:
@@ -73,6 +75,13 @@ class IssueService:
             status="open",
         )
         db.add(issue)
+        db.flush()
+        notify_role(
+            db, role=UserRole.DISPATCHER, depot=order.depot if order else None,
+            event_key=f"store-issue:{issue.id}", category="issue",
+            title=f"Store issue: {issue.order_number or issue.title}",
+            message=issue.description, target_url="/dispatcher/exceptions",
+        )
         db.commit()
         db.refresh(issue)
         if issue.outlet_id is not None:

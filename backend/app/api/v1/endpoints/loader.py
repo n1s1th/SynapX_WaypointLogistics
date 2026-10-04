@@ -389,8 +389,18 @@ def change_plan(
     tablet shows the L7 plan-change screen); a Ready run reopens. 409
     PLAN_LOCKED after gate-out, 409 PLAN_VERSION_STALE when base_version is
     behind, 422 PLAN_CHANGE_INVALID with the reasons."""
-    run = loader_service.require_run_for_dispatch_trip(db, _dispatch_trip(db, trip_id).id)
-    revision, replayed = loader_service.publish_dispatcher_plan(db, run, payload)
+    trip = _dispatch_trip(db, trip_id)
+    run = loader_service.require_run_for_dispatch_trip(db, trip.id)
+    with db.begin_nested():
+        revision, replayed = loader_service.publish_dispatcher_plan(db, run, payload)
+        if not replayed and (trip.route_plan or payload.stop_order or payload.departs_at):
+            from app.services.dispatch_route_planning import (
+                current_stop_codes, persist_trip_route, require_feasible, route_for_trip,
+            )
+            trip.departure_time = run.departs_at
+            route = route_for_trip(db, trip, order=current_stop_codes(db, trip))
+            require_feasible(route)
+            persist_trip_route(db, trip, route)
     db.commit()
     changes = revision.changes if revision is not None else []
     return schemas.DispatcherPlanResult(
