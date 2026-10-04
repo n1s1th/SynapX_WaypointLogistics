@@ -1,5 +1,5 @@
-// ============================================================
-// Driver Map – TypeScript types
+﻿// ============================================================
+// Driver Map â€“ TypeScript types
 // Derived from actual backend schemas (driver.py, fleet.py)
 // ============================================================
 
@@ -76,3 +76,14 @@ export interface StopMapState extends DeliveryStop {
   visualState: "completed" | "current" | "upcoming" | "problem";
   hasCoords: boolean;
 }
+
+export type SpecialLocationType = "home" | "work" | "depot";
+
+export interface SpecialLocation {
+  id: string;
+  type: SpecialLocationType;
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+

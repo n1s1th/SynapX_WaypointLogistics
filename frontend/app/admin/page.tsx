@@ -103,12 +103,19 @@ function AdminDashboardContent() {
       if (auditLogsRes.status === "fulfilled") setAuditLogs(auditLogsRes.value);
       if (settingsRes.status === "fulfilled") setSystemSettings(settingsRes.value);
 
-      const rejected = [
-        overviewRes, usersRes, rolesRes, vehiclesRes, outletsRes,
-        depotsRes, opConfigRes, calDaysRes, auditLogsRes, settingsRes
-      ].filter((r) => r.status === "rejected");
-      if (rejected.length > 0) {
-        console.warn(`[AdminDashboard] ${rejected.length} admin requests failed:`, rejected);
+      const labelled = {
+        overview: overviewRes, users: usersRes, roles: rolesRes, vehicles: vehiclesRes,
+        outlets: outletsRes, depots: depotsRes, operationalConfig: opConfigRes,
+        calendarDays: calDaysRes, auditLogs: auditLogsRes, systemSettings: settingsRes,
+      };
+      const failures = Object.entries(labelled)
+        .filter(([, r]) => r.status === "rejected")
+        .map(([name, r]) => {
+          const reason = (r as PromiseRejectedResult).reason;
+          return `${name}: ${reason instanceof Error ? reason.message : String(reason)}`;
+        });
+      if (failures.length > 0) {
+        console.warn(`[AdminDashboard] ${failures.length} admin requests failed:\n${failures.join("\n")}`);
       }
     } catch (err) {
       console.error("Failed to load admin data:", err);
