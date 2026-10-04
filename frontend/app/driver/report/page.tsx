@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { apiFetch, apiFetchUpload } from "@/lib/api";
 import { cachedGet } from "@/lib/driverCache";
+import { generateUUID } from "@/lib/syncQueue";
 import { useSyncContext } from "@/components/SyncProvider";
 import PhotoAttach, { type PhotoDraft } from "@/components/driver/PhotoAttach";
 import { getCachedStop } from "@/lib/driverStop";
@@ -19,6 +20,7 @@ export default function ReportProblemPage() {
   const { enqueue, enqueueWithPhoto, online } = useSyncContext();
 
   const [selectedIssue, setSelectedIssue] = useState("Outlet closed");
+  const [otherProblem, setOtherProblem] = useState("");  // what the problem is, when "Other"
   const [notes, setNotes] = useState("");
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [currentStop, setCurrentStop] = useState<any>(null);
@@ -28,9 +30,15 @@ export default function ReportProblemPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   const issues = [
+<<<<<<< Updated upstream
     { label: "Outlet closed", icon: Store, backendType: "customer_unavailable" },
     { label: "Access denied", icon: DoorClosed, backendType: "customer_unavailable" },
     { label: "Order mismatch", icon: PackageX, backendType: "other" }, // not damage; the label goes in the description
+=======
+    { label: "Outlet closed", icon: Store, backendType: "outlet_closed" },
+    { label: "Access denied", icon: DoorClosed, backendType: "access_denied" },
+    { label: "Order mismatch", icon: PackageX, backendType: "order_mismatch" },
+>>>>>>> Stashed changes
     { label: "Other", icon: Ellipsis, backendType: "other" },
   ];
 
@@ -72,22 +80,34 @@ export default function ReportProblemPage() {
     loadActiveTrip();
   }, []);
 
+  const isOther = selectedIssue === "Other";
+  const otherMissing = isOther && otherProblem.trim() === "";
+
   async function handleSubmit() {
-    if (!activeTrip) return;
+    if (!activeTrip || otherMissing) return;
     setSubmitting(true);
-    
+
     const issueConfig = issues.find(i => i.label === selectedIssue) || issues[3];
+    // "Other" names the problem itself; the note adds details either way
+    const problem = isOther ? otherProblem.trim() : selectedIssue;
+    const note = notes.trim();
     const basePayload = {
       stop_id: currentStop ? currentStop.id : null,
       issue_type: issueConfig.backendType,
+<<<<<<< Updated upstream
       description: notes.trim() ? `${selectedIssue}: ${notes.trim()}` : selectedIssue, // dispatch sees what the driver picked
+=======
+      description: note ? `${problem}: ${note}` : problem,
+      // One id whether it's sent now or later, so it's never saved twice
+      client_action_id: generateUUID(),
+>>>>>>> Stashed changes
     };
     const action = {
       action_type: "issue" as const,
       trip_id: activeTrip.id,
       stop_id: currentStop?.id,
       payload: basePayload,
-      label: selectedIssue,
+      label: isOther ? `Other · ${problem}` : selectedIssue,
     };
 
     // Offline, or the network drops mid-send: keep the report (and its photo) for sync
@@ -197,6 +217,29 @@ export default function ReportProblemPage() {
               );
             })}
           </div>
+
+          {/* "Other": the driver says what the problem is */}
+          {isOther && (
+            <div className="flex flex-col gap-1 w-full mt-1">
+              <label htmlFor="other-problem" className="font-semibold text-[12px]" style={{ color: "#12202E" }}>
+                What is the problem?
+              </label>
+              <input
+                id="other-problem"
+                type="text"
+                value={otherProblem}
+                onChange={(e) => setOtherProblem(e.target.value)}
+                maxLength={120}
+                autoFocus
+                className="w-full h-[48px] px-4 rounded bg-white outline-none font-normal text-[16px]"
+                style={{ border: "1px solid #E0E0E0", color: "#4F4F4F" }}
+                placeholder="e.g. No parking, gate locked, wrong outlet"
+              />
+              {otherMissing && (
+                <p className="text-[12px] font-medium" style={{ color: "#5D6A78" }}>Say what the problem is to send the report.</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Optional note */}
@@ -227,7 +270,7 @@ export default function ReportProblemPage() {
         <div className="w-full mt-1">
           <button
             onClick={handleSubmit}
-            disabled={submitting || !activeTrip}
+            disabled={submitting || !activeTrip || otherMissing}
             className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px] disabled:opacity-50"
             style={{ backgroundColor: "#092C4C" }}
           >

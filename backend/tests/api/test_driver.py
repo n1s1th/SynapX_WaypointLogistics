@@ -4,8 +4,12 @@ and the driver's progress reaches the loader, dispatcher and store.
 Built on the loader's trip_setup (VEH014, three Fresh outlets, four orders):
 the dispatcher's trip names the driver, the loader builds and releases the run.
 """
+<<<<<<< Updated upstream
 import time
 from datetime import date, datetime
+=======
+from datetime import datetime, timezone
+>>>>>>> Stashed changes
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -16,6 +20,7 @@ from sqlalchemy import select
 from app.api import deps
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
+from app.models.allocation import Allocation, AllocationStatus
 from app.models.delivery_run import RunOrderState, RunStatus, RunStop, RunStopOrder
 from app.models.driver import DeliveryStop, DriverAvailability, DriverTrip, SOSAlert
 from app.models.allocation import AllocationStatus
@@ -328,6 +333,7 @@ def test_failed_stop_keeps_orders_dispatched_and_warns_the_dispatcher(loader_cli
     assert event["status"] == "warning"
 
 
+<<<<<<< Updated upstream
 def test_trip_shows_the_run_code_and_truck(loader_client, released):
     driver = released["driver"]
 
@@ -336,6 +342,117 @@ def test_trip_shows_the_run_code_and_truck(loader_client, released):
     assert (trip["run_code"], trip["vehicle_number"]) == ("RUN-0024", "VEH014")
     detail = trip_detail(loader_client, driver, trip["id"])
     assert (detail["run_code"], detail["vehicle_number"]) == ("RUN-0024", "VEH014")
+=======
+# ---- Dispatcher → loader → driver → store, through the real endpoints ------------------
+
+def test_dispatched_allocation_reaches_the_driver_and_the_store(loader_client, trip_setup):
+    """The whole hand-off with nothing built by hand: the dispatcher dispatches an
+    allocation, the loader signs the run off, the driver delivers, and the store's
+    orders go Dispatched then Delivered."""
+    db, orders = trip_setup["db"], {o.order_number: o for o in trip_setup["orders"]}
+    driver, profile = make_driver(db)
+    allocation = Allocation(
+        vehicle_id=trip_setup["vehicle"].id, driver_id=profile.id, run_id="RUN-0031",
+        status=AllocationStatus.READY, departure_time=datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+    db.add(allocation)
+    db.flush()
+    for order in orders.values():
+        order.allocation_id = allocation.id
+    db.flush()
+
+    res = loader_client.post(f"/api/v1/delivery-runs/from-allocation/{allocation.id}")
+    assert res.status_code == 201, res.text
+    dispatch_trip = db.query(DispatchTrip).filter_by(allocation_id=allocation.id).one()
+    assert dispatch_trip.driver_id == profile.id
+    assert today(loader_client, driver) == []  # still at the dock
+
+    release(db, LoaderService.run_for_dispatch_trip(db, dispatch_trip.id))
+    trip = started_trip(loader_client, {"driver": driver})
+    assert trip["dispatch_trip_id"] == dispatch_trip.id
+    assert len(trip["stops"]) == 3  # one per outlet
+
+    for number in ("ORD1001", "ORD1002", "ORD1004"):
+        db.refresh(orders[number])
+        assert orders[number].status == OrderStatus.DISPATCHED, number
+    db.refresh(orders[FLAGGED])
+    assert orders[FLAGGED].status != OrderStatus.DISPATCHED  # not on the truck
+
+    stop = next(s for s in trip["stops"] if s["customer_name"] == "Outlet OUT026")
+    deliver(loader_client, driver, stop["id"])
+    for number in ("ORD1001", "ORD1004"):  # both orders for that outlet
+        db.refresh(orders[number])
+        assert orders[number].status == OrderStatus.DELIVERED, number
+    db.refresh(orders["ORD1002"])
+    assert orders["ORD1002"].status == OrderStatus.DISPATCHED  # another stop
+
+
+# ---- Problem reports -------------------------------------------------------------------
+
+def report(client, driver, trip_id, **body):
+    res = client.post(f"{API}/trips/{trip_id}/issues", headers=auth(driver), json=body)
+    assert res.status_code == 200, res.text
+    return res.json()
+
+
+def test_reported_problem_reaches_the_dispatcher(loader_client, released):
+    db, driver = released["db"], released["driver"]
+    trip = started_trip(loader_client, released)
+    stop = trip["stops"][0]
+
+    saved = report(loader_client, driver, trip["id"], stop_id=stop["id"],
+                   issue_type="outlet_closed", description="Outlet closed: shutter down")
+    assert saved["issue_type"] == "outlet_closed"
+
+    event = db.get(DispatchTrip, released["dispatch_trip"].id).loading_events[-1]
+    assert event["event"] == "Problem reported"
+    assert event["status"] == "warning"
+    assert f"Outlet closed · Stop {stop['sequence']}" in event["note"]
+
+    listed = loader_client.get("/api/v1/driver-issues", params={"status": "open"}).json()
+    assert [(i["id"], i["driver_name"], i["trip_code"], i["stop_name"]) for i in listed] == [
+        (saved["id"], driver.full_name, "RUN-0024", stop["customer_name"])
+    ]
+
+
+def test_dispatcher_acknowledging_shows_on_the_drivers_list(loader_client, released):
+    driver = released["driver"]
+    trip = started_trip(loader_client, released)
+    saved = report(loader_client, driver, trip["id"], issue_type="vehicle_breakdown", description="Flat tyre")
+
+    res = loader_client.patch(f"/api/v1/driver-issues/{saved['id']}", json={"status": "acknowledged"})
+    assert res.status_code == 200, res.text
+
+    mine = loader_client.get(f"{API}/trips/{trip['id']}/issues", headers=auth(driver)).json()
+    assert [(i["id"], i["status"]) for i in mine] == [(saved["id"], "acknowledged")]
+
+
+def test_a_report_sent_again_is_saved_once(loader_client, released):
+    db, driver = released["db"], released["driver"]
+    trip = started_trip(loader_client, released)
+    body = {"issue_type": "traffic_delay", "description": "Road closed", "client_action_id": "rep-1"}
+
+    first = report(loader_client, driver, trip["id"], **body)
+    again = report(loader_client, driver, trip["id"], **body)  # the reply was lost; the phone retries
+    replay = loader_client.post(f"{API}/sync", headers=auth(driver), json=[{
+        "action_id": "rep-1", "action_type": "issue", "trip_id": trip["id"],
+        "payload": {"issue_type": "traffic_delay", "description": "Road closed"},
+        "client_timestamp": "2026-05-28T03:00:00Z",
+    }])
+
+    assert again["id"] == first["id"]
+    assert replay.json()["conflicts"] == []
+    assert len(loader_client.get(f"{API}/trips/{trip['id']}/issues", headers=auth(driver)).json()) == 1
+
+
+def test_a_problem_can_be_reported_before_the_trip_starts(loader_client, released):
+    driver = released["driver"]
+    trip = today(loader_client, driver)[0]
+    assert trip["status"] == "assigned"
+
+    saved = report(loader_client, driver, trip["id"], issue_type="vehicle_breakdown", description="Won't start")
+    assert saved["stop_id"] is None
+>>>>>>> Stashed changes
 
 
 # ---- End of trip -----------------------------------------------------------------------

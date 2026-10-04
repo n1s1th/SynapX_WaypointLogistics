@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  MapPin, Signal, BatteryFull, Map, Home, TriangleAlert, Layers, User
+  MapPin, Signal, BatteryFull, Map, Home, TriangleAlert, Layers, User,
+  CalendarCheck, ChevronRight,
 } from "lucide-react";
+<<<<<<< Updated upstream
 import { apiFetch, ApiError } from "@/lib/api";
 import { cachedGet, keepPageOffline, writeCache } from "@/lib/driverCache";
 import { colomboNow, greeting, READY_CUTOFF_HOUR } from "@/lib/colomboTime";
@@ -23,6 +25,20 @@ function dayLabel(isoDate: string) {
   return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
     .format(new Date(`${isoDate}T00:00:00Z`));
 }
+=======
+import { cachedGet, keepPageOffline } from "@/lib/driverCache";
+import { greeting } from "@/lib/colomboTime";
+import { readyState, type ReadyState } from "@/lib/tomorrowReady";
+import DeviceClock, { useColomboClock } from "@/components/driver/DeviceClock";
+import SyncStatus from "@/components/driver/SyncStatus";
+
+// How the "Tomorrow's availability" card on the home page reads
+const READY_CARD: Record<ReadyState, { text: string; color: string; bg: string; border: string }> = {
+  open: { text: "Confirm before 4 PM", color: "#18794E", bg: "#E8F6EF", border: "#18794E" },
+  confirmed: { text: "✓ You're confirmed for tomorrow", color: "#2167D5", bg: "#EAF2FF", border: "#2167D5" },
+  closed: { text: "Closed at 4 PM · call dispatch", color: "#5D6A78", bg: "#FFFFFF", border: "#D9E1E8" },
+};
+>>>>>>> Stashed changes
 
 interface UserProfile {
   id: number;
@@ -46,9 +62,12 @@ export default function DriverDashboard() {
   const [trips, setTrips] = useState<DriverTripSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState<ReadyState | null>(null);
+<<<<<<< Updated upstream
   const [submittingReady, setSubmittingReady] = useState(false);
   const [readyError, setReadyError] = useState<string | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
+=======
+>>>>>>> Stashed changes
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -64,6 +83,7 @@ export default function DriverDashboard() {
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {
+        setReady(readyState());
         setLoading(false);
       }
     }
@@ -78,6 +98,7 @@ export default function DriverDashboard() {
   }, []);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+<<<<<<< Updated upstream
   // Dispatch plans tomorrow's trips at the 4 PM cutoff (Sri Lanka time), so
   // the driver confirms before then, once a day.
   const showTomorrowButton =
@@ -100,6 +121,9 @@ export default function DriverDashboard() {
       setSubmittingReady(false);
     }
   }
+=======
+  const readyCard = ready ? READY_CARD[ready] : null;
+>>>>>>> Stashed changes
 
   return (
     <div className="min-h-screen flex flex-col font-sans" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
@@ -139,6 +163,7 @@ export default function DriverDashboard() {
       {/* Trips content */}
       <div className="flex flex-col flex-1 px-5 pt-5 pb-24 gap-4">
         
+<<<<<<< Updated upstream
         {/* No phone or licence yet: dispatch can't give this driver a trip */}
         {needsProfile && (
           <Link href="/driver/profile" className="flex items-center justify-between gap-3 p-4 rounded-xl" style={{ backgroundColor: "#FFF4E5", border: "1px solid #B26A00" }}>
@@ -156,18 +181,27 @@ export default function DriverDashboard() {
             <div className="flex flex-col gap-0.5">
               <span className="font-bold text-[14px]" style={{ color: "#18794E" }}>Available {dayLabel(ready.for_date)}?</span>
               <span className="font-normal text-[11px]" style={{ color: "#18794E", maxWidth: "160px" }}>Let dispatch know you can take a run that day. Closes at 4 PM, when dispatch plans trips.</span>
+=======
+        {/* Tomorrow's availability: confirmed on its own page */}
+        {readyCard && (
+          <Link
+            href="/driver/tomorrow"
+            className="flex justify-between items-center p-4 gap-3 rounded-xl"
+            style={{ backgroundColor: readyCard.bg, border: `1px solid ${readyCard.border}`, boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
+          >
+            <div className="flex items-center gap-3">
+              <CalendarCheck size={22} color={readyCard.color} />
+              <div className="flex flex-col gap-0.5">
+                <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>Tomorrow&apos;s availability</span>
+                <span className="font-semibold text-[12px]" style={{ color: readyCard.color }}>{readyCard.text}</span>
+              </div>
+>>>>>>> Stashed changes
             </div>
-            <button
-              onClick={handleReadyForTomorrow}
-              disabled={submittingReady}
-              className="px-4 py-2.5 rounded-lg font-bold text-[13px] text-white disabled:opacity-50"
-              style={{ backgroundColor: "#18794E" }}
-            >
-              {submittingReady ? "Sending..." : "I'm Ready"}
-            </button>
-          </div>
+            <ChevronRight size={20} color="#5D6A78" />
+          </Link>
         )}
 
+<<<<<<< Updated upstream
         {readyError && (
           <p role="alert" className="text-[12px] font-medium px-1" style={{ color: "#C9363E" }}>{readyError}</p>
         )}
@@ -177,6 +211,8 @@ export default function DriverDashboard() {
             <span className="font-bold text-[12px]" style={{ color: "#2167D5" }}>{`✓ You're down as available for ${dayLabel(ready.for_date)}`}</span>
           </div>
         )}
+=======
+>>>>>>> Stashed changes
         {loading ? (
           <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">Loading your trips...</div>
         ) : trips.length === 0 ? (

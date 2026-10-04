@@ -11,9 +11,23 @@
  */
 
 import { openDB, IDBPDatabase } from "idb";
+<<<<<<< Updated upstream
 import { apiFetch, apiFetchUpload } from "./api";
 import { getToken } from "./auth";
 import { decodeJwt } from "./keycloak";
+=======
+import { apiFetch, apiFetchUpload, ApiError } from "./api";
+
+export function generateUUID() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+>>>>>>> Stashed changes
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,7 +132,7 @@ export async function enqueue(
 ) {
   const item: PendingAction = {
     ...action,
-    action_id: crypto.randomUUID(),
+    action_id: generateUUID(),
     client_timestamp: new Date().toISOString(),
     status: "pending",
     retryCount: 0,
@@ -135,7 +149,7 @@ export async function enqueueWithPhoto(
   action: Omit<PendingAction, "action_id" | "client_timestamp" | "status" | "retryCount" | "offlinePhotoKey">,
   photoBlob: Blob
 ) {
-  const photoKey = crypto.randomUUID();
+  const photoKey = generateUUID();
   const db = await getDB();
 
   // Save photo blob
@@ -143,7 +157,7 @@ export async function enqueueWithPhoto(
 
   const item: PendingAction = {
     ...action,
-    action_id: crypto.randomUUID(),
+    action_id: generateUUID(),
     client_timestamp: new Date().toISOString(),
     status: "pending",
     retryCount: 0,
@@ -222,10 +236,15 @@ export async function flush(): Promise<SyncResult | null> {
           processed_count++;
           await db.delete(STORE_QUEUE, action.action_id);
         }
-      } catch {
-        // Network error mid-sync — stop and try again later
-        await db.put(STORE_QUEUE, { ...action, status: "pending" });
-        break;
+      } catch (err: unknown) {
+        if (err instanceof ApiError && !err.isNetworkError) {
+          // Server rejected it (e.g. 400, 500). Mark as failed so driver can dismiss it.
+          await db.put(STORE_QUEUE, { ...action, status: "failed", retryCount: action.retryCount + 1 });
+        } else {
+          // Network error mid-sync — stop and try again later
+          await db.put(STORE_QUEUE, { ...action, status: "pending" });
+          break;
+        }
       }
     }
 

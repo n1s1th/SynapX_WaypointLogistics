@@ -15,6 +15,7 @@ const STATIC = `${VERSION}-static`;
 const SHELL_PAGES = [
   "/driver",
   "/driver/profile",
+  "/driver/tomorrow",
   "/driver/trip",
   "/driver/trip/arrived",
   "/driver/trip/outcome",

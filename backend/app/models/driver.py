@@ -23,6 +23,9 @@ class IssueType(str, enum.Enum):
     CUSTOMER_UNAVAILABLE = "customer_unavailable"
     DAMAGED_GOODS = "damaged_goods"
     WRONG_ADDRESS = "wrong_address"
+    OUTLET_CLOSED = "outlet_closed"
+    ACCESS_DENIED = "access_denied"
+    ORDER_MISMATCH = "order_mismatch"
     OTHER = "other"
 
 class IssueStatus(str, enum.Enum):
@@ -117,6 +120,9 @@ class IssueReport(Base):
     photo_url = Column(Text, nullable=True)
     status = Column(Enum(IssueStatus), default=IssueStatus.OPEN, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    # The phone's id for the report, so a report sent again (offline queue, a
+    # dropped connection) is saved once
+    client_action_id = Column(String(64), nullable=True, unique=True, index=True)
 
     driver_trip = relationship("DriverTrip", back_populates="issues")
     stop = relationship("DeliveryStop")

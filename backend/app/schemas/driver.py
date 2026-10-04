@@ -112,6 +112,7 @@ class IssueReportBase(BaseModel):
 
 class IssueReportCreate(IssueReportBase):
     stop_id: Optional[int] = None
+    client_action_id: Optional[str] = None  # the phone's id: a report sent again is saved once
 
 class IssueReportRead(IssueReportBase):
     id: int
@@ -120,6 +121,16 @@ class IssueReportRead(IssueReportBase):
     status: IssueStatus
     created_at: UTCDateTime
     model_config = ConfigDict(from_attributes=True)
+
+class DispatcherIssueRead(IssueReportRead):
+    """A driver's report on the dispatcher's list."""
+    driver_name: Optional[str] = None
+    trip_code: Optional[str] = None
+    stop_sequence: Optional[int] = None
+    stop_name: Optional[str] = None
+
+class IssueStatusUpdate(BaseModel):
+    status: IssueStatus
 
 
 class SOSAlertBase(BaseModel):

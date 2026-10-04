@@ -329,6 +329,10 @@ def start_trip(db: Session, trip_id: int, driver_id: int) -> DriverTrip:
         for run_stop in _current_run_stops(db, run):
             for order in _orders_at(run, run_stop, loaded_only=True):
                 _advance_order(db, order.id, OrderStatus.DISPATCHED)
+    else:
+        for stop in trip.stops:
+            if stop.shipment and stop.shipment.order_id:
+                _advance_order(db, stop.shipment.order_id, OrderStatus.DISPATCHED)
     db.refresh(trip)
     return trip
 
@@ -536,6 +540,8 @@ def submit_pod(db: Session, stop_id: int, pod_data: dict, driver_id: int) -> Pro
     if run_stop is not None:
         for order in _orders_at(run, run_stop, loaded_only=True):
             _advance_order(db, order.id, OrderStatus.DELIVERED)
+    elif stop.shipment and stop.shipment.order_id:
+        _advance_order(db, stop.shipment.order_id, OrderStatus.DELIVERED)
     db.refresh(pod)
     return pod
 
@@ -560,29 +566,56 @@ def complete_stop(db: Session, stop_id: int, driver_id: int) -> DeliveryStop:
     return stop
 
 
-from app.models.driver import IssueReport, SOSAlert, IssueStatus, SOSStatus
+from app.models.driver import IssueReport, IssueType, SOSAlert, IssueStatus, SOSStatus
+
+ISSUE_LABELS = {
+    IssueType.OUTLET_CLOSED: "Outlet closed",
+    IssueType.ACCESS_DENIED: "Access denied",
+    IssueType.ORDER_MISMATCH: "Order mismatch",
+    IssueType.DAMAGED_GOODS: "Damaged goods",
+    IssueType.WRONG_ADDRESS: "Wrong address",
+    IssueType.CUSTOMER_UNAVAILABLE: "Customer unavailable",
+    IssueType.VEHICLE_BREAKDOWN: "Vehicle breakdown",
+    IssueType.TRAFFIC_DELAY: "Traffic delay",
+    IssueType.OTHER: "Other",
+}
+
 
 def report_issue(db: Session, trip_id: int, issue_data: dict, driver_id: int) -> IssueReport:
     trip = get_trip_detail(db, trip_id, driver_id)
-    
+
+    # Idempotent: a report the phone sends again (offline replay, a dropped
+    # connection) returns the one already saved
+    client_action_id = issue_data.get("client_action_id")
+    if client_action_id:
+        existing = db.query(IssueReport).filter(IssueReport.client_action_id == client_action_id).first()
+        if existing is not None:
+            return existing
+
+    stop = None
     stop_id = issue_data.get("stop_id")
     if stop_id:
         # Validate stop belongs to this trip
         stop = db.query(DeliveryStop).filter(
-            DeliveryStop.id == stop_id, 
+            DeliveryStop.id == stop_id,
             DeliveryStop.driver_trip_id == trip.id
         ).first()
         if not stop:
             raise HTTPException(status_code=400, detail="Stop does not belong to this trip")
-            
+
+    issue_type = IssueType(issue_data["issue_type"])
     issue = IssueReport(
         driver_trip_id=trip.id,
         stop_id=stop_id,
-        issue_type=issue_data["issue_type"],
+        issue_type=issue_type,
         description=issue_data["description"],
-        photo_url=issue_data.get("photo_url")
+        photo_url=issue_data.get("photo_url"),
+        client_action_id=client_action_id,
     )
     db.add(issue)
+    # The dispatcher sees the report in the run log
+    where = f"Stop {stop.sequence} · {stop.customer_name}" if stop else "Whole trip"
+    _log(trip, "Problem reported", f"{ISSUE_LABELS[issue_type]} · {where} · {issue.description[:120]}", "warning")
     db.commit()
     db.refresh(issue)
     return issue
@@ -590,7 +623,44 @@ def report_issue(db: Session, trip_id: int, issue_data: dict, driver_id: int) ->
 
 def get_trip_issues(db: Session, trip_id: int, driver_id: int) -> List[IssueReport]:
     trip = get_trip_detail(db, trip_id, driver_id)
-    return trip.issues
+    return sorted(trip.issues, key=lambda issue: issue.id, reverse=True)
+
+
+def _dispatcher_issue(issue: IssueReport) -> dict:
+    trip = issue.driver_trip
+    return {
+        "id": issue.id,
+        "driver_trip_id": issue.driver_trip_id,
+        "stop_id": issue.stop_id,
+        "issue_type": issue.issue_type,
+        "description": issue.description,
+        "photo_url": issue.photo_url,
+        "status": issue.status,
+        "created_at": issue.created_at,
+        "driver_name": trip.driver.full_name if trip.driver else None,
+        "trip_code": trip.dispatch_trip.trip_code if trip.dispatch_trip else None,
+        "stop_sequence": issue.stop.sequence if issue.stop else None,
+        "stop_name": issue.stop.customer_name if issue.stop else None,
+    }
+
+
+def list_issues(db: Session, status: Optional[IssueStatus] = None, limit: int = 200) -> List[dict]:
+    """Drivers' reports for the dispatcher, newest first."""
+    query = db.query(IssueReport)
+    if status is not None:
+        query = query.filter(IssueReport.status == status)
+    return [_dispatcher_issue(issue) for issue in query.order_by(IssueReport.id.desc()).limit(limit)]
+
+
+def set_issue_status(db: Session, issue_id: int, status: IssueStatus) -> dict:
+    """The dispatcher acknowledges or resolves a report; the driver sees it on their list."""
+    issue = db.get(IssueReport, issue_id)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    issue.status = status
+    db.commit()
+    db.refresh(issue)
+    return _dispatcher_issue(issue)
 
 
 def trigger_sos(db: Session, driver_id: int, sos_data: dict, at: Optional[datetime] = None) -> SOSAlert:
@@ -768,7 +838,9 @@ def process_sync_batch(db: Session, actions: list, driver_id: int) -> dict:
             elif action.action_type == "complete":
                 complete_stop(db, action.stop_id, driver_id)
             elif action.action_type == "issue":
-                report_issue(db, action.trip_id, action.payload, driver_id)
+                # The queue's id dedupes a report saved by an older app without one
+                payload = {**action.payload, "client_action_id": action.payload.get("client_action_id") or action.action_id}
+                report_issue(db, action.trip_id, payload, driver_id)
             elif action.action_type == "sos":
                 trigger_sos(db, driver_id, action.payload, at=action.client_timestamp)
 
