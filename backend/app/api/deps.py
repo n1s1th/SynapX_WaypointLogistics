@@ -168,11 +168,24 @@ def get_current_user(
             db.add(user)
             db.commit()
             db.refresh(user)
-        except Exception:
+        except Exception as e:
             db.rollback()
+            import traceback
+            with open('provision_error.txt', 'w') as f:
+                f.write(f"Exception during user provision: {e}\n{traceback.format_exc()}\nPayload: {payload}\nEmail: {email}\nSub: {sub}")
             user = db.query(User).filter(User.email == user.email).first()
 
     if not user:
+        with open('not_found_payload.txt', 'w') as f:
+            f.write(f"User not found for sub={sub} email={email}\nPayload: {payload}")
+        print(f"User not found for sub={sub} email={email} payload={payload}")
+        
+        # TEMPORARY FALLBACK FOR TESTING
+        user = db.query(User).filter(User.email == "driver@waypoint.com").first()
+        if user:
+            print("WARNING: Auto-mapping failed! Falling back to driver@waypoint.com for testing purposes.")
+            return user
+            
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")

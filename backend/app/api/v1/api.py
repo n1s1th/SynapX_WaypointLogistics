@@ -1,11 +1,7 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import health, auth, orders, inventory, dispatch, tracking, fleet, allocations, driver
-<<<<<<< Updated upstream
-from app.api.v1.endpoints import store_orders, notifications, calendar, loader, outlets, operation_exceptions, admin, issues
+from app.api.v1.endpoints import store_orders, notifications, calendar, loader, outlets, operation_exceptions, admin, issues, driver_issues
 from app.api.v1.endpoints import catalogue, store, store_stock
-=======
-from app.api.v1.endpoints import store_orders, notifications, calendar, loader, outlets, driver_issues
->>>>>>> Stashed changes
 from app.routers.receipts import router as receipts_router
 
 api_router = APIRouter()

@@ -11,12 +11,9 @@
  */
 
 import { openDB, IDBPDatabase } from "idb";
-<<<<<<< Updated upstream
-import { apiFetch, apiFetchUpload } from "./api";
+import { apiFetch, apiFetchUpload, ApiError } from "./api";
 import { getToken } from "./auth";
 import { decodeJwt } from "./keycloak";
-=======
-import { apiFetch, apiFetchUpload, ApiError } from "./api";
 
 export function generateUUID() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -27,7 +24,6 @@ export function generateUUID() {
     return v.toString(16);
   });
 }
->>>>>>> Stashed changes
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

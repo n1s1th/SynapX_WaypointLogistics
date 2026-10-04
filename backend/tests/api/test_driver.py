@@ -4,12 +4,8 @@ and the driver's progress reaches the loader, dispatcher and store.
 Built on the loader's trip_setup (VEH014, three Fresh outlets, four orders):
 the dispatcher's trip names the driver, the loader builds and releases the run.
 """
-<<<<<<< Updated upstream
 import time
-from datetime import date, datetime
-=======
-from datetime import datetime, timezone
->>>>>>> Stashed changes
+from datetime import date, datetime, timezone
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -333,7 +329,6 @@ def test_failed_stop_keeps_orders_dispatched_and_warns_the_dispatcher(loader_cli
     assert event["status"] == "warning"
 
 
-<<<<<<< Updated upstream
 def test_trip_shows_the_run_code_and_truck(loader_client, released):
     driver = released["driver"]
 
@@ -342,7 +337,7 @@ def test_trip_shows_the_run_code_and_truck(loader_client, released):
     assert (trip["run_code"], trip["vehicle_number"]) == ("RUN-0024", "VEH014")
     detail = trip_detail(loader_client, driver, trip["id"])
     assert (detail["run_code"], detail["vehicle_number"]) == ("RUN-0024", "VEH014")
-=======
+
 # ---- Dispatcher → loader → driver → store, through the real endpoints ------------------
 
 def test_dispatched_allocation_reaches_the_driver_and_the_store(loader_client, trip_setup):
@@ -452,7 +447,6 @@ def test_a_problem_can_be_reported_before_the_trip_starts(loader_client, release
 
     saved = report(loader_client, driver, trip["id"], issue_type="vehicle_breakdown", description="Won't start")
     assert saved["stop_id"] is None
->>>>>>> Stashed changes
 
 
 # ---- End of trip -----------------------------------------------------------------------

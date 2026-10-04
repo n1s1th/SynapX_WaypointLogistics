@@ -30,15 +30,9 @@ export default function ReportProblemPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   const issues = [
-<<<<<<< Updated upstream
-    { label: "Outlet closed", icon: Store, backendType: "customer_unavailable" },
-    { label: "Access denied", icon: DoorClosed, backendType: "customer_unavailable" },
-    { label: "Order mismatch", icon: PackageX, backendType: "other" }, // not damage; the label goes in the description
-=======
     { label: "Outlet closed", icon: Store, backendType: "outlet_closed" },
     { label: "Access denied", icon: DoorClosed, backendType: "access_denied" },
     { label: "Order mismatch", icon: PackageX, backendType: "order_mismatch" },
->>>>>>> Stashed changes
     { label: "Other", icon: Ellipsis, backendType: "other" },
   ];
 
@@ -94,13 +88,9 @@ export default function ReportProblemPage() {
     const basePayload = {
       stop_id: currentStop ? currentStop.id : null,
       issue_type: issueConfig.backendType,
-<<<<<<< Updated upstream
-      description: notes.trim() ? `${selectedIssue}: ${notes.trim()}` : selectedIssue, // dispatch sees what the driver picked
-=======
       description: note ? `${problem}: ${note}` : problem,
       // One id whether it's sent now or later, so it's never saved twice
       client_action_id: generateUUID(),
->>>>>>> Stashed changes
     };
     const action = {
       action_type: "issue" as const,
