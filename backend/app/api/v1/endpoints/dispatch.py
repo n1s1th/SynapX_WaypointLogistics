@@ -9,7 +9,7 @@ from app.api import deps
 from app.models.shipment import DispatchTrip
 from app.models.allocation import Allocation, AllocationStatus
 from app.models.fleet import DriverProfile
-from app.models.reference import Depot, Outlet
+from app.models.reference import Depot, Dock, Outlet
 from app.schemas.shipment import DispatchTripCreate, DispatchTripRead, DeliveryRunResponse, DeliveryRunUpdate, LoadingEventIn
 from app.models.order import Order, OrderItem
 from app.services.loader_service import RunNotBuildableError, loader_service
@@ -161,6 +161,15 @@ def get_live_runs(
     return result
 
 
+@router.get("/docks", response_model=list[dict])
+def list_docks(
+    db: Session = Depends(deps.get_db),
+    depot_scope: Depot = Depends(deps.get_dispatcher_depot),
+):
+    docks = db.query(Dock).filter(Dock.depot == depot_scope).all()
+    return [{"id": d.id, "code": d.code, "name": d.name} for d in docks]
+
+
 @router.get("/{id}", response_model=DeliveryRunResponse)
 def get_delivery_run(
     id: int,
@@ -271,6 +280,7 @@ def sync_delivery_plan(id: int, payload: PlanSyncRequest, db: Session = Depends(
 @router.post("/from-allocation/{allocation_id}", response_model=DeliveryRunResponse, status_code=status.HTTP_201_CREATED)
 def create_run_from_allocation(
     allocation_id: int,
+    dock_code: Optional[str] = None,
     db: Session = Depends(deps.get_db),
     # current_user = Depends(deps.require_dispatcher_or_admin)
 ):
@@ -294,8 +304,8 @@ def create_run_from_allocation(
     if existing:
         return _with_loader(db, [existing])[0]
 
-    # Only allow dispatching from READY or LOADING states
-    if allocation.status not in (AllocationStatus.READY, AllocationStatus.LOADING):
+    # Allow dispatching (sending to dock) from ALLOCATED, READY, or LOADING states
+    if allocation.status not in (AllocationStatus.ALLOCATED, AllocationStatus.READY, AllocationStatus.LOADING):
         raise HTTPException(
             status_code=400,
             detail=f"Allocation must be READY or LOADING to dispatch (current: {allocation.status})"
@@ -363,14 +373,14 @@ def create_run_from_allocation(
     )
     db.add(trip)
 
-    # Mark allocation as dispatched
-    allocation.status = AllocationStatus.DISPATCHED
+    # Mark allocation as LOADING since it is now sent to the dock
+    allocation.status = AllocationStatus.LOADING
     db.add(allocation)
 
     db.flush()
     try:
         with db.begin_nested():
-            dock_run = loader_service.create_run_for_dispatch_trip(db, trip)
+            dock_run = loader_service.create_run_for_dispatch_trip(db, trip, dock_code=dock_code)
     except Exception as exc:
         reasons = (
             "; ".join(v["message"] for v in exc.details.get("violations", []))

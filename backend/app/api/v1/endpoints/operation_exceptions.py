@@ -46,12 +46,12 @@ def list_operation_exceptions(db: Session = Depends(get_db), _user: User = Depen
     driver_issues = db.query(IssueReport).options(joinedload(IssueReport.driver_trip).joinedload(DriverTrip.dispatch_trip)).filter(IssueReport.status.in_([DriverIssueStatus.OPEN, DriverIssueStatus.ACKNOWLEDGED])).all()
     for issue in driver_issues:
         trip = issue.driver_trip.dispatch_trip if issue.driver_trip else None
-        entries.append(_entry("driver", "issue", issue.id, issue.issue_type.value.replace("_", " ").title(), issue.description, issue.status.value, issue.created_at, trip.trip_code if trip else None, trip.driver_name if trip else None, f"Stop {issue.stop_id}" if issue.stop_id else None))
+        entries.append({**_entry("driver", "issue", issue.id, issue.issue_type.value.replace("_", " ").title(), issue.description, issue.status.value, issue.created_at, trip.trip_code if trip else None, trip.driver_name if trip else None, f"Stop {issue.stop_id}" if issue.stop_id else None), "photo_url": issue.photo_url})
 
     alerts = db.query(SOSAlert).options(joinedload(SOSAlert.driver_trip).joinedload(DriverTrip.dispatch_trip)).filter(SOSAlert.status.in_([SOSStatus.TRIGGERED, SOSStatus.ACKNOWLEDGED])).all()
     for alert in alerts:
         trip = alert.driver_trip.dispatch_trip if alert.driver_trip else None
-        entries.append(_entry("driver", "sos", alert.id, "Driver SOS", alert.message or "Driver requested urgent assistance.", alert.status.value, alert.triggered_at, trip.trip_code if trip else None, trip.driver_name if trip else None, severity="critical"))
+        entries.append({**_entry("driver", "sos", alert.id, "Driver SOS", alert.message or "Driver requested urgent assistance.", alert.status.value, alert.triggered_at, trip.trip_code if trip else None, trip.driver_name if trip else None, severity="critical"), "photo_url": alert.photo_url})
 
     stops = db.query(DeliveryStop).options(joinedload(DeliveryStop.driver_trip).joinedload(DriverTrip.dispatch_trip)).filter(DeliveryStop.status == DeliveryStopStatus.DELIVERED, ~DeliveryStop.pod.has()).all()
     for stop in stops:

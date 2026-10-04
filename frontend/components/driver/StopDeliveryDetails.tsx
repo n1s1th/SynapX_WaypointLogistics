@@ -9,6 +9,13 @@ import type { ReactNode } from "react";
 import { Clock, Package, Phone, Snowflake, Info } from "lucide-react";
 import type { StopDetail, StopOrderInfo } from "@/lib/driverStop";
 
+const SHORT_REASONS: Record<string, string> = {
+  missing: "missing at the depot",
+  short: "short at the depot",
+  damaged: "damaged",
+  wont_fit: "didn't fit on the truck",
+};
+
 export default function StopDeliveryDetails({ stop }: { stop: StopDetail }) {
   const orders = stop.orders?.length ? stop.orders : stop.order ? [stop.order] : [];
   const notes = stop.notes || orders.find((order) => order.notes)?.notes;
@@ -65,6 +72,9 @@ function OrderSection({ order, label, divider }: { order: StopOrderInfo; label: 
   const chilled = order.temperature_zone?.toLowerCase().includes("chill") ||
     order.temperature_zone?.toLowerCase().includes("frozen");
   const notLoaded = order.on_truck === false;
+  const loaded = order.units_loaded;
+  const short = !notLoaded && order.units != null && loaded != null && loaded < order.units;
+  const reason = order.shortfall ? SHORT_REASONS[order.shortfall.reason] ?? order.shortfall.reason : null;
 
   return (
     <>
@@ -85,6 +95,11 @@ function OrderSection({ order, label, divider }: { order: StopOrderInfo; label: 
           {notLoaded && (
             <span className="px-2 py-0.5 rounded-full font-bold text-[10px]" style={{ backgroundColor: "#FBEAEA", color: "#AD3D3D" }}>
               Not loaded
+            </span>
+          )}
+          {short && (
+            <span className="px-2 py-0.5 rounded-full font-bold text-[10px]" style={{ backgroundColor: "#FFF4D6", color: "#A85D00" }}>
+              Short
             </span>
           )}
           {order.brand && (
@@ -110,10 +125,18 @@ function OrderSection({ order, label, divider }: { order: StopOrderInfo; label: 
         </span>
       )}
 
+      {short && (
+        <span className="px-3.5 pt-2.5 text-[12px]" style={{ color: "#A85D00" }}>
+          Only {loaded} of {order.units} units are on the truck{reason ? ` (${reason})` : ""}.
+          {order.shortfall?.decision ? ` Dispatcher: ${order.shortfall.decision}.` : ""}
+          {order.items.length > 1 ? " Item counts below are as ordered, so count with the store." : " Hand over what is on the truck."}
+        </span>
+      )}
+
       {/* Key figures */}
       <div className="flex w-full" style={{ borderBottom: "1px solid #D9E1E8" }}>
         <Figure icon={<Clock size={13} color="#5D6A78" />} label="WINDOW" value={order.delivery_window ?? "--"} />
-        <Figure label="UNITS" value={order.units != null ? String(order.units) : "--"} divider />
+        <Figure label="UNITS" value={order.units == null ? "--" : short ? `${loaded} of ${order.units}` : String(order.units)} divider />
         <Figure label="WEIGHT" value={order.weight_kg ? `${Math.round(order.weight_kg)} kg` : "--"} divider />
       </div>
 

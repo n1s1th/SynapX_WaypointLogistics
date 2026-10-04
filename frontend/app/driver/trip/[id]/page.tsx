@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { cachedGet } from "@/lib/driverCache";
-import { mergeLocalProgress } from "@/lib/driverStop";
+import { LOADER_CHECK_MS, mergeLocalProgress, waitingForLoader } from "@/lib/driverStop";
 import DeviceClock from "@/components/driver/DeviceClock";
 import SyncStatus from "@/components/driver/SyncStatus";
+import DockArrival from "@/components/driver/DockArrival";
 
 interface DeliveryStop {
   id: number;
@@ -27,6 +28,9 @@ interface TripDetail {
   run_code?: string | null; // e.g. RUN-0067
   vehicle_number?: string | null; // e.g. VEH005
   status: string;
+  loader_status?: string | null; // the loader's run: Start waits for ready_to_depart
+  dock_name?: string | null; // where the truck is loaded, e.g. Dock 3
+  at_dock_at?: string | null; // when the driver said they were at the dock
   stops: DeliveryStop[];
   planned_departure: string | null;
   last_window_closes: string | null;
@@ -44,6 +48,8 @@ export default function TripDetailsPage({ params }: { params: Promise<{ id: stri
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const atDock = trip ? waitingForLoader(trip) : false;
 
   useEffect(() => {
     async function loadTrip() {
@@ -59,6 +65,17 @@ export default function TripDetailsPage({ params }: { params: Promise<{ id: stri
     loadTrip();
   }, [tripId]);
 
+  // While the loader is still loading the truck, look again so Start opens by itself.
+  useEffect(() => {
+    if (!atDock) return;
+    const timer = window.setInterval(() => {
+      cachedGet<TripDetail>(`/driver/trips/${tripId}`)
+        .then((data) => setTrip({ ...data, stops: mergeLocalProgress(data.stops) }))
+        .catch(() => {});
+    }, LOADER_CHECK_MS);
+    return () => window.clearInterval(timer);
+  }, [atDock, tripId]);
+
   async function handleStartTrip() {
     if (trip?.status === "started") {
       router.push(`/driver/trip`);
@@ -66,11 +83,13 @@ export default function TripDetailsPage({ params }: { params: Promise<{ id: stri
     }
     
     setStarting(true);
+    setStartError(null);
     try {
       await apiFetch(`/driver/trips/${tripId}/start`, { method: "POST" });
       router.push(`/driver/trip`);
     } catch (error) {
       console.error("Failed to start trip:", error);
+      setStartError(error instanceof Error ? error.message : "Couldn't start the trip. Try again.");
       setStarting(false);
     }
   }
@@ -170,29 +189,40 @@ export default function TripDetailsPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {/* Pre-trip check banner */}
-            <div 
-              className="flex p-3 gap-2.5 rounded-xl bg-[#EAF2FF]"
-              style={{ border: "1px solid rgba(33, 103, 213, 0.21)" }}
+            <div
+              className="flex p-3 gap-2.5 rounded-xl"
+              style={atDock
+                ? { backgroundColor: "#FFF4D6", border: "1px solid rgba(168, 93, 0, 0.25)" }
+                : { backgroundColor: "#EAF2FF", border: "1px solid rgba(33, 103, 213, 0.21)" }}
             >
-              <ClipboardCheck size={18} color="#2167D5" className="shrink-0 mt-0.5" />
+              <ClipboardCheck size={18} color={atDock ? "#A85D00" : "#2167D5"} className="shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5 w-full">
-                <span className="font-bold text-[12px] leading-[1.45em]" style={{ color: "#2167D5" }}>Pre-trip check</span>
-                <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#2167D5" }}>
-                  Confirm vehicle is loaded, sealed, and ready to depart.
+                <span className="font-bold text-[12px] leading-[1.45em]" style={{ color: atDock ? "#A85D00" : "#2167D5" }}>
+                  {atDock ? "Loading at dock" : "Pre-trip check"}
+                </span>
+                <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: atDock ? "#A85D00" : "#2167D5" }}>
+                  {atDock
+                    ? "The loader is loading your truck. Start opens when they mark it ready to depart."
+                    : "Confirm vehicle is loaded, sealed, and ready to depart."}
                 </span>
               </div>
             </div>
+
+            {atDock && trip && <DockArrival trip={trip} onArrived={setTrip} />}
 
             {/* Action Button */}
             <div className="w-full">
               <button 
                 onClick={handleStartTrip}
-                disabled={starting || trip?.status === "completed"}
+                disabled={starting || atDock || trip?.status === "completed"}
                 className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px] disabled:opacity-50"
                 style={{ backgroundColor: "#092C4C" }}
               >
-                {starting ? "Starting..." : trip?.status === "started" ? "Resume Trip →" : "Start trip"}
+                {starting ? "Starting..." : trip?.status === "started" ? "Resume Trip →" : atDock ? "Waiting for the loader" : "Start trip"}
               </button>
+              {startError && (
+                <p className="mt-2 text-[12px] leading-[1.45em]" style={{ color: "#AD3D3D" }}>{startError}</p>
+              )}
             </div>
           </>
         )}

@@ -3332,6 +3332,34 @@ class LoaderService:
         )
         db.flush()
         LoaderService.finalize_release(db, run, force=True)
+        
+        if run.dispatch_trip_id:
+            from app.models.allocation import Allocation, AllocationStatus
+            trip = db.query(DispatchTrip).filter(DispatchTrip.id == run.dispatch_trip_id).first()
+            if trip:
+                trip.status = "en_route"
+                if not trip.estimated_arrival and trip.departure_time:
+                    minutes_per_stop = 30
+                    eta_delta = timedelta(minutes=minutes_per_stop * max(trip.stop_count or 1, 1))
+                    trip.estimated_arrival = trip.departure_time + eta_delta
+                
+                if trip.allocation_id:
+                    allocation = db.query(Allocation).filter(Allocation.id == trip.allocation_id).first()
+                    if allocation:
+                        allocation.status = AllocationStatus.DISPATCHED
+                        
+                    orders = db.query(Order).filter(
+                        Order.allocation_id == trip.allocation_id,
+                        Order.status.in_([OrderStatus.ALLOCATED, OrderStatus.PROCESSING, OrderStatus.READY_FOR_DISPATCH])
+                    ).all()
+                    for order in orders:
+                        if order.status == OrderStatus.ALLOCATED:
+                            order_service.update_order_status(db, order.id, OrderStatus.PROCESSING, commit=False)
+                        if order.status == OrderStatus.PROCESSING:
+                            order_service.update_order_status(db, order.id, OrderStatus.READY_FOR_DISPATCH, commit=False)
+                        if order.status == OrderStatus.READY_FOR_DISPATCH:
+                            order_service.update_order_status(db, order.id, OrderStatus.DISPATCHED, commit=False)
+                            
         return run, False
 
     # --- order status (order_service) --------------------------------------

@@ -36,6 +36,9 @@ class SOSStatus(str, enum.Enum):
     RESOLVED = "resolved"
 
 
+DRIVER_AT_DOCK = "driver_at_dock"  # the loader's run log: the driver is at the dock
+
+
 class DriverTrip(Base):
     __tablename__ = "driver_trips"
 
@@ -67,6 +70,39 @@ class DriverTrip(Base):
     def vehicle_number(self):
         """The truck on this trip, e.g. VEH005 (not a column)."""
         return self.dispatch_trip.vehicle_number if self.dispatch_trip else None
+
+    def _loader_run(self):
+        session = object_session(self)
+        if session is None:
+            return None
+        from app.models.delivery_run import DeliveryRun
+        return session.query(DeliveryRun).filter(DeliveryRun.dispatch_trip_id == self.dispatch_trip_id).first()
+
+    @property
+    def loader_status(self):
+        """Where the loader is with this trip's run (not a column): not_started, loading,
+        issue_flagged or loaded while at the dock, then ready_to_depart and gated_out.
+        None for a trip without a loader run."""
+        run = self._loader_run()
+        return run.status.value if run is not None else None
+
+    @property
+    def dock_name(self):
+        """The dock the truck is loaded at, e.g. "Dock 3" (not a column)."""
+        run = self._loader_run()
+        return run.dock.name if run is not None and run.dock is not None else None
+
+    @property
+    def at_dock_at(self):
+        """When the driver said they were at the dock (not a column): read back from
+        the loader's run log, where driver_service.report_at_dock writes it."""
+        run = self._loader_run()
+        if run is None:
+            return None
+        from app.models.loader_activity import LoaderActivity
+        return object_session(self).query(LoaderActivity.at).filter(
+            LoaderActivity.run_id == run.id, LoaderActivity.event_type == DRIVER_AT_DOCK,
+        ).order_by(LoaderActivity.at.desc()).limit(1).scalar()
 
     @property
     def depot_name(self):
@@ -144,10 +180,6 @@ class IssueReport(Base):
 
 class SOSAlert(Base):
     __tablename__ = "sos_alerts"
-    # photo_url is in the table (migration 0016_sos_photo) but not mapped: saving and reading
-    # an SOS never name it, so both keep working on a database where the migration hasn't
-    # run yet. driver_service._save_sos_photo writes it through the table.
-    __mapper_args__ = {"exclude_properties": ["photo_url"]}
 
     id = Column(Integer, primary_key=True, index=True)
     driver_id = Column(Integer, ForeignKey("users.id"), nullable=False)

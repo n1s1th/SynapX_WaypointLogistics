@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Choice, DataGate, ModuleHeader, PagedTable, Panel } from "@/components/dispatcher/operations/shared";
 import { downloadCsv } from "@/components/dispatcher/operations/data";
-import { exceptionDate, fetchOperationExceptions, type OperationException } from "@/components/dispatcher/operations/exceptions";
+import { exceptionDate, fetchOperationExceptions, photoSrc, type OperationException } from "@/components/dispatcher/operations/exceptions";
 
 function ExceptionDetails({ item }: { item: OperationException }) {
   return <Sheet><SheetTrigger asChild><Button variant="outline" aria-label={`View ${item.title} ${item.id}`}>View</Button></SheetTrigger><SheetContent className="data-[side=right]:w-full overflow-y-auto sm:max-w-xl">
@@ -18,6 +18,11 @@ function ExceptionDetails({ item }: { item: OperationException }) {
       ...(item.source === "store" ? [["Issue", item.issue_code || "Not recorded"], ["Outlet", [item.outlet_name, item.outlet_code].filter(Boolean).join(" · ") || "Not recorded"], ["Reported by", item.reported_by || "Not recorded"], ["Affected item", item.affected_item || "Not recorded"]] : []),
       ["Trip", item.trip_code || "Not linked"], ["Driver", item.driver_name || "Not recorded"], ["Recorded at", exceptionDate(item.reported_at)], ["Status", item.status.replaceAll("_", " ")],
     ].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="break-words font-medium capitalize">{value}</dd></div>)}</dl>
+    {item.photo_url && <figure className="space-y-2"><figcaption className="text-muted-foreground">Photo from the driver</figcaption>
+      <a href={photoSrc(item.photo_url)} target="_blank" rel="noreferrer" aria-label={`Open the photo for ${item.title} full size`}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- R2 or the API's uploads folder */}
+        <img src={photoSrc(item.photo_url)} alt={`Photo attached to ${item.title}`} className="max-h-80 w-full rounded-lg border border-border bg-muted object-contain" />
+      </a></figure>}
     </div>
   </SheetContent></Sheet>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   MapPin, Signal, BatteryFull, Map, Home, TriangleAlert, Layers, User
@@ -10,6 +10,8 @@ import { cachedGet, keepPageOffline, writeCache } from "@/lib/driverCache";
 import { colomboNow, greeting, READY_CUTOFF_HOUR } from "@/lib/colomboTime";
 import DeviceClock, { useColomboClock } from "@/components/driver/DeviceClock";
 import SyncStatus from "@/components/driver/SyncStatus";
+import { LOADER_CHECK_MS, waitingForLoader } from "@/lib/driverStop";
+import DockArrival from "@/components/driver/DockArrival";
 
 // "I'm ready" for the next working day, saved on the server for the dispatcher.
 interface ReadyState {
@@ -38,6 +40,9 @@ interface DriverTripSummary {
   vehicle_number?: string | null; // e.g. VEH005
   status: string;
   assigned_date: string;
+  loader_status?: string | null; // the loader's run: Start waits for ready_to_depart
+  dock_name?: string | null; // where the truck is loaded, e.g. Dock 3
+  at_dock_at?: string | null; // when the driver said they were at the dock
 }
 
 export default function DriverDashboard() {
@@ -50,6 +55,34 @@ export default function DriverDashboard() {
   const [readyError, setReadyError] = useState<string | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
 
+  // The trip to highlight: the one under way, else the first not started (finished ones stay plain)
+  const activeTripId = (trips.find((t) => t.status === "started") ?? trips.find((t) => t.status === "assigned"))?.id;
+  const truckLoading = trips.some(waitingForLoader);
+  const [newTrip, setNewTrip] = useState<DriverTripSummary | null>(null);
+  const knownTrips = useRef<Set<number> | null>(null);
+
+  // Look again while a truck is being loaded (so "Ready to start" shows by itself)
+  // and while there's no trip yet (so a trip the dispatcher sends shows up).
+  const watching = !loading && (truckLoading || activeTripId === undefined);
+  useEffect(() => {
+    if (!watching) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const fresh = await cachedGet<DriverTripSummary[]>("/driver/trips/today");
+        const added = fresh.find((t) => t.status === "assigned" && knownTrips.current !== null && !knownTrips.current.has(t.id));
+        fresh.forEach((t) => knownTrips.current?.add(t.id));
+        if (added) {
+          setNewTrip(added);
+          navigator.vibrate?.(300);
+        }
+        setTrips(fresh);
+      } catch {
+        // no signal: keep what's on screen
+      }
+    }, LOADER_CHECK_MS);
+    return () => window.clearInterval(timer);
+  }, [watching]);
+
   useEffect(() => {
     async function loadDashboardData() {
       try {
@@ -59,6 +92,7 @@ export default function DriverDashboard() {
         ]);
         setProfile(profileData);
         setTrips(tripsData);
+        knownTrips.current = new Set(tripsData.map((t) => t.id));
         // Each trip's page opens offline too
         tripsData.forEach((t) => keepPageOffline(`/driver/trip/${t.id}`));
       } catch (error) {
@@ -177,13 +211,25 @@ export default function DriverDashboard() {
             <span className="font-bold text-[12px]" style={{ color: "#2167D5" }}>{`✓ You're down as available for ${dayLabel(ready.for_date)}`}</span>
           </div>
         )}
+        {newTrip && (
+          <div role="status" className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ backgroundColor: "#E8F6EF", border: "1px solid #18794E" }}>
+            <span className="text-[13px] leading-[1.45em]" style={{ color: "#18794E" }}>
+              <b>New trip from dispatch: {newTrip.run_code ?? `R-${newTrip.id}`}</b>
+              {newTrip.dock_name ? ` · go to ${newTrip.dock_name}` : ""}
+            </span>
+            <button type="button" onClick={() => setNewTrip(null)} className="font-bold text-[12px] shrink-0" style={{ color: "#18794E" }}>
+              OK
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">Loading your trips...</div>
         ) : trips.length === 0 ? (
           <div className="text-center py-10 text-[#5D6A78] text-sm font-medium">No trips assigned for today.</div>
         ) : (
-          trips.map((trip, index) => {
-            const isActive = trip.status === "started" || (index === 0 && trip.status === "assigned");
+          trips.map((trip) => {
+            const isActive = trip.id === activeTripId;
+            const atDock = waitingForLoader(trip);
             
             if (isActive) {
               return (
@@ -200,8 +246,10 @@ export default function DriverDashboard() {
                         {trip.vehicle_number ? `Truck ${trip.vehicle_number}` : `Dispatch #${trip.dispatch_trip_id}`}
                       </span>
                     </div>
-                    <div className="flex items-center px-2 py-1 rounded-full bg-[#FFF4D6]">
-                      <span className="font-bold text-[10px]" style={{ color: "#A85D00" }}>{trip.status.replace('_', ' ')}</span>
+                    <div className="flex items-center px-2 py-1 rounded-full" style={{ backgroundColor: atDock ? "#FFF4D6" : "#E8F6EF" }}>
+                      <span className="font-bold text-[10px]" style={{ color: atDock ? "#A85D00" : "#18794E" }}>
+                        {trip.status === "started" ? "On the road" : atDock ? "Loading at dock" : "Ready to start"}
+                      </span>
                     </div>
                   </div>
 
@@ -217,6 +265,12 @@ export default function DriverDashboard() {
                     <MapPin size={17} color="#12202E" />
                     <span className="font-semibold text-[14px]" style={{ color: "#12202E" }}>Assigned Route</span>
                   </div>
+                  {atDock && (
+                    <DockArrival
+                      trip={trip}
+                      onArrived={(updated) => setTrips((list) => list.map((t) => (t.id === updated.id ? updated : t)))}
+                    />
+                  )}
 
                   {/* Action */}
                   <Link href={`/driver/trip/${trip.id}`} className="mt-2">
@@ -240,10 +294,14 @@ export default function DriverDashboard() {
                   <div className="flex justify-between items-start w-full mb-1">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>{trip.run_code ?? `Trip R-${trip.id}`}</span>
-                      <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Status · {trip.status}</span>
+                      <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>
+                        {trip.status === "completed" ? "Finished" : trip.status === "started" ? "Under way" : "Not started yet"}
+                      </span>
                     </div>
                     <div className="flex items-center px-2 py-1 rounded-full bg-[#E9EEF3]">
-                      <span className="font-bold text-[10px]" style={{ color: "#5D6A78" }}>Scheduled</span>
+                      <span className="font-bold text-[10px]" style={{ color: "#5D6A78" }}>
+                        {trip.status === "completed" ? "Completed" : atDock ? "Loading at dock" : "Scheduled"}
+                      </span>
                     </div>
                   </div>
 

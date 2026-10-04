@@ -6,13 +6,15 @@ from typing import List, Optional, Tuple
 from datetime import date, datetime, time, timedelta, timezone
 from uuid import uuid4
 from zoneinfo import ZoneInfo
-from sqlalchemy import and_, or_, update
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import and_, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.core.exceptions import WaypointLogisticsError
-from app.models.delivery_run import DeliveryRun, RunOrderState, RunStatus, RunStop
-from app.models.driver import DriverTrip, DeliveryStop, ProofOfDelivery, DriverTripStatus, DeliveryStopStatus, DriverAvailability
+from app.models.delivery_run import DeliveryRun, RunOrderState, RunStatus, RunStop, RunStopOrder
+from app.models.loader_issue import LoaderIssue
+from app.models.driver import DRIVER_AT_DOCK, DriverTrip, DeliveryStop, ProofOfDelivery, DriverTripStatus, DeliveryStopStatus, DriverAvailability
+from app.models.loader_activity import ActorKind
 from app.models.allocation import AllocationStatus
 from app.models.fleet import DriverProfile, VehicleStatus
 from app.models.notification import NotificationType
@@ -34,7 +36,7 @@ COLOMBO = ZoneInfo("Asia/Colombo")
 # Runs the loader has signed off: the driver can collect them.
 RELEASED_RUN_STATES = (RunStatus.READY_TO_DEPART, RunStatus.GATED_OUT)
 # A run gated out without a driver trip is only picked up while it is this fresh.
-GATED_OUT_PICKUP_WINDOW = timedelta(hours=24)
+RECENT_RUN_WINDOW = timedelta(hours=24)  # a run at the dock or gated out shows until a day after it departs
 # Orders that are no longer on the current plan of a run.
 OFF_PLAN_STATES = {RunOrderState.TAKE_OFF, RunOrderState.MOVED}
 # Order statuses a departure or delivery never passes through on its way.
@@ -84,20 +86,22 @@ def get_today_trips(db: Session, driver_id: int) -> List[DriverTrip]:
 # signs the run off, its stops are copied into a DriverTrip, so the phone keeps
 # a stable record offline and the loader's tables are not edited by the driver.
 
-def _released_runs(db: Session, profile: DriverProfile, now: datetime) -> List[DeliveryRun]:
-    """Signed-off runs on this driver's dispatch trips. A trip with no driver
-    named falls back to the vehicle the driver is assigned to."""
+def _assigned_runs(db: Session, profile: DriverProfile, now: datetime) -> List[DeliveryRun]:
+    """Runs on this driver's dispatch trips, from the moment the dispatcher sends
+    them: still at the dock (Start waits for the loader's sign-off), signed off,
+    or gated out lately. A trip with no driver named falls back to the vehicle
+    the driver is assigned to."""
     yours = [DispatchTrip.driver_id == profile.id]
     if profile.assigned_vehicle_id is not None:
         yours.append(and_(DispatchTrip.driver_id.is_(None), DeliveryRun.vehicle_id == profile.assigned_vehicle_id))
-    gated_out_since = (now - GATED_OUT_PICKUP_WINDOW).replace(tzinfo=None)
+    recent = (now - RECENT_RUN_WINDOW).replace(tzinfo=None)
     return db.query(DeliveryRun).join(
         DispatchTrip, DeliveryRun.dispatch_trip_id == DispatchTrip.id
     ).filter(
         or_(*yours),
         or_(
             DeliveryRun.status == RunStatus.READY_TO_DEPART,
-            and_(DeliveryRun.status == RunStatus.GATED_OUT, DeliveryRun.departs_at >= gated_out_since),
+            DeliveryRun.departs_at >= recent,
         ),
     ).order_by(DeliveryRun.departs_at, DeliveryRun.trip_number).all()
 
@@ -125,13 +129,30 @@ def _run_stop_for(db: Session, stop: DeliveryStop) -> Tuple[Optional[DeliveryRun
     return run, run_stop
 
 
-def _orders_at(run: DeliveryRun, run_stop: RunStop, loaded_only: bool = False) -> List[Order]:
-    """Orders for this stop on the current plan; loaded_only keeps the ones on the truck."""
-    rows = [
+def _plan_rows(run: DeliveryRun, run_stop: RunStop) -> List[RunStopOrder]:
+    return [
         row for row in run_stop.orders
         if row.plan_version == run.current_plan_version and row.state not in OFF_PLAN_STATES
     ]
-    return [row.order for row in rows if not loaded_only or row.state == RunOrderState.LOADED]
+
+
+def _loaded_rows(db: Session, run: DeliveryRun, run_stop: RunStop) -> List[Tuple[RunStopOrder, int, Optional[LoaderIssue]]]:
+    """Each order of this stop with the units on the truck and the loader's latest
+    flag. The loader's own count (the hand-off, quantity_sent and the Store page use
+    it too), so an order sent short ("12 of 15") is on the truck, not left behind."""
+    issues = LoaderService._latest_issues(db, run)
+    rows = []
+    for row in _plan_rows(run, run_stop):
+        issue = issues.get(row.order_id)
+        rows.append((row, LoaderService.loaded_units(row, issue), issue))
+    return rows
+
+
+def _orders_at(db: Session, run: DeliveryRun, run_stop: RunStop, loaded_only: bool = False) -> List[Order]:
+    """Orders for this stop on the current plan; loaded_only keeps the ones on the truck."""
+    if not loaded_only:
+        return [row.order for row in _plan_rows(run, run_stop)]
+    return [row.order for row, loaded, _ in _loaded_rows(db, run, run_stop) if loaded > 0]
 
 
 def _stop_note(run_stop: RunStop) -> str:
@@ -172,7 +193,7 @@ def _untouched(trip: DriverTrip) -> bool:
 
 
 def _sync_runs(db: Session, driver_id: int) -> None:
-    """Make a DriverTrip for each signed-off run of this driver. Running it again
+    """Make a DriverTrip for each run sent to this driver. Running it again
     changes nothing, except that a trip not yet started follows a plan change.
 
     The phone often asks for today's trips twice at once, so the check-then-create
@@ -191,7 +212,7 @@ def _sync_runs_locked(db: Session, driver_id: int) -> None:
         return
     now = _now()
     today = _today_start(now)
-    for run in _released_runs(db, profile, now):
+    for run in _assigned_runs(db, profile, now):
         db.query(DispatchTrip).filter(DispatchTrip.id == run.dispatch_trip_id).with_for_update().first()
         trip = db.query(DriverTrip).filter(
             DriverTrip.dispatch_trip_id == run.dispatch_trip_id
@@ -321,7 +342,7 @@ def _tell_stores_new_eta(db: Session, trip: DriverTrip, stops: List[DeliveryStop
         run, run_stop = _run_stop_for(db, stop)
         if run_stop is None:
             continue
-        for order in _orders_at(run, run_stop, loaded_only=True):
+        for order in _orders_at(db, run, run_stop, loaded_only=True):
             notification_service.send(db, stop.outlet_id, NotificationType.ETA_UPDATED, {
                 "order_id": order.id,
                 "order_number": order.order_number,
@@ -351,7 +372,7 @@ def _orders_sent_back(db: Session, stop: DeliveryStop) -> bool:
     run, run_stop = _run_stop_for(db, stop)
     if run_stop is None:
         return False
-    return any(order.status == OrderStatus.DEFERRED for order in _orders_at(run, run_stop, loaded_only=True))
+    return any(order.status == OrderStatus.DEFERRED for order in _orders_at(db, run, run_stop, loaded_only=True))
 
 
 def _send_back_orders(db: Session, stop: DeliveryStop, reason: str) -> None:
@@ -360,7 +381,7 @@ def _send_back_orders(db: Session, stop: DeliveryStop, reason: str) -> None:
     run, run_stop = _run_stop_for(db, stop)
     if run_stop is None:
         return
-    for order in _orders_at(run, run_stop, loaded_only=True):
+    for order in _orders_at(db, run, run_stop, loaded_only=True):
         if order.status != OrderStatus.DISPATCHED:
             continue  # already sent back, or never left the depot
         if OrderStatus.DEFERRED not in TRANSITIONS.get(order.status, set()):
@@ -389,6 +410,30 @@ def get_trip_view(db: Session, trip_id: int, driver_id: int) -> DriverTrip:
     run = _run_for_trip(db, trip)
     ends = [rs.outlet.window_end for rs in _current_run_stops(db, run) if rs.outlet.window_end] if run else []
     trip.last_window_closes = f"{max(ends):%H:%M}" if ends else None
+    return trip
+
+
+def report_at_dock(db: Session, trip_id: int, driver_id: int) -> DriverTrip:
+    """The driver is at the dock. The loader's tablet shows it in the run's log
+    (the same log the gate-out writes to) and the dispatcher sees it in theirs.
+    Saying it again changes nothing."""
+    trip = get_trip_detail(db, trip_id, driver_id)
+    if trip.status != DriverTripStatus.ASSIGNED:
+        raise HTTPException(status_code=400, detail="This trip has already left the depot.")
+    run = _run_for_trip(db, trip)
+    if run is None:
+        raise HTTPException(status_code=409, detail="This trip isn't loaded at a dock.")
+    if trip.at_dock_at is None:
+        driver = db.get(User, driver_id)
+        dock = run.dock.name if run.dock else "the dock"
+        LoaderService.log(
+            db, run, at=datetime.now(timezone.utc).replace(tzinfo=None), actor_kind=ActorKind.SYSTEM,
+            event_type=DRIVER_AT_DOCK, actor_label=driver.full_name,
+            message=f"Driver at {dock} · {driver.full_name}",
+        )
+        _log(trip, "Driver at dock", f"{driver.full_name} is at {dock}")
+        db.commit()
+    db.refresh(trip)
     return trip
 
 
@@ -432,7 +477,7 @@ def start_trip(db: Session, trip_id: int, driver_id: int) -> DriverTrip:
     # Order updates commit on their own, so they go after the trip is saved.
     if run is not None:
         for run_stop in _current_run_stops(db, run):
-            for order in _orders_at(run, run_stop, loaded_only=True):
+            for order in _orders_at(db, run, run_stop, loaded_only=True):
                 _advance_order(db, order.id, OrderStatus.DISPATCHED)
     db.refresh(trip)
     return trip
@@ -522,11 +567,13 @@ def get_stop_detail(db: Session, stop_id: int, driver_id: int) -> dict:
         run, run_stop = _run_stop_for(db, stop)
         orders = []
         if run_stop is not None:
-            loaded = {order.id for order in _orders_at(run, run_stop, loaded_only=True)}
             window = _outlet_window(run_stop)
             orders = [
-                _order_info(order, on_truck=order.id in loaded, window=window)
-                for order in _orders_at(run, run_stop)
+                _order_info(
+                    row.order, on_truck=loaded > 0, window=window, units=row.units,
+                    units_loaded=loaded, shortfall=_shortfall(issue, row.units, loaded),
+                )
+                for row, loaded, issue in _loaded_rows(db, run, run_stop)
             ]
     detail["orders"] = orders
     if orders:
@@ -541,7 +588,19 @@ def _outlet_window(run_stop: RunStop) -> Optional[str]:
     return f"{outlet.window_start:%H:%M}-{outlet.window_end:%H:%M}"
 
 
-def _order_info(order: Order, on_truck: bool, window: Optional[str] = None) -> dict:
+def _shortfall(issue: Optional[LoaderIssue], units: Optional[int], loaded: int) -> Optional[dict]:
+    """Why fewer units are on the truck: the loader's flag and the dispatcher's choice."""
+    if issue is None or loaded >= (units or 0):
+        return None
+    chosen = next((option.label for option in issue.options if option.is_chosen), None)
+    return {"reason": issue.issue_type.value, "decision": chosen}
+
+
+def _order_info(
+    order: Order, on_truck: bool, window: Optional[str] = None, units: Optional[int] = None,
+    units_loaded: Optional[int] = None, shortfall: Optional[dict] = None,
+) -> dict:
+    units = units if units is not None else order.units
     # The loader's temperature class wins: temperature_zone defaults to "Ambient".
     if order.temperature_class is not None:
         temperature = order.temperature_class.value.capitalize()
@@ -552,7 +611,9 @@ def _order_info(order: Order, on_truck: bool, window: Optional[str] = None) -> d
         "brand": order.brand,
         "temperature_zone": temperature,
         "delivery_window": order.delivery_window or window,
-        "units": order.units,
+        "units": units,
+        "units_loaded": units_loaded if units_loaded is not None else (units if on_truck else 0),
+        "shortfall": shortfall,
         "weight_kg": order.weight_kg,
         "volume_m3": order.volume_m3,
         "notes": order.notes,
@@ -656,7 +717,7 @@ def submit_pod(db: Session, stop_id: int, pod_data: dict, driver_id: int) -> Pro
     # The store sees the order arrive; order updates commit on their own.
     run, run_stop = _run_stop_for(db, stop)
     if run_stop is not None:
-        for order in _orders_at(run, run_stop, loaded_only=True):
+        for order in _orders_at(db, run, run_stop, loaded_only=True):
             _advance_order(db, order.id, OrderStatus.DELIVERED)
     db.refresh(pod)
     return pod
@@ -736,6 +797,7 @@ def trigger_sos(db: Session, driver_id: int, sos_data: dict, at: Optional[dateti
         latitude=sos_data.get("latitude"),
         longitude=sos_data.get("longitude"),
         message=sos_data.get("message"),
+        photo_url=sos_data.get("photo_url"),  # Cloudflare R2 link; the dispatcher's Exceptions reads it
         triggered_at=_tap_time(at),  # an SOS sent from the offline queue keeps when it was pressed
     )
     db.add(alert)
@@ -743,22 +805,7 @@ def trigger_sos(db: Session, driver_id: int, sos_data: dict, at: Optional[dateti
     queue_sos(db, alert)
     db.commit()
     db.refresh(alert)
-    if sos_data.get("photo_url"):
-        _save_sos_photo(db, alert.id, sos_data["photo_url"])
     return alert
-
-
-def _save_sos_photo(db: Session, alert_id: int, photo_url: str) -> None:
-    """Remembers the SOS photo's link. On a database where migration 0016 hasn't
-    added sos_alerts.photo_url yet this fails; the SOS itself is already saved, so
-    it is only logged and the driver's alert still goes through."""
-    try:
-        with db.begin_nested():  # a failure here rolls back only this step, never the SOS
-            sos = SOSAlert.__table__
-            db.execute(update(sos).where(sos.c.id == alert_id).values(photo_url=photo_url))
-        db.commit()
-    except SQLAlchemyError as exc:
-        logger.warning("SOS %s: photo link not saved (run migration 0016_sos_photo): %s", alert_id, exc)
 
 
 def get_sos(db: Session, alert_id: int, driver_id: int) -> SOSAlert:

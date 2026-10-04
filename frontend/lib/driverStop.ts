@@ -23,6 +23,10 @@ export interface StopOrderInfo {
   notes: string | null;
   /** False when the order is on the plan but the loader didn't load it. */
   on_truck?: boolean;
+  /** Units on the truck: fewer than `units` when the loader sent it short. */
+  units_loaded?: number | null;
+  /** Why fewer units went: the loader's flag and the dispatcher's choice. */
+  shortfall?: { reason: string; decision: string | null } | null;
   items: StopOrderItem[];
 }
 
@@ -100,6 +104,18 @@ export function mergeLocalProgress<S extends StopLike>(stops: S[]): S[] {
 const ACTIVE_TRIP_KEY = "driver-active-trip";
 
 /** "peliyagoda" → "Peliyagoda Depot"; no depot known (old test trips) → "Your depot". */
+/**
+ * The dispatcher has sent the trip but the loader is still loading the truck:
+ * the trip shows, and Start opens once the loader marks it ready to depart.
+ */
+export function waitingForLoader(trip: { status: string; loader_status?: string | null }) {
+  return trip.status === "assigned" && !!trip.loader_status &&
+    trip.loader_status !== "ready_to_depart" && trip.loader_status !== "gated_out";
+}
+
+/** How often a screen looks again while the truck is being loaded. */
+export const LOADER_CHECK_MS = 20_000;
+
 export function depotLabel(depot: string | null | undefined) {
   return depot ? `${depot.charAt(0).toUpperCase()}${depot.slice(1)} Depot` : "Your depot";
 }

@@ -34,6 +34,14 @@ export interface OperationException {
   outlet_name?: string | null;
   reported_by?: string | null;
   affected_item?: string | null;
+  /** The photo a driver attached to an SOS or a problem report. */
+  photo_url?: string | null;
+}
+
+/** A Cloudflare R2 link as it is; an older photo kept in the API's uploads folder gets the API's address. */
+export function photoSrc(url: string) {
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
+  return /^https?:\/\//.test(url) ? url : `${base}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
 export async function fetchOperationExceptions(signal: AbortSignal): Promise<OperationException[]> {

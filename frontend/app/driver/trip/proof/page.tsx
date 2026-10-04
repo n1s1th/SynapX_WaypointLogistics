@@ -237,7 +237,7 @@ function ProofOfDeliveryContent() {
             {stop && (
               <span className="text-[12px]" style={{ color: "#5D6A78" }}>
                 Stop {stop.sequence} of {stop.total_stops}
-                {stop.order?.units != null && ` · ${stop.order.units} units`}
+                {stop.order?.units != null && ` · ${stop.order.units_loaded ?? stop.order.units} units`}
               </span>
             )}
           </div>

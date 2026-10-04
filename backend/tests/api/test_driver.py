@@ -6,7 +6,7 @@ the dispatcher's trip names the driver, the loader builds and releases the run.
 """
 import base64
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -21,6 +21,7 @@ from app.models.delivery_run import RunOrderState, RunStatus, RunStop, RunStopOr
 from app.models.driver import DeliveryStop, DriverAvailability, DriverTrip, SOSAlert
 from app.models.allocation import AllocationStatus
 from app.models.fleet import DriverProfile, VehicleStatus
+from app.models.loader_issue import IssueStatus, IssueType
 from app.models.notification import Notification, NotificationType
 from app.models.order import OrderStatus
 from app.models.shipment import DispatchTrip
@@ -28,6 +29,8 @@ from app.models.user import User, UserRole
 from app.services.loader_service import LoaderService
 from tests.conftest_loader import (  # noqa: F401  (loader_client and trip_setup are fixtures)
     loader_client,
+    make_issue,
+    make_loader,
     make_outlet,
     make_run_order,
     make_stop,
@@ -129,16 +132,81 @@ def started_trip(client, setup):
 
 # ---- Hand-off from the loader --------------------------------------------------
 
-def test_run_shows_only_once_the_loader_signs_it_off(loader_client, dispatched):
-    db, driver = dispatched["db"], dispatched["driver"]
-    assert today(loader_client, driver) == []
+def departs_soon(db, run):
+    """As Quick Allocate plans it: leaving two hours from now."""
+    run.departs_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=2)
+    db.flush()
 
-    release(db, dispatched["run"])
+
+def test_dispatched_run_shows_at_once_and_start_waits_for_the_loader(loader_client, dispatched):
+    db, driver = dispatched["db"], dispatched["driver"]
+    departs_soon(db, dispatched["run"])
     trips = today(loader_client, driver)
 
     assert len(trips) == 1
     assert trips[0]["status"] == "assigned"
     assert trips[0]["dispatch_trip_id"] == dispatched["dispatch_trip"].id
+    assert trips[0]["loader_status"] == "not_started"
+    res = loader_client.post(f"{API}/trips/{trips[0]['id']}/start", headers=auth(driver))
+    assert res.status_code == 409
+    assert "still at the dock" in res.json()["detail"]
+
+    release(db, dispatched["run"])
+
+    assert [t["loader_status"] for t in today(loader_client, driver)] == ["ready_to_depart"]
+    assert start(loader_client, driver, trips[0]["id"])["status"] == "started"
+
+
+def test_trip_waiting_at_the_dock_follows_the_loaders_plan(loader_client, dispatched):
+    db, driver, run = dispatched["db"], dispatched["driver"], dispatched["run"]
+    departs_soon(db, run)
+    trip = today(loader_client, driver)[0]
+    assert len(trip_detail(loader_client, driver, trip["id"])["stops"]) == 3
+
+    release(db, run)
+
+    detail = trip_detail(loader_client, driver, trip["id"])
+    assert [t["id"] for t in today(loader_client, driver)] == [trip["id"]]  # the same trip, not a second one
+    assert detail["loader_status"] == "ready_to_depart"
+    assert len(detail["stops"]) == 3
+
+
+def test_driver_at_the_dock_shows_in_the_loaders_and_dispatchers_logs(loader_client, dispatched):
+    from app.models.loader_activity import LoaderActivity
+
+    db, driver, run = dispatched["db"], dispatched["driver"], dispatched["run"]
+    departs_soon(db, run)
+    trip = today(loader_client, driver)[0]
+    assert trip["dock_name"] == "Dock 3"
+    assert trip["at_dock_at"] is None
+
+    res = loader_client.post(f"{API}/trips/{trip['id']}/at-dock", headers=auth(driver))
+    again = loader_client.post(f"{API}/trips/{trip['id']}/at-dock", headers=auth(driver))
+
+    assert res.status_code == 200, res.text
+    assert res.json()["at_dock_at"] is not None
+    assert again.json()["at_dock_at"] == res.json()["at_dock_at"]  # saying it twice changes nothing
+    logged = db.query(LoaderActivity).filter(LoaderActivity.run_id == run.id, LoaderActivity.event_type == "driver_at_dock").all()
+    assert len(logged) == 1
+    assert LoaderService._activity_summary(logged[0]) == "Driver at Dock 3 · Tharindu Fernando"  # as the tablet shows it
+    events = db.get(DispatchTrip, dispatched["dispatch_trip"].id).loading_events
+    assert [e["event"] for e in events].count("Driver at dock") == 1
+
+
+def test_at_the_dock_is_refused_once_the_trip_has_left(loader_client, released):
+    trip = started_trip(loader_client, released)
+
+    res = loader_client.post(f"{API}/trips/{trip['id']}/at-dock", headers=auth(released["driver"]))
+
+    assert res.status_code == 400
+
+
+def test_old_run_never_loaded_does_not_show(loader_client, dispatched):
+    db, driver, run = dispatched["db"], dispatched["driver"], dispatched["run"]
+    run.departs_at = datetime(2026, 1, 1, 3, 30)  # dispatched long ago, never loaded
+    db.flush()
+
+    assert today(loader_client, driver) == []
 
 
 def test_trip_stops_follow_the_run_stop_order(loader_client, released):
@@ -288,6 +356,50 @@ def test_flagged_order_shows_as_not_on_the_truck(loader_client, released):
     body = loader_client.get(f"{API}/stops/{stop['id']}", headers=auth(released["driver"])).json()
 
     assert [(o["order_number"], o["on_truck"]) for o in body["orders"]] == [(FLAGGED, False)]
+    assert body["orders"][0]["units_loaded"] == 0
+
+
+def send_short(db, run, order, missing, decision="Send without it"):
+    """The loader flags the order short and the dispatcher sends what is there."""
+    row = next(r for r in run_rows(db, run) if r.order_id == order.id)
+    row.state = RunOrderState.FLAGGED
+    issue = make_issue(db, run, order, make_loader(db))
+    issue.issue_type = IssueType.SHORT
+    issue.units_affected = missing
+    issue.units_total = row.units
+    issue.status = IssueStatus.DECIDED
+    next(o for o in issue.options if o.label == decision).is_chosen = True
+    db.flush()
+
+
+def test_short_order_is_on_the_truck_and_shows_units_loaded(loader_client, released):
+    db, orders = released["db"], released["orders"]
+    send_short(db, released["run"], orders["ORD1001"], missing=3)  # 9 of 12 go out
+    trip = started_trip(loader_client, released)
+    stop = next(s for s in trip["stops"] if s["customer_name"] == "Outlet OUT026")
+
+    body = loader_client.get(f"{API}/stops/{stop['id']}", headers=auth(released["driver"])).json()
+
+    short = next(o for o in body["orders"] if o["order_number"] == "ORD1001")
+    assert (short["on_truck"], short["units"], short["units_loaded"]) == (True, 12, 9)
+    assert short["shortfall"] == {"reason": "short", "decision": "Send without it"}
+    full = next(o for o in body["orders"] if o["order_number"] == "ORD1004")
+    assert (full["units"], full["units_loaded"], full["shortfall"]) == (3, 3, None)
+
+
+def test_short_order_is_dispatched_then_delivered(loader_client, released):
+    db, orders = released["db"], released["orders"]
+    send_short(db, released["run"], orders["ORD1001"], missing=3)
+    trip = started_trip(loader_client, released)
+
+    db.refresh(orders["ORD1001"])
+    assert orders["ORD1001"].status == OrderStatus.DISPATCHED  # not left at Ready for dispatch
+
+    stop = next(s for s in trip["stops"] if s["customer_name"] == "Outlet OUT026")
+    deliver(loader_client, released["driver"], stop["id"])
+
+    db.refresh(orders["ORD1001"])
+    assert orders["ORD1001"].status == OrderStatus.DELIVERED
 
 
 def test_delivering_a_stop_tells_the_store_and_the_dispatcher(loader_client, released):
@@ -872,8 +984,10 @@ def test_photo_stays_local_without_r2_settings(loader_client, released, monkeypa
 # ---- SOS photo (sos_alerts.photo_url, migration 0016) ------------------------------
 
 def sos_photo(db, alert_id):
-    sos = SOSAlert.__table__
-    return db.execute(select(sos.c.photo_url).where(sos.c.id == alert_id)).scalar()
+    """The link as the dispatcher's Exceptions reads it: alert.photo_url."""
+    alert = db.get(SOSAlert, alert_id)
+    db.refresh(alert)
+    return alert.photo_url
 
 
 def test_sos_photo_link_is_saved(loader_client, released):
@@ -886,6 +1000,7 @@ def test_sos_photo_link_is_saved(loader_client, released):
     })
 
     assert res.status_code == 200, res.text
+    assert res.json()["photo_url"] == link
     assert sos_photo(released["db"], res.json()["id"]) == link
 
 
@@ -904,20 +1019,12 @@ def test_offline_sos_keeps_its_photo_link(loader_client, released):
     assert sos_photo(released["db"], alert.id) == link
 
 
-def test_sos_goes_through_even_if_the_photo_link_cant_be_saved(loader_client, released, monkeypatch):
-    """Before migration 0016 the photo column is missing: the SOS must still be saved."""
-    from sqlalchemy.exc import OperationalError
-    from app.services import driver_service
-
-    def missing_column(*_args, **_kwargs):
-        raise OperationalError("UPDATE sos_alerts", {}, Exception("no such column: photo_url"))
-
-    monkeypatch.setattr(driver_service, "update", missing_column)
+def test_sos_without_a_photo_has_no_link(loader_client, released):
     trip = started_trip(loader_client, released)
 
     res = loader_client.post(f"{API}/sos", headers=auth(released["driver"]), json={
-        "driver_trip_id": trip["id"], "message": "Medical Emergency", "photo_url": "https://pub-test.r2.dev/x.jpg",
+        "driver_trip_id": trip["id"], "message": "Medical Emergency",
     })
 
     assert res.status_code == 200, res.text
-    assert released["db"].query(SOSAlert).filter(SOSAlert.message == "Medical Emergency").count() == 1
+    assert sos_photo(released["db"], res.json()["id"]) is None

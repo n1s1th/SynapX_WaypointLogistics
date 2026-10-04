@@ -89,6 +89,16 @@ def get_trip_detail(
 
 # --- Group B: Trip Actions ---
 
+@router.post("/trips/{trip_id}/at-dock", response_model=DriverTripSummary)
+def report_at_dock(
+    trip_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_driver)
+):
+    """The driver is at the dock: the loader and dispatcher see it in the run's log."""
+    return driver_service.report_at_dock(db, trip_id, current_user.id)
+
+
 @router.post("/trips/{trip_id}/start", response_model=DriverTripSummary)
 def start_trip(
     trip_id: int,
