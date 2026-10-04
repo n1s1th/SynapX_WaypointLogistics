@@ -20,7 +20,7 @@ FK_DELIVERY_RECEIPTS_OUTLET = "fk_delivery_receipts_outlet_id_outlets"
 
 
 def upgrade() -> None:
-    # 1. Add order_items columns (docs/store-manager-contract.md §2)
+    # 1. Add order_items columns (docs/reference/store-manager-contract.md §2)
     op.add_column('order_items', sa.Column('quantity_sent', sa.Integer(), nullable=True))
     op.add_column('order_items', sa.Column('dispatcher_note', sa.Text(), nullable=True))
 

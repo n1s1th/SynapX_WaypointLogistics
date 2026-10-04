@@ -362,7 +362,7 @@ CREATE TABLE delivery_receipts (
   | Store Manager (Tech) | `tech.store@waypoint.lk` / `pass123` | OUT021 |
   | Loader (Peliyagoda) | `loader01@waypoint.lk` / `pass123` | — (VEH001) |
 
-- [ ] Update `docs/architecture.md` and `docs/data-model.md` with Store Manager + Loader flows
+- [ ] Update `docs/architecture.md` and `docs/reference/data-model.md` with Store Manager + Loader flows
 - [ ] Push final branch, confirm `docker compose up` works from scratch on a clean pull
 
 ---

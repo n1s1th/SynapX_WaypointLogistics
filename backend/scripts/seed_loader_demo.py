@@ -19,7 +19,7 @@ Run it against local Postgres only:
     python scripts/seed_loader_demo.py            # idempotent, safe to repeat
     python scripts/seed_loader_demo.py --reset    # wipe loader data first
 
-The shared Neon database must never be seeded (docs/loader/LOADER_FEATURES.md ->
+The shared Neon database must never be seeded (docs/reference/loader/LOADER_FEATURES.md ->
 Rules for Claude Code), so this script refuses any non-local host outright.
 """
 from __future__ import annotations

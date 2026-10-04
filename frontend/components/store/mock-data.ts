@@ -1,5 +1,5 @@
 // Mock data for the Store Manager portal until the backend (orders, notifications)
-// and Keycloak login are wired up. Shapes follow docs/store-manager-contract.md.
+// and Keycloak login are wired up. Shapes follow docs/reference/store-manager-contract.md.
 
 export type Brand = "fresh" | "style" | "tech";
 
@@ -85,7 +85,7 @@ export const mockOutletSettings: OutletSettings = {
 // Replace with the real current time once orders come from the API.
 export const MOCK_NOW = new Date("2026-09-26T06:00:00");
 
-// ── Orders (docs/store-manager-contract.md §1–2) ──────────────────────────────
+// ── Orders (docs/reference/store-manager-contract.md §1–2) ──────────────────────────────
 
 export type OrderStatus =
   | "draft"

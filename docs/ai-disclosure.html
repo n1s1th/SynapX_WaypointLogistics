@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Tool Disclosure</title>
+<meta name="description" content="Which AI tools team SynapX used to build Waypoint Logistics, what for, and how the team kept control.">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f6f3; --paper:#ffffff; --ink:#1c222b; --muted:#566170; --faint:#8b94a1;
+  --line:#dde1e6; --line-strong:#a3acb7; --zone:#2f6fdf;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --people:#4d5d73; --people-t:#e9edf2;
+  --ref:#2a7f4f;    --ref-t:#e3f2e8;
+  --store:#2a62c9;  --store-t:#e6eefc;
+  --dispatch:#b26a00; --dispatch-t:#fcefd9;
+  --loading:#7247c2; --loading-t:#efe9fa;
+  --driver:#b8355b; --driver-t:#fae6ec;
+  --msg:#1b7e8a;    --msg-t:#e0f1f3;
+  --db:#2a62c9;     --db-t:#eaf0fd;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+main{max-width:1320px;margin:0 auto;padding:40px 24px 64px}
+.prose{max-width:860px}
+header.top{padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:28px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
+h1{font-size:30px;line-height:1.2;margin:0 0 10px;letter-spacing:-.01em}
+h2{font-size:21px;margin:48px 0 8px;letter-spacing:-.005em}
+h2 .num{color:var(--faint);font-weight:500;margin-right:8px}
+h3{font-size:15px;margin:0 0 2px}
+p{margin:0 0 12px}
+.meta{color:var(--muted);font-size:13.5px}
+code{font-family:var(--mono);font-size:.88em}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 0;padding:0;list-style:none}
+.stats li{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+.stats b{display:block;font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stats span{font-size:12.5px;color:var(--muted)}
+figure{margin:18px 0 0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 20px 14px;break-inside:avoid}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.fig-svg{display:block;width:100%;height:auto}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:12px;max-width:900px}
+figcaption b{color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted);margin-top:10px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid var(--line-strong)}
+.sw-ext{background:#f0f1f3}.sw-db{background:var(--db-t);border-color:var(--db)}.sw-own{background:#fff}
+.sw-zone{background:transparent;border:1.5px dashed var(--zone)}
+.sw-people{background:var(--people-t);border-color:var(--people)}.sw-ref{background:var(--ref-t);border-color:var(--ref)}
+.sw-store{background:var(--store-t);border-color:var(--store)}.sw-dispatch{background:var(--dispatch-t);border-color:var(--dispatch)}
+.sw-loading{background:var(--loading-t);border-color:var(--loading)}.sw-driver{background:var(--driver-t);border-color:var(--driver)}
+ul.points{padding-left:0;list-style:none;margin:14px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:12px}
+ul.points.five{grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
+ul.points li{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14px}
+ul.points li b{display:block;margin-bottom:3px;font-size:14.5px}
+ul.plain{margin:0 0 12px;padding-left:20px}
+ul.plain li{margin:4px 0}
+a{color:var(--store)}
+
+/* SVG */
+.fig-svg text{font-family:var(--sans);fill:var(--ink)}
+.t-title{font-size:13px;font-weight:650}
+.t-title-lg{font-size:16px;font-weight:700}
+.t-b{font-size:12px;font-weight:600}
+.t-s{font-size:11px;fill:var(--muted)!important}
+.t-mono{font-family:var(--mono)!important;font-size:11px}
+.t-mono-b{font-family:var(--mono)!important;font-size:11.5px;font-weight:700}
+.t-muted{fill:var(--muted)!important}
+.cap{font-size:9.5px;font-weight:700;letter-spacing:.09em;fill:var(--faint)!important}
+.lbl{font-size:10.5px;fill:var(--muted)!important;font-style:italic}
+.b{fill:#fff;stroke:var(--line-strong);stroke-width:1}
+.b-strong{fill:#fbfbfa;stroke:var(--ink);stroke-width:1.3}
+.b-in{fill:#fff;stroke:var(--line-strong);stroke-width:1}
+.b-ext{fill:#f0f1f3;stroke:var(--line-strong);stroke-width:1}
+.db{fill:var(--db-t);stroke:var(--db);stroke-width:1.4}
+.zone{fill:none;stroke:var(--zone);stroke-width:1.4;stroke-dasharray:6 5}
+.zone-lbl{font-size:11px;font-weight:600;fill:var(--zone)!important}
+.edge{fill:none;stroke:#3a4350;stroke-width:1.3}
+.edge-strong{stroke-width:1.8}
+.edge-dash{stroke-dasharray:4 4;stroke:var(--faint)}
+.rail{fill:none;stroke:var(--line-strong);stroke-width:1.5}
+.arrowhead{fill:#3a4350}
+.card{fill:#fff;stroke:var(--line-strong);stroke-width:1}
+.actor{font-size:10.5px;font-weight:700;letter-spacing:.06em}
+.ink-store{fill:var(--store)!important}.ink-dispatch{fill:var(--dispatch)!important}
+.ink-loading{fill:var(--loading)!important}.ink-driver{fill:var(--driver)!important}
+.fill-store{fill:var(--store)}.fill-dispatch{fill:var(--dispatch)}.fill-loading{fill:var(--loading)}.fill-driver{fill:var(--driver)}
+.chip{stroke-width:1}
+.chip-store{fill:var(--store-t);stroke:var(--store)}.chip-dispatch{fill:var(--dispatch-t);stroke:var(--dispatch)}
+.chip-loading{fill:var(--loading-t);stroke:var(--loading)}.chip-driver{fill:var(--driver-t);stroke:var(--driver)}
+.chip-none{fill:#fff;stroke:var(--line-strong);stroke-dasharray:3 3}
+.chip-t{font-family:var(--mono)!important;font-size:10.5px;font-weight:700}
+.chip-t-muted{fill:var(--faint)!important;font-weight:500}
+.band-msg{fill:var(--msg-t);stroke:var(--msg);stroke-width:1}
+.ent{fill:#fff;stroke:#7d8794;stroke-width:1.1}
+.ent-div{stroke:#7d8794;stroke-width:1}
+.ent-title{font-family:var(--mono)!important;font-size:12.5px;font-weight:700}
+.ent-title-sans{font-family:var(--sans)!important}
+.tint-people{fill:var(--people-t)}.tint-ref{fill:var(--ref-t)}.tint-store{fill:var(--store-t)}
+.tint-dispatch{fill:var(--dispatch-t)}.tint-loading{fill:var(--loading-t)}.tint-driver{fill:var(--driver-t)}
+.col{font-family:var(--mono)!important;font-size:11px}
+.hint{font-size:9.5px;fill:var(--faint)!important;font-style:italic}
+.key{font-family:var(--sans);font-size:8.5px;font-weight:800;letter-spacing:.03em}
+text.key-pk{fill:#a36a00!important}text.key-fk{fill:#2a62c9!important}text.key-uq{fill:#6b7684!important}
+b.key{font-size:10px;padding:1px 4px;border-radius:4px;background:#f2f3f5}
+b.key-pk{color:#a36a00}b.key-fk{color:#2a62c9}b.key-uq{color:#6b7684}
+.erd-line{fill:none;stroke:#3a4350;stroke-width:1.25}
+.erd-dash{stroke-dasharray:5 4}
+.erd-circle{fill:#fff;stroke:#3a4350;stroke-width:1.25}
+.erd-lbl{font-size:10.5px;font-style:italic;fill:var(--muted)!important}
+
+/* directory */
+.dir{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(380px,100%),1fr));gap:14px;margin-top:16px}
+.dom{background:var(--paper);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;padding:14px 16px 10px;break-inside:avoid}
+.dom-people{--c:var(--people)}.dom-ref{--c:var(--ref)}.dom-store{--c:var(--store)}.dom-dispatch{--c:var(--dispatch)}
+.dom-loading{--c:var(--loading)}.dom-driver{--c:var(--driver)}.dom-msg{--c:var(--msg)}
+.dom h3 .cnt{font-weight:500;color:var(--faint);font-size:13px;margin-left:4px}
+.dom > p{font-size:13px;color:var(--muted);margin:0 0 8px}
+.dom ul{list-style:none;margin:0;padding:0}
+.tbl{display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.tbl code{font-size:12.5px;color:var(--ink)}
+.tbl.core code{font-weight:700}
+.tbl .n{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums;text-align:right}
+.tbl .d{grid-column:1 / -1;font-size:12.5px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin-top:10px}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+
+@media (max-width:640px){
+  main{padding:24px 16px 48px}
+  h1{font-size:24px}
+  figure{padding:14px 12px 10px}
+  .dir{grid-template-columns:1fr}
+}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  html,body{background:#fff}
+  body{font-size:13px}
+  main{max-width:none;padding:0}
+  figure{border:none;padding:0;margin-top:6px}
+  .scroll{overflow:visible}
+  .fig-svg{min-width:0!important;width:100%;max-height:136mm}
+  .fig-block > .prose{display:none}
+  h2{break-after:avoid;margin-top:0}
+  .fig-block{break-before:page}
+  ul.points li,.dom,.stats li{break-inside:avoid}
+}
+
+a{color:var(--store)}
+.decl{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--store);border-radius:12px;padding:16px 20px;max-width:900px;margin-top:12px}
+.decl p:last-child{margin-bottom:0}
+.tw{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+table.t th,table.t td{padding:10px 14px;text-align:left;vertical-align:top;border-top:1px solid var(--line)}
+table.t thead th{font-size:12px;color:var(--muted);font-weight:600;background:#fafaf8;border-top:none}
+table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.t tr.sub td{color:var(--muted)}
+table.t tfoot td{font-weight:600;background:#fafaf8}
+.tool b{display:block;font-size:14px}
+.tool span{font-size:12.5px;color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:650;padding:1px 8px;border-radius:999px;margin-top:4px}
+.tag-ai{background:var(--loading-t);color:var(--loading)}
+.tag-sup{background:#eef0f2;color:var(--muted)}
+.ev{font-size:12.5px;color:var(--muted)}
+ul.points.four{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
+.lane-a{fill:var(--loading-t)}.lane-b{fill:var(--ref-t)}.lane-c{fill:var(--store-t)}
+.box-a{fill:#fff;stroke:var(--loading);stroke-width:1.3}.box-b{fill:#fff;stroke:var(--ref);stroke-width:1.3}
+.box-c{fill:#fff;stroke:var(--store);stroke-width:1.3}
+.no{fill:#fff6f5;stroke:#b8342a;stroke-width:1.2;stroke-dasharray:5 4}
+.no-t{fill:#a52a20!important}
+.lane-t{font-size:13px;font-weight:700}
+.step{font-size:9px;font-weight:800;letter-spacing:.09em}
+.ink-a{fill:var(--loading)!important}.ink-b{fill:var(--ref)!important}.ink-c{fill:var(--store)!important}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <p class="eyebrow">SynapX · Waypoint Logistics</p>
+    <h1>AI tool disclosure</h1>
+    <div class="prose">
+      <p>Team SynapX used AI coding assistants while building Waypoint Logistics. This page sets out which
+      tools we used, what we used them for, how we kept control of their output, and what the record can
+      and cannot show.</p>
+      <p class="meta">Covers the repository from 26 September to 4 October 2026
+      (<code>dev</code> at commit <code>615e274</code>). Prepared on 4 October 2026 by Devmith Amarasekara with
+      Claude Code, for review by the team. See also the
+      <a href="architecture.html">system architecture &amp; data model</a>.</p>
+    </div>
+    <ul class="stats">
+      <li><b>3</b><span>AI coding assistants</span></li>
+      <li><b>87+</b><span>commits made with Claude Code</span></li>
+      <li><b>87</b><span>pull requests merged</span></li>
+      <li><b>544</b><span>automated backend tests</span></li>
+    </ul>
+  </header>
+
+  <section>
+    <h2><span class="num">1</span>Declaration</h2>
+    <div class="decl">
+      <p>We used three AI coding assistants: Claude Code, OpenAI Codex and Google Antigravity. They helped us
+      write application code, automated tests and documentation.</p>
+      <p>Team members decided what to build, reviewed what the assistants produced, and committed every change
+      under their own name. Changes reached the shared <code>dev</code> branch through pull requests.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>Tools we used</h2>
+    <div class="tw"><table class="t"><thead><tr><th style="width:19%">Tool</th><th style="width:21%">What it is</th><th style="width:30%">What we used it for</th><th>Where the repository shows it</th></tr></thead><tbody><tr><td class="tool"><b>Claude Code</b><span>Anthropic · models Claude Opus 5 and Claude Opus 5.5</span><br><span class="tag tag-ai">AI assistant</span></td><td>AI coding assistant that reads the code, proposes a plan and edits files.</td><td>Coding assistance, reported by team members. Producing these documentation pages.</td><td class="ev">At least 87 commits, marked with a <code>Co-Authored-By: Claude</code> line. Instruction files <code>CLAUDE.md</code> and <code>.claude/</code>, and the loader team's “Rules for Claude Code”.</td></tr><tr><td class="tool"><b>OpenAI Codex</b><span>OpenAI</span><br><span class="tag tag-ai">AI assistant</span></td><td>AI coding agent.</td><td>Coding assistance, reported by team members.</td><td class="ev">Not recorded per commit. <code>frontend/AGENTS.md</code> holds the frontend instructions that Codex reads.</td></tr><tr><td class="tool"><b>Google Antigravity</b><span>Google</span><br><span class="tag tag-ai">AI assistant</span></td><td>Code editor with built-in AI agents.</td><td>Coding assistance, reported by team members.</td><td class="ev">Not recorded per commit. Agent rules, a workflow and an MCP connector config in <code>.agents/</code> (added 30 September).</td></tr><tr><td class="tool"><b>Figma MCP server</b><span>Figma</span><br><span class="tag tag-sup">Supporting tool</span></td><td>Connector that lets an assistant read the team&#x27;s Figma designs.</td><td>Building screens that match the high-fidelity designs.</td><td class="ev"><code>.agents/mcp_config.json</code>; <code>docs/reference/loader/LOADER_FEATURES.md</code>.</td></tr><tr><td class="tool"><b>graphify</b><span>Command-line tool</span><br><span class="tag tag-sup">Supporting tool</span></td><td>Builds a searchable map of the codebase.</td><td>Helping assistants find the right code before editing it.</td><td class="ev"><code>graphify-out/</code> and rules in <code>CLAUDE.md</code> and <code>.agents/rules/</code>. Its report records no AI model usage.</td></tr></tbody></table></div>
+  </section>
+
+  <section class="fig-block">
+    <h2><span class="num">3</span>Where people stayed in control</h2>
+    <div class="prose"><p>The team wrote rules that every assistant had to follow. The checkpoints between
+    steps belong to people, and the shared database was off limits to assistants.</p></div>
+    <figure>
+      <div class="scroll"><svg viewBox="0 0 1230 360" role="img" aria-label="Workflow for an AI-assisted change: the assistant reads context and proposes a plan; the team member approves it; the assistant makes the change with tests; the member checks it, commits it and merges it through a pull request; only the DB lead applies migrations to Neon, which assistants may never do." class="fig-svg" style="min-width:960px"><defs><marker id="ai-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead"/></marker></defs><rect x="0" y="30" width="1230" height="100" rx="10" class="lane-a"/><text x="14" y="70" class="lane-t ink-a">AI assistant</text><text x="14" y="88" class="t-s">Claude Code,</text><text x="14" y="103" class="t-s">Codex, Antigravity</text><rect x="0" y="140" width="1230" height="100" rx="10" class="lane-b"/><text x="14" y="180" class="lane-t ink-b">Team member</text><text x="14" y="198" class="t-s">who owns the</text><text x="14" y="213" class="t-s">feature</text><rect x="0" y="250" width="1230" height="100" rx="10" class="lane-c"/><text x="14" y="290" class="lane-t ink-c">DB lead</text><text x="14" y="308" class="t-s">Devmith</text><text x="14" y="323" class="t-s">Amarasekara</text><rect x="160" y="40" width="140" height="80" rx="8" class="box-a"/><text x="170" y="57" class="step ink-a">STEP 1</text><text x="170" y="75" class="t-b">Reads the context</text><text x="170" y="92" class="t-s">project rules, Figma</text><text x="170" y="107" class="t-s">designs, code map</text><rect x="314" y="40" width="140" height="80" rx="8" class="box-a"/><text x="324" y="57" class="step ink-a">STEP 2</text><text x="324" y="75" class="t-b">Proposes a plan</text><text x="324" y="92" class="t-s">what it will change</text><text x="324" y="107" class="t-s">and why</text><rect x="468" y="150" width="140" height="80" rx="8" class="box-b"/><text x="478" y="167" class="step ink-b">STEP 3</text><text x="478" y="185" class="t-b">Approves the plan</text><text x="478" y="202" class="t-s">no code is changed</text><text x="478" y="217" class="t-s">before this</text><rect x="622" y="40" width="140" height="80" rx="8" class="box-a"/><text x="632" y="57" class="step ink-a">STEP 4</text><text x="632" y="75" class="t-b">Makes the change</text><text x="632" y="92" class="t-s">in the member&#x27;s own</text><text x="632" y="107" class="t-s">feature, with tests</text><rect x="776" y="150" width="140" height="80" rx="8" class="box-b"/><text x="786" y="167" class="step ink-b">STEP 5</text><text x="786" y="185" class="t-b">Checks the result</text><text x="786" y="202" class="t-s">runs the tests</text><text x="786" y="217" class="t-s">and the app</text><rect x="930" y="150" width="140" height="80" rx="8" class="box-b"/><text x="940" y="167" class="step ink-b">STEP 6</text><text x="940" y="185" class="t-b">Commits, opens PR</text><text x="940" y="202" class="t-s">own name on commit</text><text x="940" y="217" class="t-s">PR merged into dev</text><rect x="1084" y="260" width="140" height="80" rx="8" class="box-c"/><text x="1094" y="277" class="step ink-c">STEP 7</text><text x="1094" y="295" class="t-b">Applies migration</text><text x="1094" y="312" class="t-s">only the DB lead</text><text x="1094" y="327" class="t-s">updates Neon</text><path d="M300 80 L314 80" class="edge" marker-end="url(#ai-arr)"/><path d="M414 120 L414 135 L508 135 L508 150" class="edge" marker-end="url(#ai-arr)"/><path d="M568 150 L568 135 L662 135 L662 120" class="edge" marker-end="url(#ai-arr)"/><path d="M722 120 L722 135 L816 135 L816 150" class="edge" marker-end="url(#ai-arr)"/><path d="M916 190 L930 190" class="edge" marker-end="url(#ai-arr)"/><path d="M1030 230 L1030 245 L1124 245 L1124 260" class="edge" marker-end="url(#ai-arr)"/><rect x="930" y="40" width="294" height="80" rx="8" class="no"/><text x="944" y="64" class="t-b no-t">Not allowed for any assistant</text><text x="944" y="82" class="t-s">running migrations, seed scripts or</text><text x="944" y="97" class="t-s">deletes on the shared Neon database</text></svg></div>
+      <figcaption><b>Figure 1.</b> The workflow set out in the loader team's “Rules for Claude Code”
+      (<code>docs/reference/loader/LOADER_FEATURES.md</code>) and the team's migration rules.
+      All members' work reached <code>dev</code> through pull
+      requests.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>What the commit history shows</h2>
+    <div class="prose">
+      <p>Claude Code adds a <code>Co-Authored-By: Claude</code> line to the commits it helps write, but members
+      can remove it. 87 of the 373 commits carry that line. Several team members used Claude Code without
+      keeping it, so the count is a minimum. It does not measure how much Claude Code was used, or by whom.</p>
+      <p>Codex and Antigravity add no such line in this repository, so the history cannot show their use.</p>
+      <p class="note">Merge commits are excluded. Counts cover all branches pushed to GitHub.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>Safeguards</h2>
+    <ul class="points four">
+      <li><b>Written rules for assistants</b>Instruction files (<code>CLAUDE.md</code>,
+      <code>frontend/AGENTS.md</code>) give assistants the team's frontend rules: build on the shared
+      component library and theme, and use one icon set.</li>
+      <li><b>Plan before code</b>The loader rules require the assistant to show its plan and wait for approval
+      before it changes any code.</li>
+      <li><b>Own features only</b>An assistant only edits its member's own feature. It must ask before
+      touching another member's files, and flag changes to shared models such as <code>Order</code>.</li>
+      <li><b>Shared database protected</b>Assistants must never run migrations, seed scripts or deletes on
+      Neon. The demo seed script refuses any non-local database. Only the DB lead applies migrations.</li>
+      <li><b>Automated tests</b>Backend changes come with tests: 45 test files with 544 tests.
+      The frontend has its own test files as well.</li>
+      <li><b>Pull requests</b>Work reaches the shared <code>dev</code> branch through pull requests:
+      87 have been merged so far.</li>
+      <li><b>Designs as the reference</b>Screens are built from the team's Figma designs, which assistants read
+      through the Figma connector instead of inventing layouts.</li>
+      <li><b>No secrets in the repository</b>Environment files with passwords and keys are excluded from git,
+      and the rules forbid committing them.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>How these documents were made</h2>
+    <div class="prose">
+      <p>This page and the <a href="architecture.html">architecture page</a> were produced with Claude Code
+      (Claude Opus 5.5) on 4 October 2026, in a session run by Devmith Amarasekara.</p>
+      <ul class="plain">
+        <li>The assistant read the code and the git history.</li>
+        <li>It queried the Neon database structure read-only and changed no data.</li>
+        <li>Every number comes from those sources, and every status flow was traced to the code that sets it.</li>
+        <li>The team supplied the audience, the hosting details and the list of other tools.</li>
+      </ul>
+      <p>Team members should review both pages before submission.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">7</span>Limits of this disclosure</h2>
+    <ul class="points four">
+      <li><b>Commit counts are a minimum</b>Several members used Claude Code without keeping its co-author
+      line, and Codex and Antigravity add none, so the history understates AI use.</li>
+      <li><b>Tools outside the repository</b>AI tools used outside the code editor leave no record in the
+      repository.</li>
+      <li><b>Errors are still possible</b>Tests and review reduce the chance of mistakes in AI-assisted code,
+      but do not remove it.</li>
+    </ul>
+  </section>
+
+  <footer>Figures from the git history of all pushed branches on 4 October 2026.</footer>
+</main>
+</body>
+</html>

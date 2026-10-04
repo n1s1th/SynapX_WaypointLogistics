@@ -20,6 +20,8 @@ from app.core.security import create_access_token, get_password_hash
 from app.models.delivery_run import RunOrderState, RunStatus, RunStop, RunStopOrder
 from app.models.driver import DeliveryStop, DriverAvailability, DriverTrip, SOSAlert
 from app.models.allocation import AllocationStatus
+from app.models.depot_dispatcher import DepotDispatcherAssignment
+from app.models.reference import Depot
 from app.models.fleet import DriverProfile, VehicleStatus
 from app.models.loader_issue import IssueStatus, IssueType
 from app.models.notification import Notification, NotificationType
@@ -612,8 +614,14 @@ def test_finishing_the_trip_frees_the_truck_for_the_next_plan(loader_client, rel
     assert allocation.status == AllocationStatus.COMPLETED
     assert allocation.vehicle.status == VehicleStatus.AVAILABLE
     # The dispatcher can plan the same truck again (next trip, or tomorrow's)
+    dispatcher = User(email="dispatch@waypoint.com", full_name="Poorna", hashed_password=get_password_hash("x"),
+                      role=UserRole.DISPATCHER, is_active=True)
+    db.add(dispatcher)
+    db.flush()
+    db.add(DepotDispatcherAssignment(depot=Depot.PELIYAGODA, user_id=dispatcher.id))
+    db.flush()
     again = loader_client.post(
-        "/api/v1/allocations/", headers={"X-Waypoint-Depot": "peliyagoda"},
+        "/api/v1/allocations/", headers=auth(dispatcher),
         json={"vehicle_id": allocation.vehicle_id, "status": "ALLOCATED"},
     )
     assert again.status_code == 201, again.text

@@ -18,7 +18,7 @@
     sets, and the seed has its own local-host guard as well.
 
     Run it from backend/ after installing the backend (see
-    docs/loader/RUN_LOADER_DEMO.md):
+    docs/reference/loader/RUN_LOADER_DEMO.md):
 
         .\scripts\loader_demo_up.ps1
 
@@ -78,7 +78,7 @@ foreach ($name in @("DATABASE_URL", "DATABASE_URL_UNPOOLED")) {
 }
 
 if (-not (Test-Path $python)) {
-    throw "backend/.venv is missing. From backend/: py -3.11 -m venv .venv, then .\.venv\Scripts\python.exe -m pip install -e . (see docs/loader/RUN_LOADER_DEMO.md)."
+    throw "backend/.venv is missing. From backend/: py -3.11 -m venv .venv, then .\.venv\Scripts\python.exe -m pip install -e . (see docs/reference/loader/RUN_LOADER_DEMO.md)."
 }
 
 # --- 2. Local Postgres: point this session at it, check it answers, create the DB ----

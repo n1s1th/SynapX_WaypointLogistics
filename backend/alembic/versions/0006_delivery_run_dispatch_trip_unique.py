@@ -1,6 +1,6 @@
 """delivery_runs.dispatch_trip_id unique
 
-One loader run per dispatch trip (docs/loader/INTEGRATION_DESIGN.md, slice 1).
+One loader run per dispatch trip (docs/reference/loader/INTEGRATION_DESIGN.md, slice 1).
 Additive only: a unique index on the loader's own existing nullable column.
 NULLs may repeat, so runs not built from a trip (the demo seeds) are unaffected.
 

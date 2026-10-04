@@ -1,4 +1,4 @@
-// Loader module types, from docs/loader/API_CONTRACT.md (loader-sachintha).
+// Loader module types, from docs/reference/loader/API_CONTRACT.md (loader-sachintha).
 //
 // - "Built (L0, L4)" shapes are final: RunDetail, Vehicle, Outlet, RunStop,
 //   RunOrder, Issue, ActivityEntry, and the check / uncheck / recheck writes.

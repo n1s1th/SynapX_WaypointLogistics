@@ -22,7 +22,7 @@ class LoaderUser(Base):
     - `UserRole` is a native Postgres enum shared with the dispatcher and driver
       teams; adding a LOADER value to it is a migration they would feel.
     - Whether loaders end up in Keycloak instead is still an open team decision
-      (docs/loader/LOADER_FEATURES.md -> Agree before starting). Keeping them in
+      (docs/reference/loader/LOADER_FEATURES.md -> Agree before starting). Keeping them in
       their own table means that decision does not block the data foundation.
 
     short_name is what the sign-in tiles show ("Saman J."), two per row at 320px.

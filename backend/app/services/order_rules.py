@@ -1,4 +1,4 @@
-"""Store Manager ordering rules (docs/store-manager-contract.md §6 and kickoff answers Q1–Q3).
+"""Store Manager ordering rules (docs/reference/store-manager-contract.md §6 and kickoff answers Q1–Q3).
 
 Pure functions with no database access, so they can be unit-tested directly. The frontend mirrors
 these in frontend/components/store/new-request/delivery-rules.ts — keep the two in step.

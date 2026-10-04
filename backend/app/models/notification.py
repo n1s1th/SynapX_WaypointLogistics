@@ -7,7 +7,7 @@ from app.models.reference import Depot
 
 
 class NotificationType(str, enum.Enum):
-    """docs/store-manager-contract.md §4."""
+    """docs/reference/store-manager-contract.md §4."""
 
     ORDER_SUBMITTED = "order_submitted"
     ORDER_CONFIRMED = "order_confirmed"

@@ -1,6 +1,6 @@
 """The database must reject a replayed client_action_id.
 
-These cover the storage half of the write contract in docs/loader/API_CONTRACT.md.
+These cover the storage half of the write contract in docs/reference/loader/API_CONTRACT.md.
 The "duplicate returns the original result with 200" half belongs to the write
 endpoints, which are L4-L8 and not built yet - but without a unique constraint
 underneath, those endpoints could not detect a replay at all, so this is the part

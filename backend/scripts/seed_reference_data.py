@@ -8,8 +8,8 @@ so it's safe to re-run and won't touch rows other teams created.
     python scripts/seed_reference_data.py                 # dry run: shows what would be added
     python scripts/seed_reference_data.py --yes           # add the missing rows
 
-Writing to a non-local database (e.g. the shared Neon database) needs the DB lead's OK
-(docs/database-migrations.md) — the script prints the target host before doing anything.
+Writing to a non-local database (e.g. the shared Neon database) needs the DB lead's OK —
+the script prints the target host before doing anything.
 """
 from __future__ import annotations
 
@@ -71,8 +71,8 @@ def calendar_day_from_row(row: dict) -> CalendarDay:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--outlets", type=Path, default=REPO_ROOT / "docs" / "outlets.csv")
-    parser.add_argument("--calendar", type=Path, default=REPO_ROOT / "docs" / "calendar.csv")
+    parser.add_argument("--outlets", type=Path, default=REPO_ROOT / "docs" / "reference" / "outlets.csv")
+    parser.add_argument("--calendar", type=Path, default=REPO_ROOT / "docs" / "reference" / "calendar.csv")
     parser.add_argument("--yes", action="store_true", help="actually write (default is a dry run)")
     args = parser.parse_args()
 

@@ -1,7 +1,7 @@
 import { addDays, format, formatDistanceStrict, isBefore, parseISO, setHours, startOfDay, subDays } from "date-fns";
 import type { Brand, StoreOrder, TemperatureClass } from "@/components/store/mock-data";
 
-// Business rules from docs/store-manager-contract.md §6 and the kickoff answers (Q1–Q3).
+// Business rules from docs/reference/store-manager-contract.md §6 and the kickoff answers (Q1–Q3).
 // The backend's OrderService will enforce the same rules; these give instant feedback in the form.
 
 const CUTOFF_HOUR = 16; // 4 PM, Asia/Colombo

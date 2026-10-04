@@ -1,23 +1,4 @@
 services:
-  database:
-    image: postgres:16-alpine
-    container_name: waypoint_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-waypoint_logistics}
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-      - ./database:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-waypoint_logistics}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
@@ -30,7 +11,7 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - DEBUG=${DEBUG:-true}
       - PORT=5000
-      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg2://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@database:5432/${DB_NAME:-waypoint_logistics}}
+      - DATABASE_URL=${DATABASE_URL}
       - DATABASE_URL_UNPOOLED=${DATABASE_URL_UNPOOLED:-}
       - KEYCLOAK_URL=${KEYCLOAK_URL:-https://auth.tenderease.me}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-waypointlogistics}
@@ -50,9 +31,6 @@ services:
       - R2_PUBLIC_URL=${R2_PUBLIC_URL:-}
       - EMAIL_USER=${EMAIL_USER:-}
       - EMAIL_APP_PASSWORD=${EMAIL_APP_PASSWORD:-}
-    depends_on:
-      database:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/health"]
       interval: 10s
@@ -93,6 +71,27 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  # Optional local PostgreSQL profile: only starts if you run 'docker compose --profile local-db up'
+  database:
+    profiles: ["local-db"]
+    image: postgres:16-alpine
+    container_name: waypoint_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-waypoint_logistics}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-waypoint_logistics}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:

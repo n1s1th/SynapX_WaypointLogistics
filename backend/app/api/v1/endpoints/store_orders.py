@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.store_order import GoodsRequestCreate, OrderStatusUpdate, StoreOrderRead
 from app.services.order_service import order_service
 
-# Store Manager order routes (docs/store-manager-contract.md §5). Registered before the generic /orders
+# Store Manager order routes (docs/reference/store-manager-contract.md §5). Registered before the generic /orders
 # router so /orders/store isn't read as /orders/{order_id}. A signed-in store manager only ever sees their
 # own outlet (deps.resolve_store_outlet); admins and local dev pick it with outlet_id.
 router = APIRouter()

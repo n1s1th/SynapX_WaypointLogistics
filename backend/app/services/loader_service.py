@@ -185,7 +185,7 @@ def _ordinal(n: int) -> str:
 
 logger = logging.getLogger(__name__)
 
-# Order lifecycle as the loader drives it (order_service, docs/store-manager-contract.md):
+# Order lifecycle as the loader drives it (order_service, docs/reference/store-manager-contract.md):
 # ALLOCATED -> PROCESSING on the first tick, -> READY_FOR_DISPATCH once a release
 # can no longer be undone.
 PROCESSING_OR_LATER = {

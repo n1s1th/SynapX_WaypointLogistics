@@ -3,7 +3,7 @@
 SHARED MODEL CHANGE - `orders` is read by the dispatcher, driver and loader teams too.
 
 Adds what the Store Manager needs on top of the loader's 0002/0003:
-- the `notifications` table (docs/store-manager-contract.md §4)
+- the `notifications` table (docs/reference/store-manager-contract.md §4)
 - five Store Manager columns on `orders`
 - three new `orderstatus` values: SUBMITTED, READY_FOR_DISPATCH, COMPLETED
 

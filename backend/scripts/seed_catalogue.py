@@ -1,6 +1,6 @@
 """Load the store catalogue from the brief's cargo spec CSVs into fresh_items, style_items and tech_items.
 
-Reads docs/fresh_cargo_specs.csv, docs/style_cargo_specs.csv and docs/tech_cargo_specs.csv (shared
+Reads docs/reference/fresh_cargo_specs.csv, docs/reference/style_cargo_specs.csv and docs/reference/tech_cargo_specs.csv (shared
 privately and gitignored). Columns: sku, name, chain, unit_weight_kg, unit_volume_m3 (per carton),
 temp_requirement, depot_name, last_updated. Each row goes to its chain's table.
 
@@ -11,7 +11,7 @@ Nothing is deleted, and only these three tables are touched. Safe to re-run.
     python scripts/seed_catalogue.py --yes    # write it
 
 Needs migration 0008_store_catalogue applied first. Writing to a non-local database (e.g. the shared Neon
-database) needs the DB lead's OK (docs/database-migrations.md); the script prints the target host first.
+database) needs the DB lead's OK; the script prints the target host first.
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from app.core.config import settings
 from app.models.catalogue import CATALOGUE_BY_BRAND
 from app.models.reference import Brand
 
-DOCS = Path(__file__).resolve().parents[2] / "docs"
+DOCS = Path(__file__).resolve().parents[2] / "docs" / "reference"
 SPEC_FIELDS = ["name", "unit_weight_kg", "unit_volume_m3", "temperature_zone", "depot_name", "spec_updated_at"]
 
 

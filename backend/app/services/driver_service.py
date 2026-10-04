@@ -8,7 +8,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, status
 from app.core.exceptions import WaypointLogisticsError
 from app.models.delivery_run import DeliveryRun, RunOrderState, RunStatus, RunStop, RunStopOrder
@@ -69,7 +69,7 @@ def get_today_trips(db: Session, driver_id: int) -> List[DriverTrip]:
     finished today. Released loader runs become trips here first."""
     _sync_runs(db, driver_id)
     today = _today_start(_now())
-    return db.query(DriverTrip).filter(
+    trips = db.query(DriverTrip).options(joinedload(DriverTrip.dispatch_trip)).filter(
         DriverTrip.driver_id == driver_id,
         or_(
             DriverTrip.assigned_date >= today,
@@ -77,6 +77,21 @@ def get_today_trips(db: Session, driver_id: int) -> List[DriverTrip]:
             DriverTrip.completed_at >= today,
         )
     ).order_by(DriverTrip.id).all()
+    _attach_runs(db, trips)
+    return trips
+
+
+def _attach_runs(db: Session, trips: List[DriverTrip]) -> None:
+    """Every listed trip's loader run (and its dock) in one query: each Neon round
+    trip costs a few hundred ms, and the list shows loader status, dock and arrival."""
+    ids = [trip.dispatch_trip_id for trip in trips]
+    runs = {
+        run.dispatch_trip_id: run
+        for run in db.query(DeliveryRun).options(joinedload(DeliveryRun.dock))
+        .filter(DeliveryRun.dispatch_trip_id.in_(ids)).all()
+    } if ids else {}
+    for trip in trips:
+        trip._run_cache = runs.get(trip.dispatch_trip_id)
 
 
 # ---- Loader runs -------------------------------------------------------------
@@ -211,7 +226,17 @@ def _sync_runs_locked(db: Session, driver_id: int) -> None:
         return
     now = _now()
     today = _today_start(now)
-    for run in _assigned_runs(db, profile, now):
+    runs = _assigned_runs(db, profile, now)
+    known = {
+        trip.dispatch_trip_id: trip
+        for trip in db.query(DriverTrip).filter(
+            DriverTrip.dispatch_trip_id.in_([run.dispatch_trip_id for run in runs])
+        ).order_by(DriverTrip.id).all()
+    } if runs else {}
+    for run in runs:
+        seen = known.get(run.dispatch_trip_id)
+        if seen is not None and (seen.driver_id != driver_id or seen.status != DriverTripStatus.ASSIGNED):
+            continue  # another driver's, or already on the road or finished: nothing to copy
         db.query(DispatchTrip).filter(DispatchTrip.id == run.dispatch_trip_id).with_for_update().first()
         trip = db.query(DriverTrip).filter(
             DriverTrip.dispatch_trip_id == run.dispatch_trip_id

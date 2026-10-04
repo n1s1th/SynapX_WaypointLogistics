@@ -6,7 +6,7 @@ from app.models.reference import Brand
 
 
 class CatalogueItemColumns:
-    """The depot items a store can order, from docs/<brand>_cargo_specs.csv.
+    """The depot items a store can order, from docs/reference/<brand>_cargo_specs.csv.
 
     One table per brand, so each store only ever reads its own chain's items. Kept separate from the
     Dispatcher's inventory_items (stock levels). Weight and volume are per carton, the unit stores order in.

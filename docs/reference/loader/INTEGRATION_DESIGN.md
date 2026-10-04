@@ -493,7 +493,7 @@ Trips dispatched before this change have no loader run. Build one with `POST /ap
 
 ```python
 class DeliveryRunResponse(DispatchTripRead):
-    # The loading dock's side (docs/loader/INTEGRATION_DESIGN.md L1); null when
+    # The loading dock's side (docs/reference/loader/INTEGRATION_DESIGN.md L1); null when
     # this trip has no loader run.
     loader: Optional[Dict[str, Any]] = None
 ```
@@ -652,7 +652,7 @@ overflow is the whole order, defer the order through `order_service.defer_order`
 if sent, otherwise the **deferral day**: the first operating day after the run's delivery day, or after today
 when the run's day has already passed (depot time; never today or a past day). Operating days come from
 `calendar_days` where it has the date, otherwise every day but Sunday. **Calendar coverage:** Neon's
-`calendar_days` ends 2026-06-28 and local has two rows, and `docs/calendar.csv` is not in the repo, so beyond
+`calendar_days` ends 2026-06-28 and local has two rows, and `docs/reference/calendar.csv` is not in the repo, so beyond
 that only Sundays are skipped — holidays (Poya days etc.) need the calendar extended (Devmith,
 `scripts/seed_reference_data.py`). The reason reads
 `"Missing at the loading dock (RUN-0024): Send without it"`. The store gets its usual deferral notification.

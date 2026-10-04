@@ -82,6 +82,6 @@ backend/scratch.py
 backend/scratch_allocation_test.py
 
 # Reference data from the brief (outlets, calendar, vehicles). Shared privately, not committed.
-docs/*.csv
-docs/stock_uploads/
+docs/reference/*.csv
+docs/reference/stock_uploads/
 backend/app/static/uploads/

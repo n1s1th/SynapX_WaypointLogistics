@@ -1,6 +1,6 @@
 """Loader-side integration endpoints: dispatcher plan change, dispatcher
 decision (with the decide-by default), driver hand-off and gate-out
-(docs/loader/INTEGRATION_DESIGN.md, sections 8 and 9)."""
+(docs/reference/loader/INTEGRATION_DESIGN.md, sections 8 and 9)."""
 from datetime import datetime, timedelta, time
 from uuid import uuid4
 

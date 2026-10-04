@@ -42,7 +42,7 @@ def spec(sku, name, model, zone, weight=2.0, volume=0.01):
     }
 
 
-# Catalogue rows as seeded from docs/<brand>_cargo_specs.csv (weight and volume per carton).
+# Catalogue rows as seeded from docs/reference/<brand>_cargo_specs.csv (weight and volume per carton).
 CATALOGUE = [
     spec("SKU-063", "Greek Yogurt 500g - 12 unit Chilled Carton", FreshItem, "Chilled", 6.5, 0.02),
     spec("SKU-014", "Soft Drinks 1L - 12 unit Chilled Carton", FreshItem, "Chilled", 12.4, 0.03),

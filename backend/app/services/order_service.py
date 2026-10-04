@@ -38,7 +38,7 @@ ACTIVE_STATUSES = {
     OrderStatus.READY_FOR_DISPATCH,
 }
 
-# Allowed lifecycle moves (docs/store-manager-contract.md §1).
+# Allowed lifecycle moves (docs/reference/store-manager-contract.md §1).
 TRANSITIONS: Dict[OrderStatus, Set[OrderStatus]] = {
     OrderStatus.DRAFT: {OrderStatus.SUBMITTED, OrderStatus.CANCELLED},
     OrderStatus.SUBMITTED: {OrderStatus.CONFIRMED, OrderStatus.ALLOCATED, OrderStatus.PROCESSING, OrderStatus.DEFERRED, OrderStatus.CANCELLED},

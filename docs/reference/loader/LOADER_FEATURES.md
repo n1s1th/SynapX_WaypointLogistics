@@ -104,13 +104,13 @@ Each person owns whole features (backend + frontend), so you don't edit the same
 
 ## Rules for Claude Code (both of us)
 
-- Read the three files in `docs/loader/` before starting any task.
+- Read the three files in `docs/reference/loader/` before starting any task.
 - Plan first; show the plan and wait for OK before changing code.
 - Only touch your own features (table above). Ask before editing the other person's files.
 - UI: use the Figma connection (page "02 — Loader") and follow `frontend/AGENTS.md`; loader touch targets are 48 px; shared loader components live in `frontend/components/loader/`.
 - Backend: endpoint → service → model/schema; add tests.
 - `backend/.env` points at the **shared Neon database** — never run migrations, seed scripts or deletes against it without asking. Use a local Postgres for development.
-- Migrations: follow [`docs/database-migrations.md`](../database-migrations.md) (DB lead: Devmith). It overrides anything in `docs/loader/` about migrations. In short: only Devmith runs `alembic upgrade`/`downgrade` on Neon; never edit a migration already on `dev`, write a new one; one model per table and one alembic head; no `Base.metadata.create_all()`, tables come from migrations only.
+- Migrations: the DB lead (Devmith) owns migrations; that overrides anything in `docs/reference/loader/` about migrations. In short: only Devmith runs `alembic upgrade`/`downgrade` on Neon; never edit a migration already on `dev`, write a new one; one model per table and one alembic head; no `Base.metadata.create_all()`, tables come from migrations only.
 - Don't change shared models (`Order`, `DispatchTrip`, `Shipment`) without flagging it first.
 - Use `graphify query "<question>"` to find code before grepping.
 - Small commits: `type(loader): description`. Never commit env files, `.venv/`, `node_modules/`, `graphify-out/`, `.gitattributes`.

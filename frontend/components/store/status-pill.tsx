@@ -36,7 +36,7 @@ export function StorePill({
   return <Badge className={cn(storePillVariants({ tone }), className)}>{children}</Badge>;
 }
 
-// Labels follow the Figma progress steps (docs/store-manager-contract.md §1).
+// Labels follow the Figma progress steps (docs/reference/store-manager-contract.md §1).
 const orderStatusDisplay: Record<OrderStatus, { label: string; tone: StorePillTone }> = {
   draft: { label: "Draft", tone: "neutral" },
   submitted: { label: "Submitted", tone: "brand" },

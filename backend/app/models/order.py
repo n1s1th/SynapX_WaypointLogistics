@@ -7,7 +7,7 @@ from app.models.reference import Depot, TemperatureClass
 
 
 class OrderStatus(str, enum.Enum):
-    """Order lifecycle (docs/store-manager-contract.md §1).
+    """Order lifecycle (docs/reference/store-manager-contract.md §1).
 
     DRAFT…CANCELLED are in Neon (Nisith's migration 0a80c3e0353c). SUBMITTED, READY_FOR_DISPATCH and
     COMPLETED are the Store Manager additions and still need adding to the Postgres enum by the

@@ -55,7 +55,7 @@ function orderPath(a: QueuedAction, verb: string): string {
 
 const runPath = (a: QueuedAction) => `/loader/runs/${enc(a.run_code)}`;
 
-// Paths from docs/loader/API_CONTRACT.md. The contract names unload and
+// Paths from docs/reference/loader/API_CONTRACT.md. The contract names unload and
 // acknowledge without paths; those two follow LOADER_FEATURES.md (L7).
 // Uncheck is a DELETE with a JSON body, like every other write.
 const ENDPOINTS: Record<QueuedActionType, (a: QueuedAction) => Pick<ActionRequest, "method" | "path">> = {

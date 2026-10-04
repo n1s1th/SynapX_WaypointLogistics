@@ -2,7 +2,7 @@
 
 Scope note: only the endpoints in this module's own features are modelled here.
 The queue, sign-in and issue-list shapes (L2/L3/L5) are Sanduni's and are
-proposed in docs/loader/API_CONTRACT.md for her to review rather than coded here.
+proposed in docs/reference/loader/API_CONTRACT.md for her to review rather than coded here.
 """
 from datetime import date, datetime, time, timezone
 from typing import Annotated, Dict, List, Literal, Optional, Union
@@ -638,7 +638,7 @@ class QueueSummaryRead(BaseModel):
     plan_updated_at: Optional[UtcDateTime] = None
 
 
-# --- integration slice 1 (docs/loader/INTEGRATION_DESIGN.md) ------------------
+# --- integration slice 1 (docs/reference/loader/INTEGRATION_DESIGN.md) ------------------
 
 
 class DispatcherLoadingEventRead(BaseModel):

@@ -87,7 +87,7 @@ class DeliveryRun(Base):
     released_by_id = Column(Integer, ForeignKey("loader_users.id"), nullable=True)
     gated_out_at = Column(DateTime, nullable=True)
 
-    # The dispatcher's trip this run was built from (docs/loader/INTEGRATION_DESIGN.md).
+    # The dispatcher's trip this run was built from (docs/reference/loader/INTEGRATION_DESIGN.md).
     dispatch_trip_id = Column(Integer, ForeignKey("dispatch_trips.id"), nullable=True)
 
     # The driver's "Arrived at dock" tap. Until then the run is built (plan v1

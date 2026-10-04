@@ -37,70 +37,67 @@ R2       → optional driver-photo storage
 
 ## Quick start
 
-### 1. Configure local environment files
+### 1. Configure the Environment (`.env`)
 
-Copy the example files and update values for your local environment:
+A single consolidated `.env` file at the root of the project configures both the backend and frontend services (database connection, Keycloak SSO, Cloudflare R2 photo storage, and operational alerts).
+
+If you are cloning freshly, initialize the `.env` from the provided example template:
 
 ```powershell
 Copy-Item .env.example .env
-Copy-Item backend/.env.example backend/.env
-Copy-Item frontend/.env.example frontend/.env
 ```
+*(On Linux/macOS: `cp .env.example .env`)*
 
-The project uses these defaults locally:
+Review the `.env` file to ensure the `DATABASE_URL` matches your Neon PostgreSQL database instance.
 
-| Service | URL |
-| --- | --- |
-| Frontend | `http://localhost:3000` |
-| Backend API | `http://localhost:5000` |
-| API documentation | `http://localhost:5000/api/v1/docs` |
-| Keycloak (local default) | `http://localhost:8080` |
+---
 
-### 2. Run the Entire Project with Docker (Recommended)
+### 2. Run with Docker (Recommended)
 
-To run the complete stack (PostgreSQL database, FastAPI backend, and Next.js frontend) in Docker:
+Run the entire application in one command:
 
 ```powershell
 docker compose up --build
 ```
 
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API Docs**: [http://localhost:5000/api/v1/docs](http://localhost:5000/api/v1/docs)
-- **Health Check**: [http://localhost:5000/api/v1/health](http://localhost:5000/api/v1/health)
+Docker will:
+1. Automatically connect to your cloud **Neon PostgreSQL** database.
+2. Run database migrations via Alembic.
+3. Start the FastAPI backend and verify its health.
+4. Launch the Next.js frontend once the backend is ready.
 
-Or to run only the database container:
+#### Access Points:
+- **Frontend App**: [http://localhost:3000](http://localhost:3000)
+- **Backend API Docs (Swagger)**: [http://localhost:5000/api/v1/docs](http://localhost:5000/api/v1/docs)
+- **API Health Check**: [http://localhost:5000/api/v1/health](http://localhost:5000/api/v1/health)
 
-```powershell
-docker compose up -d database
-```
+*(Optional: If you ever want to run an offline local PostgreSQL container instead of Neon, run `docker compose --profile local-db up`)*
 
-The default local database account is `postgres` / `postgres`. Change `DB_USER` and `DB_PASSWORD` in the root `.env` before creating a database that needs different credentials.
+---
 
-### 3. Start the backend
+### 3. Alternative: Run Locally Without Docker
 
+If you prefer running services directly on your host machine:
+
+#### Backend:
 ```powershell
 cd backend
 uv pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 5000
 ```
 
-Apply database migrations through the approved process before using a new or empty database. See [docs/database-migrations.md](docs/database-migrations.md).
-
-### 4. Start the frontend
-
-In a second terminal:
-
+#### Frontend:
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000).
 
 ## Login and access
 
-The main application login uses **Keycloak SSO**. Create real users, assign their roles, and reset passwords through **Admin → Users** when the backend Keycloak client secret is configured.
+The main application login uses **Keycloak SSO** (connected to `https://auth.tenderease.me`). Create real users, assign their roles, and reset passwords through **Admin → Users** when the backend Keycloak client secret is configured.
 
 Supported roles are:
 
@@ -118,18 +115,23 @@ driver@waypoint.com / driver123
 
 The current frontend signs in through Keycloak, so this seeded account is intended for local API/testing use rather than production SSO.
 
-Never commit `.env` files or live passwords, tokens, database URLs, SMTP credentials, Keycloak client secrets, or R2 keys.
+Never commit live `.env` files or credentials into public repositories.
 
-## Useful configuration
+## Configuration Reference
 
-| Need | Location |
-| --- | --- |
-| Frontend API and Keycloak address | `frontend/.env` |
-| Backend database, Keycloak, SMTP, R2, and JWT settings | `backend/.env` |
-| Docker Compose ports and local database settings | root `.env` |
-| Store mock/API data source | `frontend/.env` → `NEXT_PUBLIC_STORE_DATA_SOURCE` |
-| Loader mock/API transport | `frontend/.env` → `NEXT_PUBLIC_LOADER_TRANSPORT` |
-| Custom Keycloak login design | `keycloak-theme/waypoint/` |
+All settings can be configured centrally in the root `.env`:
+
+| Key | Description | Default |
+| --- | --- | --- |
+| `FRONTEND_PORT` | Port exposed by Next.js | `3000` |
+| `BACKEND_PORT` | Port exposed by FastAPI | `5000` |
+| `DATABASE_URL` | Neon PostgreSQL pooled connection | Neon connection string |
+| `DATABASE_URL_UNPOOLED` | Neon PostgreSQL direct connection for migrations | Neon unpooled connection |
+| `KEYCLOAK_URL` | Keycloak Identity Provider | `https://auth.tenderease.me` |
+| `KEYCLOAK_REALM` | Keycloak Realm | `waypointlogistics` |
+| `NEXT_PUBLIC_STORE_DATA_SOURCE` | Store Manager data mode (`api` or `mock`) | `api` |
+| `R2_*` | Cloudflare R2 credentials for photo proof of delivery | Configured in root `.env` |
+| `EMAIL_*` | SMTP credentials for dispatch notifications | Configured in root `.env` |
 
 ## Project structure
 
@@ -143,12 +145,10 @@ keycloak-theme/    Custom Keycloak login theme
 
 ## Documentation
 
-- [How the complete system works](docs/HOW_THIS_PROJECT_WORKS.md)
+- [How the complete system works](docs/reference/HOW_THIS_PROJECT_WORKS.md)
 - [Backend API and local development](backend/README.md)
-- [Database migration process](docs/database-migrations.md)
-- [Data model notes](docs/data-model.md)
-- [Store Manager contract](docs/store-manager-contract.md)
-- [Loader documentation](docs/loader/)
+- [Store Manager contract](docs/reference/store-manager-contract.md)
+- [Loader documentation](docs/reference/loader/)
 
 ## Production checklist
 

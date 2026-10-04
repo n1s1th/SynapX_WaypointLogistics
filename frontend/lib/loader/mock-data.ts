@@ -1,5 +1,5 @@
 // Mock data for the loader UI until the /loader API is wired up, in the shapes
-// of docs/loader/API_CONTRACT.md. Scenario follows Figma "02 — Loader":
+// of docs/reference/loader/API_CONTRACT.md. Scenario follows Figma "02 — Loader":
 // Peliyagoda DC, Fresh night wave. Loaders see every dock of the depot.
 //
 // - mockQueue / mockSummary follow T1b (queue before plan v3 was acknowledged),

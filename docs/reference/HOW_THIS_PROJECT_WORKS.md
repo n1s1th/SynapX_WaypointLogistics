@@ -111,7 +111,7 @@ Do not put real passwords, database URLs, SMTP app passwords, R2 keys, or Keyclo
 | Driver photo storage | `backend/.env` → `R2_*` | If blank, photos are stored locally under `backend/app/static/uploads`. |
 | Docker database defaults/ports | root `.env` | Used by `docker-compose.yml` for local containers. |
 
-Start from the committed templates: root [`.env.example`](../.env.example), [`backend/.env.example`](../backend/.env.example), and [`frontend/.env.example`](../frontend/.env.example). Copy them to `.env` files and replace every placeholder before deployment.
+Start from the committed templates: root [`.env.example`](../../.env.example), [`backend/.env.example`](../../backend/.env.example), and [`frontend/.env.example`](../../frontend/.env.example). Copy them to `.env` files and replace every placeholder before deployment.
 
 ## 6. Operational rules the system enforces
 
@@ -189,7 +189,7 @@ docker compose up --build
 
 ### Database migrations
 
-Database schema changes use Alembic. Do not rely on application startup to create tables. The shared Neon database has a controlled migration process: only the DB lead should apply migrations to shared environments. See [database-migrations.md](database-migrations.md) before changing database structure.
+Database schema changes use Alembic. Do not rely on application startup to create tables. The shared Neon database has a controlled migration process: only the DB lead should apply migrations to shared environments.
 
 ## 10. Where to safely change common things
 

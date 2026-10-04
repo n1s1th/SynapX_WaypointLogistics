@@ -2,7 +2,7 @@
 
 The things Dev A (orders, notifications) and Dev B (loading, receipts) must agree on **before** splitting up. Once both of you sign off, treat this as frozen: only **add** to it, never rename, and tell each other before changing anything.
 
-*Adapted from `docs/store_manager_workplan.md` to this repo: FastAPI + SQLAlchemy + Alembic backend, Next.js frontend, Figma "04 — Store Manager" screens as the UI reference.*
+*Adapted from `docs/reference/store_manager_workplan.md` to this repo: FastAPI + SQLAlchemy + Alembic backend, Next.js frontend, Figma "04 — Store Manager" screens as the UI reference.*
 
 **Decided already (DB lead):**
 

@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     backend/.env points at the SHARED Neon database. Migrations, seed scripts and
-    local backend runs must never touch it (docs/loader/LOADER_FEATURES.md -> Rules
+    local backend runs must never touch it (docs/reference/loader/LOADER_FEATURES.md -> Rules
     for Claude Code).
 
     Two variables must be overridden, not one:

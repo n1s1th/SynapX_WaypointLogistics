@@ -1,4 +1,4 @@
-"""Guards docs/loader/API_CONTRACT.md against drifting from the code.
+"""Guards docs/reference/loader/API_CONTRACT.md against drifting from the code.
 
 The contract is what the other loader branch builds against, so a stale enum
 value there is a real defect - it just fails in the frontend instead of here.
@@ -14,7 +14,7 @@ from app.models.loader_issue import IssueStatus, IssueType
 from app.models.plan_revision import PlanChangeKind
 from app.models.reference import Brand, DockType, TempCapability, TemperatureClass, VehicleType
 
-CONTRACT = Path(__file__).resolve().parents[2].parent / "docs" / "loader" / "API_CONTRACT.md"
+CONTRACT = Path(__file__).resolve().parents[2].parent / "docs" / "reference" / "loader" / "API_CONTRACT.md"
 
 # Every enum the contract publishes, against the enum it must mirror.
 DOCUMENTED_ENUMS = {

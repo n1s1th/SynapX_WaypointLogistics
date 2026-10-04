@@ -11,7 +11,7 @@ A loader belongs to a depot and sees every dock of it. Tablet reads name the
 session in the X-Loader-Session header; tablet writes carry loader_session_id,
 and only the loader who picked the run may write to it.
 
-Every backend route here is owned by Sachintha (docs/loader/API_CONTRACT.md).
+Every backend route here is owned by Sachintha (docs/reference/loader/API_CONTRACT.md).
 """
 from typing import List, Optional
 from uuid import UUID
@@ -446,7 +446,7 @@ def get_issue(
 
 
 # ---------------------------------------------------------------------------
-# Integration slice 1: dispatch trips (docs/loader/INTEGRATION_DESIGN.md)
+# Integration slice 1: dispatch trips (docs/reference/loader/INTEGRATION_DESIGN.md)
 #
 # The dispatcher's own from-allocation endpoint should call
 # loader_service.create_run_for_dispatch_trip inside its transaction; these

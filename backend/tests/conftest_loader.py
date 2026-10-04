@@ -411,7 +411,7 @@ def put_on_truck(db, run, number, checked_at="02:12"):
     return row
 
 
-# --- dispatcher integration (docs/loader/INTEGRATION_DESIGN.md) ----------------
+# --- dispatcher integration (docs/reference/loader/INTEGRATION_DESIGN.md) ----------------
 
 
 def make_trip(db, vehicle, orders, code="RUN-0024", departs="03:30", stop_sequence=None):

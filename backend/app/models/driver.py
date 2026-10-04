@@ -36,7 +36,7 @@ class SOSStatus(str, enum.Enum):
     RESOLVED = "resolved"
 
 
-DRIVER_AT_DOCK = "driver_at_dock"  # the loader's run log: the driver is at the dock
+_UNSET = object()
 
 
 class DriverTrip(Base):
@@ -72,11 +72,17 @@ class DriverTrip(Base):
         return self.dispatch_trip.vehicle_number if self.dispatch_trip else None
 
     def _loader_run(self):
+        """The loader's run for this trip, looked up once per trip (the trip list
+        hands every trip its run in one query: driver_service._attach_runs)."""
+        cached = getattr(self, "_run_cache", _UNSET)
+        if cached is not _UNSET:
+            return cached
         session = object_session(self)
         if session is None:
             return None
         from app.models.delivery_run import DeliveryRun
-        return session.query(DeliveryRun).filter(DeliveryRun.dispatch_trip_id == self.dispatch_trip_id).first()
+        self._run_cache = session.query(DeliveryRun).filter(DeliveryRun.dispatch_trip_id == self.dispatch_trip_id).first()
+        return self._run_cache
 
     @property
     def loader_status(self):
@@ -94,15 +100,10 @@ class DriverTrip(Base):
 
     @property
     def at_dock_at(self):
-        """When the driver said they were at the dock (not a column): read back from
-        the loader's run log, where driver_service.report_at_dock writes it."""
+        """When the driver said they were at the dock (not a column): the loader's
+        run arrival, which driver_service.report_at_dock sets through mark_arrived."""
         run = self._loader_run()
-        if run is None:
-            return None
-        from app.models.loader_activity import LoaderActivity
-        return object_session(self).query(LoaderActivity.at).filter(
-            LoaderActivity.run_id == run.id, LoaderActivity.event_type == DRIVER_AT_DOCK,
-        ).order_by(LoaderActivity.at.desc()).limit(1).scalar()
+        return run.arrived_at if run is not None else None
 
     @property
     def depot_name(self):

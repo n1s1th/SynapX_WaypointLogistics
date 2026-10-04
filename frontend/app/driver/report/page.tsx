@@ -46,19 +46,21 @@ export default function ReportProblemPage() {
     async function loadActiveTrip() {
       try {
         const trips = await cachedGet<{ id: number; status: string }[]>("/driver/trips/today");
-        const startedTrip = trips.find(t => t.status === "started");
+        // The trip under way, else today's trip still at the depot (a problem can come up at the dock too)
+        const reportTrip = trips.find(t => t.status === "started") ?? trips.find(t => t.status === "assigned");
 
-        if (startedTrip) {
-          const detail = await cachedGet<any>(`/driver/trips/${startedTrip.id}`);
+        if (reportTrip) {
+          const detail = await cachedGet<any>(`/driver/trips/${reportTrip.id}`);
           setActiveTrip(detail);
 
           // Coming from the outcome screen, the failed stop is passed explicitly
           const requestedStopId = new URLSearchParams(window.location.search).get("stop_id");
           const requestedStop = detail.stops?.find((s: any) => String(s.id) === requestedStopId);
-          const activeStop = requestedStop ?? detail.stops
+          // Before the trip starts the driver is at the depot, not at a stop
+          const activeStop = requestedStop ?? (detail.status !== "started" ? undefined : detail.stops
             ?.slice()
             .sort((a: any, b: any) => a.sequence - b.sequence)
-            .find((s: any) => s.status === "pending" || s.status === "arrived");
+            .find((s: any) => s.status === "pending" || s.status === "arrived"));
           if (activeStop) {
             setCurrentStop(activeStop);
           }
@@ -122,7 +124,7 @@ export default function ReportProblemPage() {
         method: "POST",
         body: JSON.stringify({ ...basePayload, photo_url }),
       });
-      router.push("/driver/trip");
+      router.push(activeTrip.status === "assigned" ? `/driver/trip/${activeTrip.id}` : "/driver/trip");
     } catch (error) {
       console.error("Failed to submit issue, queued for sync:", error);
       await saveForLater();
@@ -208,7 +210,8 @@ export default function ReportProblemPage() {
           </div>
         </div>
 
-        {/* Delay: the stores still to come are told the new time */}
+        {/* Delay: the stores still to come are told the new time (once the trip is under way) */}
+        {activeTrip?.status !== "assigned" && (
         <div className="flex flex-col gap-1.5 w-full mt-1">
           <span className="font-semibold text-[12px]" style={{ color: "#12202E" }}>Will this make you late?</span>
           <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Expected delay">
@@ -239,6 +242,7 @@ export default function ReportProblemPage() {
             </p>
           )}
         </div>
+        )}
 
         {/* Optional note */}
         <div className="flex flex-col gap-1 w-full mt-1">
@@ -274,6 +278,11 @@ export default function ReportProblemPage() {
           >
             {submitting ? (photo && online ? "Uploading photo…" : "Submitting...") : "Submit report"}
           </button>
+          {!loading && !activeTrip && (
+            <p className="mt-2 text-[12px] leading-[1.45em]" style={{ color: "#5D6A78" }}>
+              You can report a problem once dispatch gives you a trip today. For an emergency, use SOS.
+            </p>
+          )}
         </div>
       </div>
 

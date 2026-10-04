@@ -14,7 +14,7 @@ On a fresh local database, run it normally:
 
 The shared Neon database already HAS these tables and is already past this revision
 (it is on the dev chain, see bbb8d4327f93 onwards), so never stamp or run this there.
-Only Devmith runs alembic on Neon (docs/loader/LOADER_FEATURES.md -> Rules for
+Only Devmith runs alembic on Neon (docs/reference/loader/LOADER_FEATURES.md -> Rules for
 Claude Code).
 
 Revision ID: 0001_baseline

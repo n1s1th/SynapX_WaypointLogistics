@@ -1,5 +1,5 @@
 """Integration slice 1: dispatch trips become loader runs, and the dispatcher
-reads the dock's side back (docs/loader/INTEGRATION_DESIGN.md)."""
+reads the dock's side back (docs/reference/loader/INTEGRATION_DESIGN.md)."""
 import pytest
 from sqlalchemy import func, select
 
