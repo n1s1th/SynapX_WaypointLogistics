@@ -256,8 +256,6 @@ def sync_delivery_plan(id: int, payload: PlanSyncRequest, db: Session = Depends(
     loader_run = loader_service.run_for_dispatch_trip(db, trip.id)
     if loader_run is not None:
         loader_service.publish_dispatcher_plan(db, loader_run, payload.plan)
-    elif payload.stop_sequence is not None:
-        raise HTTPException(status_code=409, detail="No dock run exists for this trip")
 
     if payload.stop_sequence is not None:
         trip.stop_sequence = payload.stop_sequence
@@ -373,9 +371,12 @@ def create_run_from_allocation(
     try:
         with db.begin_nested():
             dock_run = loader_service.create_run_for_dispatch_trip(db, trip)
-    except RunNotBuildableError as exc:
-        reasons = "; ".join(v["message"] for v in exc.details.get("violations", []))
-        warning = reasons or str(exc)
+    except Exception as exc:
+        reasons = (
+            "; ".join(v["message"] for v in exc.details.get("violations", []))
+            if isinstance(exc, RunNotBuildableError) else ""
+        )
+        warning = reasons or getattr(exc, "message", str(exc))
         trip.loading_events = [
             *(trip.loading_events or []),
             {"event": "Dock run unavailable", "time": datetime.now(timezone.utc).strftime("%H:%M"),

@@ -63,7 +63,6 @@ export function RouteOptimizationDialog({ run, onClose, onApply }: RouteOptimiza
     setIsApplying(true);
     try {
       const headers = { 'Content-Type': 'application/json' };
-      if (!run.loader) throw new Error("This trip has no dock run. Build the dock run before optimizing its route.");
       if (proposedWithSLA.some(s => !s.outlet_code)) throw new Error("A stop has no outlet code. Refresh the run.");
       const p1 = await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/plan`, {
           method: 'POST', headers,
@@ -71,7 +70,7 @@ export function RouteOptimizationDialog({ run, onClose, onApply }: RouteOptimiza
             stop_sequence: proposedWithSLA,
             plan: {
             client_action_id: crypto.randomUUID(),
-            base_version: run.loader.plan_version,
+            base_version: run.loader?.plan_version ?? 1,
             stop_order: proposedWithSLA.map(s => s.outlet_code),
             dispatcher: "Dispatcher"
           }}),
