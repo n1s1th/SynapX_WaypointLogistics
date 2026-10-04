@@ -1,13 +1,24 @@
+from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from pydantic import BaseModel
 from app.api import deps
 from app.models.shipment import DispatchTrip
 from app.models.allocation import Allocation, AllocationStatus
 from app.models.fleet import DriverProfile
 from app.models.reference import Depot, Outlet
 from app.schemas.shipment import DispatchTripCreate, DispatchTripRead, DeliveryRunResponse, DeliveryRunUpdate, LoadingEventIn
+from app.models.order import Order, OrderItem
+from app.services.loader_service import RunNotBuildableError, loader_service
+from app.schemas.loader import DispatcherPlanRequest
+
+
+class PlanSyncRequest(BaseModel):
+    plan: DispatcherPlanRequest
+    stop_sequence: Optional[List[Dict[str, Any]]] = None
 from app.models.order import Order, OrderItem, OrderStatus
 from app.services.loader_service import loader_service
 from app.services.order_service import order_service
@@ -22,8 +33,32 @@ def _with_loader(db: Session, trips: List[DispatchTrip]) -> List[DeliveryRunResp
         item = DeliveryRunResponse.model_validate(t)
         view = views.get(t.id)
         item.loader = view.model_dump(mode="json") if view else None
+        if view is not None:
+            item.open_shortfalls = view.open_shortfalls
+            item.stops_completed = view.stops_completed
+            item.stop_count = view.stop_count
+        if view is not None and not item.stop_sequence:
+            dock_run = loader_service.run_for_dispatch_trip(db, t.id)
+            if dock_run is not None:
+                item.stop_sequence = _dock_stop_sequence(db, dock_run)
+                item.stop_count = len(item.stop_sequence)
+        if view is None:
+            item.loader_warning = next(
+                (event.get("note") for event in reversed(t.loading_events or [])
+                 if event.get("event") == "Dock run unavailable"),
+                None,
+            )
         out.append(item)
     return out
+
+
+def _dock_stop_sequence(db: Session, dock_run) -> List[Dict[str, Any]]:
+    return [
+        {"id": stop.outlet.code, "outlet_code": stop.outlet.code,
+         "name": stop.outlet.name, "eta": stop.eta.isoformat() if stop.eta else "",
+         "sla_ok": True, "sla_note": "On schedule"}
+        for stop in sorted(loader_service.current_stops(db, dock_run), key=lambda stop: stop.stop_sequence)
+    ]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -163,6 +198,8 @@ def update_delivery_run(
         raise HTTPException(status_code=404, detail="Delivery run not found")
 
     update_data = trip_in.model_dump(exclude_unset=True)
+    if update_data.get("status") == "en_route" and run.allocation_id and not loader_service.run_for_dispatch_trip(db, run.id):
+        raise HTTPException(status_code=409, detail="Send the run to a dock before publishing it")
     previous_status = run.status
     for field, value in update_data.items():
         setattr(run, field, value)
@@ -204,6 +241,33 @@ def update_delivery_run(
     return run
 
 
+@router.post("/{id}/plan", response_model=DeliveryRunResponse)
+def sync_delivery_plan(id: int, payload: PlanSyncRequest, db: Session = Depends(deps.get_db)):
+    """Publish the dock plan and update its dispatch trip in one transaction."""
+    trip = db.query(DispatchTrip).filter(DispatchTrip.id == id).with_for_update().first()
+    if trip is None:
+        raise HTTPException(status_code=404, detail="Delivery run not found")
+
+    if payload.stop_sequence is not None:
+        codes = [stop.get("outlet_code") for stop in payload.stop_sequence]
+        if not codes or any(not code for code in codes) or codes != payload.plan.stop_order:
+            raise HTTPException(status_code=422, detail="Stop sequence must match the outlet codes in the dock plan")
+
+    loader_run = loader_service.run_for_dispatch_trip(db, trip.id)
+    if loader_run is not None:
+        loader_service.publish_dispatcher_plan(db, loader_run, payload.plan)
+
+    if payload.stop_sequence is not None:
+        trip.stop_sequence = payload.stop_sequence
+        trip.stop_count = len(payload.stop_sequence)
+    if payload.plan.departs_at is not None:
+        trip.departure_time = payload.plan.departs_at
+    trip.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(trip)
+    return _with_loader(db, [trip])[0]
+
+
 @router.post("/from-allocation/{allocation_id}", response_model=DeliveryRunResponse, status_code=status.HTTP_201_CREATED)
 def create_run_from_allocation(
     allocation_id: int,
@@ -224,17 +288,18 @@ def create_run_from_allocation(
     if not allocation:
         raise HTTPException(status_code=404, detail="Allocation not found")
 
+    # A retry returns the trip, including any dock warning, even after the
+    # allocation has been marked DISPATCHED.
+    existing = db.query(DispatchTrip).filter(DispatchTrip.allocation_id == allocation_id).first()
+    if existing:
+        return _with_loader(db, [existing])[0]
+
     # Only allow dispatching from READY or LOADING states
     if allocation.status not in (AllocationStatus.READY, AllocationStatus.LOADING):
         raise HTTPException(
             status_code=400,
             detail=f"Allocation must be READY or LOADING to dispatch (current: {allocation.status})"
         )
-
-    # Idempotency: if a DispatchTrip already exists for this allocation, return it
-    existing = db.query(DispatchTrip).filter(DispatchTrip.allocation_id == allocation_id).first()
-    if existing:
-        return existing
 
     # Build the trip code from the allocation's run_id or generate one
     trip_code = allocation.run_id or f"RUN-{allocation_id:04d}"
@@ -289,7 +354,7 @@ def create_run_from_allocation(
         open_shortfalls=0,
         loading_events=[
             {
-                "event": "Plan published",
+                "event": "Dispatch trip created",
                 "time": datetime.now(timezone.utc).strftime("%H:%M"),
                 "note": f"Dispatched from allocation #{allocation_id}",
                 "status": "ok"
@@ -303,11 +368,32 @@ def create_run_from_allocation(
     db.add(allocation)
 
     db.flush()
-    loader_service.create_run_for_dispatch_trip(db, trip)
+    try:
+        with db.begin_nested():
+            dock_run = loader_service.create_run_for_dispatch_trip(db, trip)
+    except Exception as exc:
+        reasons = (
+            "; ".join(v["message"] for v in exc.details.get("violations", []))
+            if isinstance(exc, RunNotBuildableError) else ""
+        )
+        warning = reasons or getattr(exc, "message", str(exc))
+        trip.loading_events = [
+            *(trip.loading_events or []),
+            {"event": "Dock run unavailable", "time": datetime.now(timezone.utc).strftime("%H:%M"),
+             "note": warning, "status": "warning"},
+        ]
+    else:
+        trip.stop_sequence = _dock_stop_sequence(db, dock_run)
+        trip.stop_count = len(trip.stop_sequence)
+        trip.loading_events = [
+            *(trip.loading_events or []),
+            {"event": "Dock plan published", "time": datetime.now(timezone.utc).strftime("%H:%M"),
+             "note": f"Sent to {dock_run.dock.name}", "status": "ok"},
+        ]
 
     db.commit()
     db.refresh(trip)
-    return trip
+    return _with_loader(db, [trip])[0]
 
 
 @router.post("/{id}/add-loading-event", response_model=DeliveryRunResponse)

@@ -847,7 +847,7 @@ export default function DispatcherDashboard() {
 
               <Link
                 href="/dispatcher/outlets"
-                className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 hover:border-primary/40 transition-all flex flex-col justify-between"
+                className="col-span-2 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 hover:border-primary/40 transition-all flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <Store className="size-4 text-purple-500" />
@@ -861,21 +861,6 @@ export default function DispatcherDashboard() {
                 </div>
               </Link>
 
-              <Link
-                href="/dispatcher/fleet"
-                className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 hover:border-primary/40 transition-all flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between">
-                  <CarFront className="size-4 text-amber-500" />
-                  <Badge variant="secondary" className="text-[10px] font-bold">
-                    {vehicles.length}
-                  </Badge>
-                </div>
-                <div className="mt-2">
-                  <div className="font-semibold text-xs text-foreground">Fleet Roster</div>
-                  <div className="text-[10px] text-muted-foreground">Capacity &amp; Fuel</div>
-                </div>
-              </Link>
             </CardContent>
           </Card>
         </div>

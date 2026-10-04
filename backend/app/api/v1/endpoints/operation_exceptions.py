@@ -1,11 +1,13 @@
-"""Read-only dispatcher view of incidents reported by loader and driver workflows."""
+"""Read-only dispatcher view of incidents reported across operations workflows."""
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session, joinedload
-from app.api.deps import get_db
+from app.api.deps import get_db, require_dispatcher_or_admin
 from app.models.driver import DeliveryStop, DeliveryStopStatus, DriverTrip, IssueReport, IssueStatus as DriverIssueStatus, SOSAlert, SOSStatus
+from app.models.delivery_issue import DeliveryIssue
 from app.models.loader_issue import LoaderIssue, IssueStatus as LoaderIssueStatus
 from app.models.shipment import DispatchTrip, Shipment, ShipmentStatus
+from app.models.user import User
 
 router = APIRouter()
 
@@ -21,13 +23,25 @@ def _entry(source: str, kind: str, row_id: int, title: str, detail: str, status:
 
 
 @router.get("/exceptions")
-def list_operation_exceptions(db: Session = Depends(get_db)):
+def list_operation_exceptions(db: Session = Depends(get_db), _user: User = Depends(require_dispatcher_or_admin)):
     """Current incidents, one row per recorded issue or independently inferred risk."""
     now = datetime.now(timezone.utc)
     entries = []
     loader = db.query(LoaderIssue).options(joinedload(LoaderIssue.run), joinedload(LoaderIssue.order)).filter(LoaderIssue.status.in_([LoaderIssueStatus.SENT, LoaderIssueStatus.SEEN])).all()
     for issue in loader:
         entries.append(_entry("loader", "shortfall", issue.id, f"Loading {issue.issue_type.value.replace('_', ' ')}", issue.note or issue.quick_note_tag or "Loader reported an issue; dispatcher decision pending.", issue.status.value, issue.reported_at, issue.run.code if issue.run else None, reference=issue.order.order_number if issue.order else None, severity="critical"))
+
+    store_issues = db.query(DeliveryIssue).options(joinedload(DeliveryIssue.outlet)).filter(DeliveryIssue.status.in_(["open", "under_review"])).all()
+    for issue in store_issues:
+        entry = _entry("store", "delivery_issue", issue.id, issue.title, issue.description, issue.status, issue.reported_at, driver_name=issue.driver_name, reference=issue.order_number or f"ISS{issue.id:07d}")
+        entry.update({
+            "issue_code": f"ISS{issue.id:07d}",
+            "outlet_code": issue.outlet.code if issue.outlet else None,
+            "outlet_name": issue.outlet.name if issue.outlet else None,
+            "reported_by": issue.reported_by,
+            "affected_item": issue.affected_item,
+        })
+        entries.append(entry)
 
     driver_issues = db.query(IssueReport).options(joinedload(IssueReport.driver_trip).joinedload(DriverTrip.dispatch_trip)).filter(IssueReport.status.in_([DriverIssueStatus.OPEN, DriverIssueStatus.ACKNOWLEDGED])).all()
     for issue in driver_issues:

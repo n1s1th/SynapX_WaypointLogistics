@@ -20,6 +20,24 @@ interface DeliveryRunDetailPanelProps {
 
 export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest, onOptimizeRoute, onViewLoadingStatus }: DeliveryRunDetailPanelProps) {
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isBuildingDock, setIsBuildingDock] = useState(false);
+
+  const handleBuildDockRun = async () => {
+    setIsBuildingDock(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/loader/dispatch-trips/${run.id}/run`, { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.detail?.message || "The dock run still cannot be built. Check the trip and outlet data.");
+      }
+      toast.success("Run sent to dock");
+      onUpdate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send run to dock");
+    } finally {
+      setIsBuildingDock(false);
+    }
+  };
 
   const handlePublish = async () => {
     setIsPublishing(true);
@@ -68,6 +86,9 @@ export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest,
           </div>
           <p className="text-sm text-slate-500 font-medium">{run.vehicle_number} · {run.driver_name}</p>
           <p className="text-xs text-slate-400 mt-1 capitalize">Dock: {dockStatusText}</p>
+          {run.loader_warning && !run.loader && (
+            <p role="alert" className="mt-2 text-sm text-warning">Dock run unavailable: {run.loader_warning}</p>
+          )}
         </div>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
           <X className="h-5 w-5" />
@@ -138,10 +159,15 @@ export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest,
 
       {/* Actions */}
       <div className="p-5 border-t border-slate-100 space-y-2.5 bg-slate-50/50 mt-auto">
+        {run.loader_warning && !run.loader && (
+          <Button variant="outline" className="w-full" disabled={isBuildingDock} onClick={handleBuildDockRun}>
+            {isBuildingDock ? "Sending to dock..." : "Retry sending to dock"}
+          </Button>
+        )}
         <Button variant="outline" className="w-full justify-between h-9 text-slate-700" onClick={onViewManifest}>
           View Manifest <ChevronRight className="h-4 w-4 text-slate-400" />
         </Button>
-        <Button variant="outline" className="w-full justify-between h-9 text-slate-700" onClick={onOptimizeRoute}>
+        <Button variant="outline" className="w-full justify-between h-9 text-slate-700" onClick={onOptimizeRoute} disabled={!run.loader || stops.length === 0}>
           Optimize Route <ChevronRight className="h-4 w-4 text-slate-400" />
         </Button>
         <Button 
@@ -155,9 +181,9 @@ export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest,
           <Button 
             className="w-full h-9 bg-[#18385F] hover:bg-[#12294a] text-white" 
             onClick={handlePublish}
-            disabled={isPublishing}
+            disabled={isPublishing || (!!run.allocation_id && !run.loader)}
           >
-            {isPublishing ? "Publishing..." : "Publish Run"}
+            {isPublishing ? "Publishing..." : run.allocation_id && !run.loader ? "Send to dock first" : "Publish Run"}
           </Button>
         ) : null}
       </div>

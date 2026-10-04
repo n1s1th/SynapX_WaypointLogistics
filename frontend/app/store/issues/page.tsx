@@ -54,7 +54,7 @@ function ExceptionsAndIssuesContent() {
   // Report & Edit Modal State
   const [showCreateModal, setShowCreateModal] = useState(autoOpenReport);
   const [editingIssue, setEditingIssue] = useState<StoreIssue | null>(null);
-  const [newOrderId, setNewOrderId] = useState(initialOrderParam || "ORD0000001");
+  const [newOrderId, setNewOrderId] = useState(initialOrderParam || "");
   const [newItemName, setNewItemName] = useState("");
   const [newItemSku, setNewItemSku] = useState("");
   const [newType, setNewType] = useState<"Damaged Goods" | "Missing Items" | "Quantity Mismatch" | "Temperature Breach">("Damaged Goods");
@@ -146,29 +146,29 @@ function ExceptionsAndIssuesContent() {
   const totalPages = Math.ceil(filteredIssues.length / pageSize) || 1;
   const paginatedIssues = filteredIssues.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setNewPhoto({
-          name: file.name,
-          url: reader.result as string,
-          size: `${(file.size / (1024 * 1024)).toFixed(1)} MB • Captured today`,
-        });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      const url = await shrinkPhoto(file);
+      setNewPhoto({
+        name: file.name,
+        url,
+        size: `${Math.max(1, Math.round((url.length * 3) / 4 / 1024))} KB • Captured today`,
+      });
+    } catch {
+      setSaveError("That photo couldn't be read. Try a JPG or PNG.");
     }
   };
 
   const openCreateModal = () => {
     setEditingIssue(null);
-    setNewOrderId(initialOrderParam || "ORD0000001");
+    setNewOrderId(initialOrderParam || "");
     setNewItemName("");
     setNewItemSku("");
     setNewType("Damaged Goods");
-    setNewExpected(10);
-    setNewReceived(8);
+    setNewExpected(0);
+    setNewReceived(0);
     setNewDescription("");
     setNewPhoto(null);
     setSaveError(null);
@@ -229,8 +229,8 @@ function ExceptionsAndIssuesContent() {
         const updated = await updateStoreIssue(editingIssue.id, {
           type: newType,
           title: `${newType}: ${newItemName || "Order Discrepancy"}`,
-          affectedItem: newItemName || "Consignment Item",
-          sku: newItemSku || "SKU-GEN",
+          affectedItem: newItemName,
+          sku: newItemSku,
           expectedUnits: newExpected,
           receivedUnits: newReceived,
           description: newDescription,
@@ -245,8 +245,8 @@ function ExceptionsAndIssuesContent() {
           orderId: newOrderId,
           type: newType,
           title: `${newType}: ${newItemName || "Order Discrepancy"}`,
-          affectedItem: newItemName || "Consignment Item",
-          sku: newItemSku || "SKU-GEN",
+          affectedItem: newItemName,
+          sku: newItemSku,
           expectedUnits: newExpected,
           receivedUnits: newReceived,
           description: newDescription,
@@ -358,16 +358,16 @@ function ExceptionsAndIssuesContent() {
       <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
         {/* Tabs Row (Figma 16:834) */}
         <div className="flex items-center border-b border-border/80 px-4 pt-3 gap-1 overflow-x-auto">
-          {[
+          {([
             { key: "all", label: `All (${totalCount})` },
             { key: "open", label: `Open (${openCount})` },
             { key: "under_review", label: `Under Review (${underReviewCount})` },
             { key: "resolved", label: `Resolved (${resolvedCount})` },
-          ].map((tab) => (
+          ] as const).map((tab) => (
             <button
               key={tab.key}
               type="button"
-              onClick={() => setSelectedTab(tab.key as any)}
+              onClick={() => setSelectedTab(tab.key)}
               className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
                 selectedTab === tab.key
                   ? "border-primary text-primary font-bold"
@@ -709,7 +709,7 @@ function ExceptionsAndIssuesContent() {
             {/* Panel Footer (Figma 16:1010) */}
             <div className="p-4 border-t border-border bg-card/95 flex items-center justify-between gap-2 sticky bottom-0">
               <div className="flex items-center gap-2">
-                {(selectedIssue.status === "open" || selectedIssue.status === "under_review") && (
+                {selectedIssue.status === "open" && (
                   <>
                     <Button
                       type="button"
@@ -795,7 +795,7 @@ function ExceptionsAndIssuesContent() {
                   <label className="font-bold text-muted-foreground">Issue Classification *</label>
                   <select
                     value={newType}
-                    onChange={(e) => setNewType(e.target.value as any)}
+                    onChange={(e) => setNewType(e.target.value as typeof newType)}
                     className="w-full text-xs p-2 rounded-lg border border-border bg-background focus:outline-none h-9"
                   >
                     <option value="Damaged Goods">Damaged Goods</option>
@@ -979,6 +979,31 @@ function ExceptionsAndIssuesContent() {
       )}
     </div>
   );
+}
+
+/**
+ * Photos are stored with the issue until shared file storage exists, so keep them small: at most 1280px on the
+ * longest side, as a JPEG data URL (usually 100–300 KB).
+ */
+function shrinkPhoto(file: File, maxSide = 1280): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.75));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Not an image"));
+    };
+    image.src = url;
+  });
 }
 
 export default function ExceptionsAndIssuesPage() {

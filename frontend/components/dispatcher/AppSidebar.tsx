@@ -10,12 +10,13 @@ import {
   Truck, 
   MapPin, 
   AlertCircle, 
-  CarFront, 
+  CarFront,
   Store, 
   LineChart, 
   PieChart, 
-  Command
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 import { getDispatcherDepot, DEPOT_CHANGE_EVENT, type DispatcherDepot } from "@/lib/dispatcher-depot";
@@ -44,8 +46,9 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+  const { logout } = useAuth();
   const [userName, setUserName] = React.useState<string>("Dispatcher");
-  const [userRole, setUserRole] = React.useState<string>("DISPATCHER");
   const [depot, setDepot] = React.useState<DispatcherDepot>(getDispatcherDepot());
   const [isAssigned, setIsAssigned] = React.useState<boolean>(true);
 
@@ -55,7 +58,6 @@ export function AppSidebar() {
         if (!res.ok) return;
         const data = await res.json();
         if (data.user_name) setUserName(data.user_name);
-        if (data.user_role) setUserRole(data.user_role);
         if (data.depot) setDepot(data.depot);
         if (data.is_assigned !== undefined) setIsAssigned(data.is_assigned);
       })
@@ -69,64 +71,61 @@ export function AppSidebar() {
     return () => window.removeEventListener(DEPOT_CHANGE_EVENT, onDepotChange);
   }, []);
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return name.slice(0, 2).toUpperCase();
-  };
-
   const getDepotLabel = () => {
     if (!isAssigned) return "Unassigned Hub";
     return depot === "kandy" ? "Kandy Regional DC" : "Peliyagoda Central DC";
   };
 
   return (
-    <Sidebar variant="inset">
-      <SidebarHeader className="p-4 flex items-center justify-start flex-row h-16 border-b border-sidebar-border">
-        <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Command className="size-4" />
-        </div>
-        <div className="grid flex-1 text-left text-sm leading-tight ml-3">
-          <span className="truncate font-semibold text-sidebar-foreground">WAYPOINT</span>
-          <span className="truncate text-xs text-sidebar-foreground/70">Dispatch Portal</span>
-        </div>
-      </SidebarHeader>
-      <SidebarContent className="p-2 pt-4">
-        <SidebarMenu>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/dispatcher" && pathname.startsWith(`${item.href}/`));
-            return (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={isActive} 
-                  tooltip={item.name}
-                  className="font-medium text-[13px] h-9"
-                >
-                  <Link href={item.href} aria-current={isActive ? "page" : undefined}>
-                    <item.icon className="size-4" />
-                    <span>{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarContent>
-      <SidebarFooter className="p-3 border-t border-sidebar-border">
-        {/* Dynamic User Account Footer */}
-        <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-full bg-accent flex items-center justify-center text-accent-foreground font-semibold text-xs border border-border shrink-0">
-            {getInitials(userName)}
+    <Sidebar>
+      <div className="flex h-full flex-col bg-primary text-primary-foreground">
+        <SidebarHeader className="gap-2 px-6 pt-8 pb-0">
+          <span className="text-xl font-semibold leading-tight">WAYPOINT</span>
+          <span className="text-sm text-primary-foreground/70">Dispatch Portal</span>
+        </SidebarHeader>
+        <SidebarContent className="px-4 pt-8">
+          <nav aria-label="Dispatcher">
+            <SidebarMenu className="gap-2">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href || (item.href !== "/dispatcher" && pathname.startsWith(`${item.href}/`));
+                return (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton
+                      asChild
+                      data-active={isActive ? true : undefined}
+                      className="h-11 gap-4 rounded-lg px-3 font-medium text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground active:bg-primary-foreground/10 active:text-primary-foreground data-active:bg-card data-active:text-primary data-active:hover:bg-card data-active:hover:text-primary [&_svg]:size-6"
+                    >
+                      <Link href={item.href} aria-current={isActive ? "page" : undefined} onClick={() => setOpenMobile(false)}>
+                        <item.icon aria-hidden="true" />
+                        <span>{item.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </nav>
+        </SidebarContent>
+        <SidebarFooter className="px-4 pt-4 pb-6">
+          <div className="flex flex-col gap-2 rounded-lg bg-primary-foreground/10 p-4 text-sm">
+            <span className="font-bold">{userName}</span>
+            <span className="text-primary-foreground/70">{getDepotLabel()}</span>
+            <span className="text-primary-foreground/70">Dispatcher</span>
           </div>
-          <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-            <span className="text-xs font-semibold text-sidebar-foreground truncate">{userName}</span>
-            <span className={`text-[11px] truncate font-medium ${!isAssigned ? "text-amber-600 font-semibold" : "text-sidebar-foreground/70"}`}>
-              {getDepotLabel()}
-            </span>
-          </div>
-        </div>
-      </SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                type="button"
+                onClick={() => void logout(true)}
+                className="h-11 gap-4 rounded-lg px-3 font-medium text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground [&_svg]:size-6"
+              >
+                <LogOut aria-hidden="true" />
+                <span>Log out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </div>
     </Sidebar>
   );
 }

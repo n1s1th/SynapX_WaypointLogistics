@@ -12,6 +12,7 @@ class OutletSettings(Base):
     id = Column(Integer, primary_key=True, index=True)
     outlet_id = Column(Integer, ForeignKey("outlets.id"), unique=True, nullable=False, index=True)
     store_manager = Column(String(255), nullable=True)
+    store_manager_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     contact_phone = Column(String(50), nullable=True)
     emergency_contact = Column(String(255), nullable=True)
     parking = Column(String(100), default="No restrictions", nullable=False)

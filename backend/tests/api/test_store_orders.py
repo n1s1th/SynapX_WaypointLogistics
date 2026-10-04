@@ -441,7 +441,7 @@ def test_outside_dev_mode_only_store_managers_and_admins_open_a_store(client, ou
     assert client.get("/api/v1/store/me").status_code == 422  # an admin has to say which store
 
 
-def test_dispatcher_run_moves_store_orders_on_the_way_then_delivered(client, clock, outlets, db_session):
+def test_dispatcher_run_moves_store_orders_on_the_way_then_delivered(client, clock, outlets, db_session, monkeypatch):
     from app.models.allocation import Allocation, AllocationStatus
     from app.models.fleet import Vehicle
     from app.models.order import Order, OrderStatus
@@ -473,7 +473,10 @@ def test_dispatcher_run_moves_store_orders_on_the_way_then_delivered(client, clo
     detail = client.get(f"/api/v1/orders/store/{chilled['order_number']}").json()
     assert detail["delivery"]["vehicle_code"] == "VEH099" and detail["delivery"]["trip_status"] == "scheduled"
 
-    # The truck leaves: both stores see "On the way".
+    # The truck leaves: both stores see "On the way". (A run must have a dock run before it goes en route;
+    # that rule is the dispatcher's, so it's satisfied here rather than building a whole dock plan.)
+    from app.services.loader_service import loader_service
+    monkeypatch.setattr(loader_service, "run_for_dispatch_trip", lambda db, trip_id: object())
     assert client.patch(f"/api/v1/delivery-runs/{trip.id}", json={"status": "en_route"}).status_code == 200
     statuses = {o["order_number"]: o["status"] for o in client.get("/api/v1/orders/store", params={"outlet_id": fresh.id}).json()}
     assert statuses[chilled["order_number"]] == "DISPATCHED"
@@ -484,3 +487,65 @@ def test_dispatcher_run_moves_store_orders_on_the_way_then_delivered(client, clo
     assert client.get(f"/api/v1/orders/store/{jeans['order_number']}").json()["status"] == "DISPATCHED"
     types = [n["type"] for n in client.get("/api/v1/notifications/", params={"outlet_id": fresh.id}).json()]
     assert "delivered" in types
+
+
+def test_store_manager_edits_and_withdraws_only_open_issues_and_cannot_resolve_them(client, outlets, db_session, sign_in):
+    from app.models.store_manager import StoreManagerAssignment
+    from app.models.user import User, UserRole
+
+    manager = User(email="sm.issues@waypoint.com", full_name="Nadee Perera", role=UserRole.STORE_MANAGER, is_active=True)
+    db_session.add(manager)
+    db_session.flush()
+    db_session.add(StoreManagerAssignment(user_id=manager.id, outlet_id=outlets["fresh"].id))
+    db_session.commit()
+    sign_in(manager)
+
+    issue = client.post(
+        "/api/v1/issues", json={"issue_type": "Damaged Goods", "title": "Crushed cartons", "description": "2 cartons crushed"}
+    ).json()
+    assert issue["reported_by"] == "Nadee Perera (Store Manager)" and issue["outlet_id"] == outlets["fresh"].id
+
+    # The manager can correct details while it's open, but not resolve it or set a claim.
+    assert client.patch(f"/api/v1/issues/{issue['id']}", json={"received_units": 6}).status_code == 200
+    assert client.patch(f"/api/v1/issues/{issue['id']}", json={"status": "resolved"}).status_code == 403
+    assert client.patch(f"/api/v1/issues/{issue['id']}", json={"claimed_amount": "5000"}).status_code == 403
+
+    # Once the depot starts reviewing, it's locked for the store.
+    dispatcher = User(email="disp.issues@waypoint.com", full_name="Depot Dispatcher", role=UserRole.DISPATCHER, is_active=True)
+    db_session.add(dispatcher)
+    db_session.commit()
+    sign_in(dispatcher)
+    assert client.patch(f"/api/v1/issues/{issue['id']}", json={"status": "under_review"}).status_code == 200
+    sign_in(manager)
+    assert client.patch(f"/api/v1/issues/{issue['id']}", json={"received_units": 5}).status_code == 409
+    assert client.delete(f"/api/v1/issues/{issue['id']}").status_code == 409
+
+    # Oversized photos are refused.
+    too_big = "data:image/jpeg;base64," + "A" * 2_000_001
+    assert client.post(
+        "/api/v1/issues", json={"issue_type": "Other", "title": "Photo", "description": "x", "photo_url": too_big}
+    ).status_code == 422
+
+
+def test_assigning_and_moving_a_manager_keeps_login_and_email_links_in_step(client, outlets, db_session):
+    from app.models.outlet_settings import OutletSettings
+    from app.models.store_manager import StoreManagerAssignment
+    from app.models.user import User, UserRole
+
+    manager = User(email="sm.move@waypoint.com", full_name="Ruwan Silva", role=UserRole.STORE_MANAGER, is_active=True)
+    db_session.add(manager)
+    db_session.commit()
+    fresh, style = outlets["fresh"], outlets["style"]
+    settings_of = lambda outlet: db_session.query(OutletSettings).filter_by(outlet_id=outlet.id).first()
+
+    client.post(f"/api/v1/outlets/{fresh.id}/assign-manager", json={"user_id": manager.id})
+    db_session.expire_all()
+    assert settings_of(fresh).store_manager_user_id == manager.id
+    assert db_session.query(StoreManagerAssignment).filter_by(user_id=manager.id).one().outlet_id == fresh.id
+
+    # Moving them to the Style outlet unlinks Fresh for both login and emails.
+    client.post(f"/api/v1/outlets/{style.id}/assign-manager", json={"user_id": manager.id})
+    db_session.expire_all()
+    assert settings_of(style).store_manager_user_id == manager.id
+    assert settings_of(fresh).store_manager_user_id is None
+    assert db_session.query(StoreManagerAssignment).filter_by(user_id=manager.id).one().outlet_id == style.id

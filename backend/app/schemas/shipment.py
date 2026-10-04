@@ -52,6 +52,7 @@ class DispatchTripRead(DispatchTripBase):
 
 class DeliveryRunResponse(DispatchTripRead):
     loader: Optional[Dict[str, Any]] = None
+    loader_warning: Optional[str] = None
 
 
 class DeliveryRunUpdate(BaseModel):

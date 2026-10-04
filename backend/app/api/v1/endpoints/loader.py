@@ -9,8 +9,9 @@ plus the dev-only simulation endpoints from L0.
 Every backend route here is owned by Sachintha (docs/loader/API_CONTRACT.md).
 """
 from typing import List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api import deps
@@ -254,6 +255,37 @@ def flag_issue(payload: schemas.FlagIssueRequest, db: Session = Depends(deps.get
         issue = loader_service.flag_issue(db, payload)
     except FlagRequestError as exc:
         raise HTTPException(status_code=422, detail={"code": "INVALID_FLAG", "message": exc.message})
+    from app.email.service import queue_loader_issue
+    queue_loader_issue(db, issue)
+    db.commit()
+    return loader_service.build_issue_detail(db, issue)
+
+
+# A flag photo: JPEG, PNG or WebP up to 5 MB. The tablet shrinks it first
+# (longest side 1600 px), so a real one is a few hundred KB.
+FLAG_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+FLAG_PHOTO_MAX_BYTES = 5 * 1024 * 1024
+
+
+@router.post("/issues/by-action/{client_action_id}/photo", response_model=schemas.IssueDetailRead)
+async def upload_issue_photo(
+    client_action_id: UUID, file: UploadFile = File(...), db: Session = Depends(deps.get_db)
+):
+    """Attach a photo to a flag, found by the flag's client_action_id (known
+    to the tablet before the flag syncs). 404 until the flag is on the server;
+    413 over 5 MB; 415 for anything but JPEG, PNG or WebP. A flag that already
+    has a photo keeps it and is returned unchanged."""
+    if file.content_type not in FLAG_PHOTO_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail={"code": "UNSUPPORTED_PHOTO_TYPE", "message": "Send a JPEG, PNG or WebP photo."},
+        )
+    contents = await file.read(FLAG_PHOTO_MAX_BYTES + 1)
+    if len(contents) > FLAG_PHOTO_MAX_BYTES:
+        raise HTTPException(
+            status_code=413, detail={"code": "PHOTO_TOO_LARGE", "message": "The photo is over 5 MB."}
+        )
+    issue = loader_service.attach_issue_photo(db, str(client_action_id), contents, file.content_type)
     db.commit()
     return loader_service.build_issue_detail(db, issue)
 

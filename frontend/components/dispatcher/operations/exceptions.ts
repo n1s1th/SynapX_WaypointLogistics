@@ -1,3 +1,5 @@
+import { getAccessToken } from "@/lib/auth";
+
 export interface ShipmentRecord {
   id: number;
   tracking_number: string;
@@ -17,7 +19,7 @@ export interface ShipmentRecord {
 
 export interface OperationException {
   id: string;
-  source: "loader" | "driver" | "tracking";
+  source: "loader" | "driver" | "tracking" | "store";
   kind: string;
   title: string;
   detail: string;
@@ -27,14 +29,24 @@ export interface OperationException {
   driver_name: string | null;
   reference: string | null;
   severity: "critical" | "warning";
+  issue_code?: string;
+  outlet_code?: string | null;
+  outlet_name?: string | null;
+  reported_by?: string | null;
+  affected_item?: string | null;
 }
 
 export async function fetchOperationExceptions(signal: AbortSignal): Promise<OperationException[]> {
   const base = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000").replace(/\/$/, "");
-  const response = await fetch(`${base}/api/v1/operations/exceptions`, { signal, cache: "no-store" });
+  const token = getAccessToken();
+  const response = await fetch(`${base}/api/v1/operations/exceptions`, {
+    signal,
+    cache: "no-store",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   if (!response.ok) throw new Error(`Exceptions could not be loaded (${response.status}).`);
   const data: unknown = await response.json();
-  if (!Array.isArray(data) || !data.every((row) => row && typeof row.id === "string" && ["loader", "driver", "tracking"].includes(row.source) && typeof row.kind === "string" && typeof row.title === "string" && typeof row.detail === "string" && typeof row.status === "string" && ["critical", "warning"].includes(row.severity))) {
+  if (!Array.isArray(data) || !data.every((row) => row && typeof row.id === "string" && ["loader", "driver", "tracking", "store"].includes(row.source) && typeof row.kind === "string" && typeof row.title === "string" && typeof row.detail === "string" && typeof row.status === "string" && ["critical", "warning"].includes(row.severity))) {
     throw new Error("The exceptions response contains invalid records.");
   }
   return data as OperationException[];

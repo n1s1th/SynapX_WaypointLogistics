@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -454,10 +455,7 @@ export function UsersTab({ users, isLoading, onRefresh }: UsersTabProps) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
-                  <div className="flex items-center justify-center gap-2">
-                    <RefreshCw className="size-4 animate-spin text-primary" />
-                    <span>Loading Keycloak directory...</span>
-                  </div>
+                  <TableLoading label="Loading Keycloak directory..." />
                 </TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (

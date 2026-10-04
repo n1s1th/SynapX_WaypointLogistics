@@ -51,6 +51,17 @@ export interface Transport {
    * NetworkError when unreachable.
    */
   fetchIssues(query: { dock: string; run?: string }): Promise<LoaderIssue[]>;
+  /**
+   * GET /loader/issues/{id}: one issue, for the L8 waiting / decision screen.
+   * Undefined when it does not exist; throws NetworkError when unreachable.
+   */
+  fetchIssue(id: number): Promise<LoaderIssue | undefined>;
+  /**
+   * POST /loader/issues/by-action/{client_action_id}/photo: attach a flag's
+   * photo. "not_found" while the flag is not on the server yet (try after the
+   * next sync); "rejected" for a 413 / 415. Throws NetworkError when unreachable.
+   */
+  uploadIssuePhoto(clientActionId: string, photo: Blob): Promise<"ok" | "not_found" | "rejected">;
   /** GET /loader/users: the loaders registered at this tablet's depot. */
   fetchUsers(): Promise<LoaderUser[]>;
   /** POST /loader/session. Undefined for a wrong PIN (401); throws NetworkError when unreachable. */
@@ -135,6 +146,24 @@ export function apiTransport(baseUrl: string): Transport {
       const res = await request(`${api}/loader/issues?${params}`, { cache: "no-store" });
       if (!res.ok) throw new NetworkError(`HTTP ${res.status}`);
       return (await res.json()) as LoaderIssue[];
+    },
+    async fetchIssue(id) {
+      const res = await request(`${api}/loader/issues/${id}`, { cache: "no-store" });
+      if (res.status === 404) return undefined;
+      if (!res.ok) throw new NetworkError(`HTTP ${res.status}`);
+      return (await res.json()) as LoaderIssue;
+    },
+    async uploadIssuePhoto(clientActionId, photo) {
+      const form = new FormData();
+      form.append("file", photo, `flag.${photo.type.split("/")[1] ?? "jpg"}`);
+      const res = await request(`${api}/loader/issues/by-action/${encodeURIComponent(clientActionId)}/photo`, {
+        method: "POST",
+        body: form,
+      });
+      if (res.ok) return "ok";
+      if (res.status === 404) return "not_found";
+      if (res.status === 413 || res.status === 415) return "rejected";
+      throw new NetworkError(`HTTP ${res.status}`);
     },
     async fetchUsers() {
       const res = await request(`${api}/loader/users`, { cache: "no-store" });
@@ -534,6 +563,28 @@ export function mockTransport(latencyMs = 300): Transport {
         .filter((i) => !run || i.run_code === run)
         .sort((a, b) => b.reported_at.localeCompare(a.reported_at));
     },
+    async fetchIssue(id) {
+      if (!(await probeConnectivity())) throw new NetworkError();
+      await new Promise((r) => setTimeout(r, latencyMs));
+      return loadMockIssues().find((i) => i.id === id);
+    },
+    async uploadIssuePhoto(clientActionId, photo) {
+      if (!(await probeConnectivity())) throw new NetworkError();
+      const issues = loadMockIssues();
+      if (!issues.some((i) => i.client_action_id === clientActionId)) return "not_found";
+      // No storage behind the mock: keep the photo on the issue as a data URL.
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsDataURL(photo);
+      });
+      saveMockIssues(
+        issues.map((i) =>
+          i.client_action_id === clientActionId && !i.photo_path ? { ...i, photo_path: dataUrl, photo_url: dataUrl } : i,
+        ),
+      );
+      return "ok";
+    },
     async fetchUsers() {
       if (!(await probeConnectivity())) throw new NetworkError();
       await new Promise((r) => setTimeout(r, latencyMs));
@@ -576,6 +627,8 @@ const MOCK_ISSUES_KEY = "waypoint-loader-mock-server-v2-issues";
 interface StoredMockIssue extends LoaderIssue {
   /** The flag's client_action_id, so a replay answers with the same issue. */
   client_action_id?: string;
+  /** The flag photo (a data URL in the mock), as IssueDetailRead.photo_url. */
+  photo_url?: string | null;
 }
 
 /** Issues on the mock server: the seeded ones, then any flagged in this browser. */

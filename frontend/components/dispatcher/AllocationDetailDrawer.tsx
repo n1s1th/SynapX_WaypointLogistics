@@ -84,7 +84,11 @@ export function AllocationDetailDrawer({
       );
       if (res.ok) {
         const run = await res.json();
-        toast.success(`Delivery run ${run.trip_code} created — vehicle dispatched!`);
+        if (run.loader_warning) {
+          toast.warning(`Trip ${run.trip_code} created, but it was not sent to the dock: ${run.loader_warning}`);
+        } else {
+          toast.success(`Delivery run ${run.trip_code} created — vehicle dispatched!`);
+        }
         onSuccess();
         onOpenChange(false);
         router.push(`/dispatcher/delivery-runs`);

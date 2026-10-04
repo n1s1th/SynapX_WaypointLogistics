@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, DateTime, Enum, Text, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import object_session, relationship
 from app.core.database import Base
 
 class DriverTripStatus(str, enum.Enum):
@@ -68,6 +68,22 @@ class DriverTrip(Base):
         """The truck on this trip, e.g. VEH005 (not a column)."""
         return self.dispatch_trip.vehicle_number if self.dispatch_trip else None
 
+    @property
+    def depot_name(self):
+        """The depot of the trip's truck (set by Admin), e.g. peliyagoda (not a column).
+        Copied onto the dispatcher's trip at dispatch; else read from the truck."""
+        trip = self.dispatch_trip
+        if trip is None:
+            return None
+        if trip.depot_name:
+            return trip.depot_name
+        session = object_session(self)
+        if trip.vehicle_id is None or session is None:
+            return None
+        from app.models.fleet import Vehicle
+        vehicle = session.get(Vehicle, trip.vehicle_id)
+        return vehicle.depot_name if vehicle is not None else None
+
 
 class DeliveryStop(Base):
     __tablename__ = "delivery_stops"
@@ -128,6 +144,10 @@ class IssueReport(Base):
 
 class SOSAlert(Base):
     __tablename__ = "sos_alerts"
+    # photo_url is in the table (migration 0016_sos_photo) but not mapped: saving and reading
+    # an SOS never name it, so both keep working on a database where the migration hasn't
+    # run yet. driver_service._save_sos_photo writes it through the table.
+    __mapper_args__ = {"exclude_properties": ["photo_url"]}
 
     id = Column(Integer, primary_key=True, index=True)
     driver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -135,6 +155,7 @@ class SOSAlert(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     message = Column(String(500), nullable=True)
+    photo_url = Column(Text, nullable=True)  # Cloudflare R2 link to the driver's photo
     status = Column(Enum(SOSStatus), default=SOSStatus.TRIGGERED, nullable=False)
     triggered_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     acknowledged_at = Column(DateTime, nullable=True)

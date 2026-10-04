@@ -10,7 +10,6 @@ import {
   Clock,
   ExternalLink,
   Package,
-  RefreshCw,
   Search,
   ShoppingCart,
   Truck,
@@ -24,6 +23,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Input } from "@/components/ui/input";
 import { StoreMetricCard } from "@/components/store/store-cards";
 import { StorePill, StorePillTone } from "@/components/store/status-pill";
@@ -239,16 +239,16 @@ export default function ShortfallsAndBackordersPage() {
       <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
         {/* Tabs Row */}
         <div className="flex items-center border-b border-border/80 px-4 pt-3 gap-1 overflow-x-auto">
-          {[
+          {([
             { key: "all", label: `All (${totalShortfalls})` },
             { key: "back_ordered", label: `Back-ordered (${backOrderedCount})` },
             { key: "short_delivered", label: `Short Delivered (${shortDeliveredCount})` },
             { key: "under_review", label: `Under Review (${underReviewCount})` },
-          ].map((tab) => (
+          ] as const).map((tab) => (
             <button
               key={tab.key}
               type="button"
-              onClick={() => setSelectedTab(tab.key as any)}
+              onClick={() => setSelectedTab(tab.key)}
               className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
                 selectedTab === tab.key
                   ? "border-primary text-primary font-bold"
@@ -296,8 +296,7 @@ export default function ShortfallsAndBackordersPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                    <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
-                    Loading shortfall records...
+                    <TableLoading label="Loading shortfall records..." />
                   </td>
                 </tr>
               ) : paginatedShortfalls.length === 0 ? (

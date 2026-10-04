@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pencil } from "lucide-react";
 
 const PAGE_SIZE = 7;
 const columns = ["Vehicle", "Type", "Temp", "Depot", "Weight Cap", "Volume Cap", "Availability", "Fuel status", "Action"];
@@ -47,7 +48,7 @@ export default function FleetPage() {
   const [temperature, setTemperature] = useState("all");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
-  const [editor, setEditor] = useState<FleetVehicle | "new" | null>(null);
+  const [editor, setEditor] = useState<FleetVehicle | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -105,7 +106,6 @@ export default function FleetPage() {
         <p className="mt-2 text-sm text-muted-foreground">Manage vehicle specifications, availability, and current maintenance and fuel status.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setEditor("new")}>Add vehicle</Button>
           <Button variant="outline" disabled={loading} onClick={() => { setLoading(true); setError(null); setRequest((value) => value + 1); }}>Refresh</Button>
           <Button variant="outline" disabled={loading || !!error || !filtered.length} onClick={() => downloadCsv("fleet.csv", [["Vehicle", "Type", "Temperature", "Depot", "Weight capacity (kg)", "Volume capacity (m3)", "Status", "Fuel status", "Maintenance"], ...filtered.map((v) => [v.code, v.vehicle_type, v.temperature_mode, v.depot_name, v.capacity_kg, v.capacity_vol_m3, v.status, v.weekly_fuel_status, v.maintenance_state ?? "Not recorded"])])}>Export CSV</Button>
         </div>
@@ -144,9 +144,9 @@ export default function FleetPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-5 pb-5" aria-busy={loading}>
-          <Table className="min-w-[960px] table-fixed text-xs">
+          <Table className="dispatcher-table min-w-[1020px] table-fixed">
             <TableHeader><TableRow className="hover:bg-transparent">
-              {columns.map((column) => <TableHead key={column} scope="col" className="h-11 px-2 text-xs font-semibold first:pl-0 last:text-center">{column}</TableHead>)}
+              {columns.map((column) => <TableHead key={column} scope="col" className="h-11 px-2 text-xs font-semibold first:pl-0 last:text-right">{column}</TableHead>)}
             </TableRow></TableHeader>
             <TableBody>
               {loading ? Array.from({ length: PAGE_SIZE }, (_, index) => <TableRow key={index} className="h-[70px]">
@@ -165,7 +165,15 @@ export default function FleetPage() {
                   <TableCell>{formatCapacity(vehicle.capacity_vol_m3, "m³")}</TableCell>
                   <TableCell className="capitalize text-muted-foreground">{vehicle.status}</TableCell>
                   <TableCell className="whitespace-normal break-words text-muted-foreground">{vehicle.weekly_fuel_status}</TableCell>
-                  <TableCell className="text-center"><div className="flex flex-col gap-2"><VehicleDetails vehicle={vehicle} /><Button size="sm" variant="outline" aria-label={`Edit ${vehicle.code}`} onClick={() => setEditor(vehicle)}>Edit</Button></div></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <VehicleDetails vehicle={vehicle} />
+                      <Button size="sm" variant="ghost" className="h-8 gap-1.5 px-2.5 text-xs font-medium text-primary hover:bg-accent hover:text-accent-foreground" aria-label={`Edit ${vehicle.code}`} onClick={() => setEditor(vehicle)}>
+                        <Pencil className="size-3.5" aria-hidden="true" />
+                        Edit
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>)}
             </TableBody>
           </Table>
@@ -180,7 +188,7 @@ export default function FleetPage() {
           </nav>}
         </CardContent>
       </Card>
-      {editor && <VehicleEditor vehicle={editor === "new" ? undefined : editor} onClose={() => setEditor(null)} onSaved={(saved) => {
+      {editor && <VehicleEditor vehicle={editor} onClose={() => setEditor(null)} onSaved={(saved) => {
         setVehicles((current) => [...current.filter((v) => v.id !== saved.id), saved].sort((a, b) => a.code.localeCompare(b.code, "en", { numeric: true })));
         clearFilters();
       }} />}

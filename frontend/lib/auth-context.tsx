@@ -117,6 +117,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Initialize session after hydration, with the refresh callback defined.
+  useEffect(() => {
+    const initial = setTimeout(() => {
+      try {
+        const storedToken = getAccessToken();
+        const storedUser = getStoredUser();
+        if (storedToken && storedUser) {
+          const payload = decodeJwt<KeycloakTokenPayload>(storedToken);
+          if (payload?.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+            void refreshSession();
+          } else {
+            setTokenState(storedToken);
+            setUser(storedUser);
+          }
+        }
+      } catch {
+        clearAuthSession();
+      } finally {
+        setIsLoading(false);
+      }
+    }, 0);
+    return () => clearTimeout(initial);
+  }, [refreshSession]);
+
   /**
    * Initiates OIDC PKCE redirect to Keycloak login screen
    */

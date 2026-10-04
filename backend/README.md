@@ -58,3 +58,15 @@ Once the server is running, explore the interactive OpenAPI documentation:
 ```bash
 pytest
 ```
+
+## Operational email
+
+The backend uses one application SMTP account as the sender. Users do not need separate SMTP credentials. It queues email in `email_outbox` in the same database transaction as the related action, and a separate worker delivers it. Driver SOS, loader issues awaiting dispatcher decisions, and driver issues go to the active dispatcher assigned to the relevant depot. Store deferrals and partial allocations go to the active user assigned to the outlet, then the active store manager who placed the order, then an outlet manager contact. The store's `email_alerts_issues` preference controls those store messages. Assign outlet managers by user ID so two people with the same name cannot be confused. Set real email addresses on user or outlet contact records before enabling delivery. Messages with no recipient are logged and skipped; messages are not queued while `EMAIL_ENABLED=false`.
+
+1. Apply migrations with `alembic upgrade head` before enabling email. Migration `0012_outlet_manager_user` adds the saved outlet manager user ID. Reassign existing managers by user ID to link existing name-only records.
+2. Set `EMAIL_ENABLED=true`, `EMAIL_FROM`, `EMAIL_SMTP_HOST`, `EMAIL_SMTP_PORT`, and any required `EMAIL_SMTP_USERNAME` / `EMAIL_SMTP_PASSWORD` in `backend/.env`. Existing `EMAIL_USER` and `EMAIL_APP_PASSWORD` values are also accepted; when `EMAIL_USER` is a Gmail address, the module selects `smtp.gmail.com:587` with STARTTLS by default. Explicit SMTP settings take precedence. Use `EMAIL_SMTP_SSL=true` for an implicit TLS server.
+3. Run `python -m app.email.worker` as a separate long-running process. `--once` processes one batch for a scheduled job; `--interval` controls continuous polling (default 10 seconds).
+
+The worker retries temporary failures with increasing delays and marks a message `failed` after eight attempts. Inspect application logs for missing recipients and `email_outbox` for failures and send status. Each operational event has a stable event key, so replayed loader actions do not enqueue another message. As with any SMTP outbox, a process crash after SMTP accepts a message but before the database records success can result in a duplicate delivery.
+
+For an SMTP-only check, `python -m app.email.smoke` previews five sample subjects and `python -m app.email.smoke --send` sends them to `EMAIL_USER`. These messages are labeled `[TEST]` and do not create operational records or exercise the outbox. Use the automated tests to verify the event hooks; use a real sandbox event after deployment to verify the complete flow.

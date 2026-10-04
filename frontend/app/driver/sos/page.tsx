@@ -122,7 +122,7 @@ export default function SOSPage() {
     try {
       await apiFetch("/driver/sos", {
         method: "POST",
-        // photo_url is saved once sos_alerts has a photo_url column; ignored until then
+        // photo_url (Cloudflare R2 link) is saved with the SOS: sos_alerts.photo_url, migration 0016
         body: JSON.stringify({ ...alert, photo_url }),
       });
       // The success screen shows what was actually sent
@@ -182,7 +182,7 @@ export default function SOSPage() {
 
         {/* Emergency Type Section */}
         <div className="flex flex-col gap-2">
-          <span className="font-bold text-[14px]" style={{ color: "#171A1F" }}>What's happening?</span>
+          <span className="font-bold text-[14px]" style={{ color: "#171A1F" }}>What&apos;s happening?</span>
           
           <div className="grid grid-cols-2 gap-2">
             {emergencyTypes.map((type, idx) => {

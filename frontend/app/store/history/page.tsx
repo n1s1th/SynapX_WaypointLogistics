@@ -14,9 +14,9 @@ import {
   Calendar,
   ChevronRight,
   ExternalLink,
-  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Input } from "@/components/ui/input";
 import { StorePill } from "@/components/store/status-pill";
 import { StoreMetricCard } from "@/components/store/store-cards";
@@ -221,15 +221,15 @@ export default function DeliveryHistoryPage() {
       <div className="bg-card border border-border rounded-xl shadow-xs overflow-hidden">
         {/* Tabs (Figma 18:885) */}
         <div className="flex items-center border-b border-border/80 px-4 pt-3 gap-1 overflow-x-auto">
-          {[
+          {([
             { key: "all", label: `All (${totalCount})` },
             { key: "clean", label: `Clean (${cleanCount})` },
             { key: "issues", label: `With Issues (${issuesCount})` },
-          ].map((tab) => (
+          ] as const).map((tab) => (
             <button
               key={tab.key}
               type="button"
-              onClick={() => setSelectedTab(tab.key as any)}
+              onClick={() => setSelectedTab(tab.key)}
               className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
                 selectedTab === tab.key
                   ? "border-primary text-primary font-bold"
@@ -295,8 +295,7 @@ export default function DeliveryHistoryPage() {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                    <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
-                    Loading delivery history...
+                    <TableLoading label="Loading delivery history..." />
                   </td>
                 </tr>
               ) : paginatedHistory.length === 0 ? (

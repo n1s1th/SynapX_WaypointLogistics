@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.api.deps import get_db
@@ -8,6 +8,17 @@ from app.schemas.delivery_issue import DeliveryIssueCreate, DeliveryIssueRead, D
 from app.services.issue_service import issue_service
 
 router = APIRouter()
+
+# Fields only the depot (dispatcher/admin) sets while reviewing an issue.
+DEPOT_ONLY_FIELDS = {"status", "resolution_notes", "claimed_amount"}
+
+
+def _require_open(issue) -> None:
+    if issue.status != "open":
+        raise HTTPException(
+            status_code=409,
+            detail="The depot is already reviewing this issue, so it can't be changed or withdrawn now.",
+        )
 
 
 @router.get("", response_model=List[DeliveryIssueRead])
@@ -59,8 +70,17 @@ def update_issue(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ):
-    """Update issue status, resolution notes, claim amount, or details."""
-    deps.ensure_store_access(db, current_user, issue_service.get_issue(db, issue_id).outlet_id)
+    """Update issue status, resolution notes, claim amount, or details.
+
+    Store managers can correct the details of their own issue while it's still open; the review fields (status,
+    resolution notes, claimed amount) are the depot's to set.
+    """
+    issue = issue_service.get_issue(db, issue_id)
+    deps.ensure_store_access(db, current_user, issue.outlet_id)
+    if current_user.role in deps.STORE_ROLES:
+        if payload.model_dump(exclude_unset=True).keys() & DEPOT_ONLY_FIELDS:
+            raise HTTPException(status_code=403, detail="Only the depot can change an issue's status or claim.")
+        _require_open(issue)
     return issue_service.update_issue(db, issue_id, payload)
 
 
@@ -70,8 +90,10 @@ def delete_issue(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ):
-    """Delete or withdraw an issue/complaint."""
+    """Delete or withdraw an issue/complaint. A store manager can withdraw only while it's still open."""
     issue = issue_service.get_issue(db, issue_id)
     deps.ensure_store_access(db, current_user, issue.outlet_id)
+    if current_user.role in deps.STORE_ROLES:
+        _require_open(issue)
     issue_service.delete_issue(db, issue_id)
     return None

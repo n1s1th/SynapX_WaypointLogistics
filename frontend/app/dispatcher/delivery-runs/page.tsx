@@ -25,6 +25,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
 
 export interface DeliveryRunStop {
   id: string;
+  outlet_code: string;
   name: string;
   eta: string;
   sla_ok: boolean;
@@ -33,6 +34,7 @@ export interface DeliveryRunStop {
 
 export interface DeliveryRun {
   id: number;
+  allocation_id?: number | null;
   trip_code: string;
   vehicle_number: string;
   driver_name: string;
@@ -51,6 +53,7 @@ export interface DeliveryRun {
   total_volume_m3: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loader?: any;
+  loader_warning?: string | null;
 }
 
 export default function DeliveryRunsPage() {
@@ -89,17 +92,18 @@ export default function DeliveryRunsPage() {
     }
   }, []); // No dependencies — fetchRuns is stable
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { 
-    fetchRuns(false); 
+  const hasSelectedRun = selectedRun !== null;
+  useEffect(() => {
+    const initial = setTimeout(() => { void fetchRuns(); }, 0);
     let interval: NodeJS.Timeout;
-    if (selectedRun) {
+    if (hasSelectedRun) {
       interval = setInterval(() => fetchRuns(true), 15000);
     }
     return () => {
+      clearTimeout(initial);
       if (interval) clearInterval(interval);
     }
-  }, [fetchRuns, selectedRun !== null]);
+  }, [fetchRuns, hasSelectedRun]);
 
   // Derive "delayed" status on frontend (en_route + overdue ETA)
   const now = new Date();

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Eye } from "lucide-react";
 import { type FleetVehicle, formatCapacity } from "./fleet-data";
 
 const statusStyles: Record<string, string> = {
@@ -28,7 +29,10 @@ export function VehicleDetails({ vehicle }: { vehicle: FleetVehicle }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="h-9 w-20 rounded-md border-border bg-card text-xs shadow-none" aria-label={`View ${vehicle.code}`}>View</Button>
+        <Button variant="outline" size="sm" className="h-8 gap-1.5 border-border px-2.5 text-xs font-medium shadow-none" aria-label={`View ${vehicle.code}`}>
+          <Eye className="size-3.5" aria-hidden="true" />
+          View
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto border border-border p-5 sm:max-w-[460px]">
         <DialogHeader>

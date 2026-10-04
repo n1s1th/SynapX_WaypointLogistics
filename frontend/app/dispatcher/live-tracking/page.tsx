@@ -27,7 +27,7 @@ export interface LiveRun {
   estimated_arrival: string | null;
   stop_count: number;
   stops_completed: number;
-  stop_sequence: string[];
+  stop_sequence: (string | { name?: string })[];
   open_shortfalls: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loading_events: any[];
@@ -53,11 +53,7 @@ export default function LiveTrackingPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Use refs for polling pattern
-  const selectedRunRef = React.useRef<LiveRun | null>(null);
-  const fetchRunsRef = React.useRef<(() => Promise<void>) | undefined>(undefined);
-
-  fetchRunsRef.current = async () => {
+  const fetchRuns = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/v1/delivery-runs/live`);
@@ -65,10 +61,7 @@ export default function LiveTrackingPage() {
         const data: LiveRun[] = await res.json();
         setRuns(data);
         setLastRefreshed(new Date());
-        if (selectedRunRef.current) {
-          const updated = data.find((r) => r.id === selectedRunRef.current!.id);
-          if (updated) setSelectedRun(updated);
-        }
+        setSelectedRun(previous => previous ? data.find(r => r.id === previous.id) ?? previous : null);
       } else {
         toast.error("Failed to load live runs");
       }
@@ -77,21 +70,13 @@ export default function LiveTrackingPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fetchRuns = useCallback(() => {
-    fetchRunsRef.current?.();
   }, []);
 
   useEffect(() => {
-    selectedRunRef.current = selectedRun;
-  }, [selectedRun]);
-
-  useEffect(() => {
-    fetchRunsRef.current?.();
-    const id = setInterval(() => fetchRunsRef.current?.(), 30_000);
-    return () => clearInterval(id);
-  }, []);
+    const initial = setTimeout(() => { void fetchRuns(); }, 0);
+    const id = setInterval(() => { void fetchRuns(); }, 30_000);
+    return () => { clearTimeout(initial); clearInterval(id); };
+  }, [fetchRuns]);
 
   // Handlers for Dialog Flows
   const handleReviewException = () => {

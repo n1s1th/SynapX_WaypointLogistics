@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 from app.models.driver import DriverTrip, DeliveryStop, DeliveryStopStatus, IssueReport, IssueStatus, IssueType, SOSAlert
+from app.models.delivery_issue import DeliveryIssue
+from app.models.reference import Brand, Depot, DockType, Outlet
 from app.models.shipment import DispatchTrip
 from app.models.user import User, UserRole
 from app.api.v1.endpoints.operation_exceptions import list_operation_exceptions
@@ -30,3 +32,38 @@ def test_driver_reports_sos_missing_pod_and_stale_run_are_visible(db_session):
     db_session.query(IssueReport).update({IssueReport.status: IssueStatus.RESOLVED})
     db_session.flush()
     assert not any(record["kind"] == "issue" for record in list_operation_exceptions(db_session))
+
+
+def test_active_store_delivery_issue_appears_with_outlet_and_order(db_session, client):
+    outlet = Outlet(code="STORE-EX", name="Test Store", brand=Brand.FRESH, district="Colombo", dock_type=DockType.REAR_DOCK, depot=Depot.PELIYAGODA)
+    db_session.add(outlet)
+    db_session.flush()
+    issue = DeliveryIssue(
+        outlet_id=outlet.id,
+        order_number="ORD-EX",
+        issue_type="Missing Items",
+        title="Two cartons missing",
+        description="Only eight of ten cartons arrived.",
+        affected_item="Cartons",
+        reported_by="Test Manager (Store Manager)",
+        status="open",
+    )
+    db_session.add(issue)
+    db_session.flush()
+
+    record = next(row for row in list_operation_exceptions(db_session) if row["id"] == f"store:delivery_issue:{issue.id}")
+    assert record["reference"] == "ORD-EX"
+    assert record["outlet_code"] == "STORE-EX"
+    assert record["outlet_name"] == "Test Store"
+    assert record["reported_by"] == "Test Manager (Store Manager)"
+    response = client.get("/api/v1/operations/exceptions")
+    assert response.status_code == 200
+    assert any(row["id"] == record["id"] for row in response.json())
+
+    issue.status = "under_review"
+    db_session.flush()
+    assert any(row["id"] == record["id"] for row in list_operation_exceptions(db_session))
+
+    issue.status = "resolved"
+    db_session.flush()
+    assert not any(row["id"] == record["id"] for row in list_operation_exceptions(db_session))

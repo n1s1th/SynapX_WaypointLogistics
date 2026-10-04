@@ -4,6 +4,7 @@ import { StatusBadge, StatusVariant } from "@/components/dispatcher/StatusBadge"
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 
 import { DeliveryRun } from "@/app/dispatcher/delivery-runs/page";
 
@@ -38,7 +39,7 @@ export function DeliveryRunTable({ runs, isLoading, selectedRunId, onRowClick }:
       </CardHeader>
       <CardContent className="p-0 bg-white">
         <div className="overflow-x-auto">
-          <Table className="w-full text-left border-collapse">
+          <Table className="dispatcher-table w-full text-left border-collapse">
             <TableHeader className="border-b border-[#E5E5E2] bg-[#F8F9FA] text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
               <TableRow>
                 <TableHead className="pl-6 px-4 text-left w-[120px] whitespace-nowrap">Run</TableHead>
@@ -56,7 +57,7 @@ export function DeliveryRunTable({ runs, isLoading, selectedRunId, onRowClick }:
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
-                    Loading delivery runs...
+                    <TableLoading label="Loading delivery runs..." />
                   </TableCell>
                 </TableRow>
               ) : runs.length === 0 ? (

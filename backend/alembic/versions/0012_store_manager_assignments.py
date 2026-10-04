@@ -28,13 +28,14 @@ def upgrade() -> None:
 
     # Backfill from the names the admin screen saved. Only exact (case-insensitive) matches to a single
     # store manager account, and only when that account matches one outlet, so nothing is guessed.
+    # role is compared as text: on a fresh database the STORE_MANAGER enum value only arrives in 0014.
     op.execute(
         """
         INSERT INTO store_manager_assignments (user_id, outlet_id)
         SELECT u.id, MIN(s.outlet_id)
         FROM outlet_settings s
         JOIN users u ON lower(trim(u.full_name)) = lower(trim(s.store_manager))
-        WHERE u.role IN ('STORE_MANAGER', 'WAREHOUSE_MANAGER')
+        WHERE u.role::text IN ('STORE_MANAGER', 'WAREHOUSE_MANAGER')
           AND (SELECT count(*) FROM users u2 WHERE lower(trim(u2.full_name)) = lower(trim(s.store_manager))) = 1
         GROUP BY u.id
         HAVING count(DISTINCT s.outlet_id) = 1

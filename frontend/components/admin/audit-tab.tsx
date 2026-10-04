@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -160,7 +161,7 @@ export function AuditTab({ logs, isLoading, onRefresh }: AuditTabProps) {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
-                  Loading audit logs...
+                  <TableLoading label="Loading audit logs..." />
                 </TableCell>
               </TableRow>
             ) : filteredLogs.length === 0 ? (

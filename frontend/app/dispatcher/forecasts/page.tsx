@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useOrders } from "@/components/dispatcher/operations/use-orders";
 import { downloadCsv, forecastOrders, orderDay } from "@/components/dispatcher/operations/data";
-import { Bars, Choice, DataGate, ModuleHeader, Notice, PagedTable, Panel } from "@/components/dispatcher/operations/shared";
+import { Bars, Choice, DataGate, ModuleHeader, PagedTable, Panel } from "@/components/dispatcher/operations/shared";
 
 export default function ForecastsPage() {
   const source = useOrders();
@@ -23,7 +23,6 @@ export default function ForecastsPage() {
     <ModuleHeader title="Forecasts" description="Explore a baseline estimate of future order intake using recorded history." loading={source.loading} refresh={refresh}>
       <Button variant="outline" disabled={source.loading || !!source.error || !ready} onClick={() => { if (result) downloadCsv("order-intake-estimate.csv", [["Forecast date (Asia/Colombo)", "Estimated orders", "Method", "History start", "History end", "Generated at", "Assumption"], ...result.predictions.map((d) => [d.day, d.count.toFixed(2), "Daily average", result.start, result.end, source.updated ?? "", "User confirmed complete history; days without orders counted as zero"])]); }}>Export estimate</Button>
     </ModuleHeader>
-    <Notice>This is an exploratory daily-average baseline, not a validated demand model. It predicts order creation counts, not delivery dates or vehicle requirements. Estimates are calculated on demand and are not saved.</Notice>
     <div className="flex flex-wrap gap-3">
       <Choice label="History window" value={windowDays} onChange={(v) => { setWindowDays(v); setComplete(false); setPage(1); }} options={[14, 28, 56].map((n) => ({ value: String(n), label: `${n} complete history days` }))} />
       <Choice label="Forecast horizon" value={horizon} onChange={(v) => { setHorizon(v); setPage(1); }} options={[7, 14].map((n) => ({ value: String(n), label: `Next ${n} days` }))} />

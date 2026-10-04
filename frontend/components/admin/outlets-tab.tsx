@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -564,7 +565,7 @@ export function OutletsTab({ outlets, users = [], isLoading, onRefresh }: Outlet
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
-                  Loading outlets...
+                  <TableLoading label="Loading outlets..." />
                 </TableCell>
               </TableRow>
             ) : filteredOutlets.length === 0 ? (
@@ -659,7 +660,7 @@ export function OutletsTab({ outlets, users = [], isLoading, onRefresh }: Outlet
                         onClick={() => {
                           setAssigningOutlet(outlet);
                           const matched = storeManagers.find(
-                            (m) => m.full_name.toLowerCase() === (outlet.store_manager || "").toLowerCase()
+                            (m) => m.id === outlet.store_manager_user_id
                           );
                           if (matched) {
                             setSelectedManagerUserId(String(matched.id));

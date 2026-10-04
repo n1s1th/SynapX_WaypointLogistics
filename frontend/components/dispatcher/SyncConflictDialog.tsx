@@ -16,7 +16,8 @@ export function SyncConflictDialog({ open, run, onClose, onBack, onResolve }: Sy
   const [choice, setChoice] = useState<"field" | "dispatcher" | null>(null);
 
   const stops = run.stop_sequence || [];
-  const currentStop = stops[run.stops_completed] ? (typeof stops[run.stops_completed] === 'string' ? stops[run.stops_completed] : (stops[run.stops_completed] as any).name || `Stop ${run.stops_completed + 1}`) : "—";
+  const nextStop = stops[run.stops_completed];
+  const currentStop = nextStop ? (typeof nextStop === 'string' ? nextStop : nextStop.name || `Stop ${run.stops_completed + 1}`) : "—";
   const updatedTime = run.updated_at ? new Date(run.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
   const departTime = run.departure_time ? new Date(run.departure_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
 

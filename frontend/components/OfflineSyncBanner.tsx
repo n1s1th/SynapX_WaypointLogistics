@@ -19,7 +19,7 @@ export function OfflineSyncBanner() {
   }, []);
 
   useEffect(() => {
-    checkQueue();
+    const initial = setTimeout(checkQueue, 0);
 
     const handleOnline = () => {
       checkQueue();
@@ -37,6 +37,7 @@ export function OfflineSyncBanner() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("storage", handleStorageChange);
+      clearTimeout(initial);
       clearInterval(interval);
     };
   }, [checkQueue]);

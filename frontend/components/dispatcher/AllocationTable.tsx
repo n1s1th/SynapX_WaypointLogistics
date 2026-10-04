@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge, StatusVariant } from "./StatusBadge";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import {
   Card,
   CardContent,
@@ -46,10 +47,11 @@ export interface Allocation {
 
 interface AllocationTableProps {
   allocations: Allocation[];
+  isLoading?: boolean;
   onViewClick: (allocation: Allocation) => void;
 }
 
-export function AllocationTable({ allocations, onViewClick }: AllocationTableProps) {
+export function AllocationTable({ allocations, isLoading = false, onViewClick }: AllocationTableProps) {
   const getStatusVariant = (status: string): StatusVariant => {
     switch (status.toLowerCase()) {
       case "allocated":  return "primary";
@@ -116,7 +118,7 @@ export function AllocationTable({ allocations, onViewClick }: AllocationTablePro
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="dispatcher-table">
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="pl-6 px-4 text-left w-[120px] whitespace-nowrap">Vehicle</TableHead>
@@ -131,7 +133,13 @@ export function AllocationTable({ allocations, onViewClick }: AllocationTablePro
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allocations.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center">
+                    <TableLoading label="Loading allocations..." />
+                  </TableCell>
+                </TableRow>
+              ) : allocations.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={9}

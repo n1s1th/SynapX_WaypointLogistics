@@ -4,7 +4,7 @@ def test_register_and_login(client):
         "email": "dispatcher@waypoint.com",
         "full_name": "Dispatcher One",
         "password": "SecurePassword123!",
-        "role": "dispatcher",
+        "role": "DISPATCHER",
         "is_active": True,
     }
     response = client.post("/api/v1/auth/register", json=register_payload)

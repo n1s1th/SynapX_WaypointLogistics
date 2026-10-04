@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { type InventoryItem, type ChainCargoSummary } from "@/types/order";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -293,7 +294,7 @@ export function StocksView() {
       {/* ── Main Cargo Specifications Table ── */}
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="dispatcher-table min-w-[900px] text-left">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">SKU</th>
@@ -310,8 +311,7 @@ export function StocksView() {
               {isLoading ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <RefreshCw className="size-6 animate-spin mx-auto mb-2 text-slate-300" />
-                    Loading product specifications...
+                    <TableLoading label="Loading product specifications..." />
                   </td>
                 </tr>
               ) : items.length === 0 ? (

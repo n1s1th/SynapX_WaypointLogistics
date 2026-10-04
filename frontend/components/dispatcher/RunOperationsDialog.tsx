@@ -91,7 +91,7 @@ export function RunOperationsDialog({ open, run, onClose, onReviewException }: R
                 <div className="flex items-start">
                    <span className="w-1/3 text-sm text-slate-500">Next stop</span>
                    <span className="w-2/3 text-sm font-bold text-slate-900">
-                     {stops[run.stops_completed] ? (typeof stops[run.stops_completed] === 'string' ? stops[run.stops_completed] : (stops[run.stops_completed] as any).name || `Stop ${run.stops_completed + 1}`) : "—"}
+                     {stops[run.stops_completed] ? (typeof stops[run.stops_completed] === 'string' ? stops[run.stops_completed] as string : (stops[run.stops_completed] as { name?: string }).name || `Stop ${run.stops_completed + 1}`) : "—"}
                    </span>
                 </div>
                 <div className="flex items-start">
@@ -129,7 +129,7 @@ export function RunOperationsDialog({ open, run, onClose, onReviewException }: R
             ) : (
               <div className="space-y-4">
                 {stops.map((stop, i) => {
-                  const name = typeof stop === 'string' ? stop : (stop as any).name || `Stop ${i + 1}`;
+                  const name = typeof stop === 'string' ? stop : stop.name || `Stop ${i + 1}`;
                   
                   // Dot color logic
                   let dotColor = "bg-[#18385F]";

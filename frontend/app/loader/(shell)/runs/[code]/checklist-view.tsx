@@ -15,8 +15,10 @@ import { useLoaderShell } from "@/components/loader/loader-shell";
 import { useLoaderSync, useOfflineRun } from "@/components/loader/loader-sync-provider";
 import { openFlagSheet } from "@/components/loader/flag-issue-sheet";
 import { OrderRow } from "@/components/loader/order-row";
+import { AlertRow } from "@/components/loader/alert-row";
 import { StopHeader } from "@/components/loader/stop-header";
 import {
+  formatClock,
   formatKg,
   formatM3,
   formatTime,
@@ -26,7 +28,7 @@ import {
   runCapacity,
   stopsInLoadOrder,
 } from "@/lib/loader/format";
-import type { OrderState, QueuedActionType, Run, RunOrder, RunStatus } from "@/lib/loader/types";
+import type { OrderState, QueuedActionType, Run, RunOrder, RunStatus, RunStop } from "@/lib/loader/types";
 import { ChangeLogCard } from "./change-log-card";
 import { loadRun, ordersLoaded, type LoadResult } from "./checklist-data";
 import { PlanChangeView } from "./plan-change-view";
@@ -244,6 +246,8 @@ function Checklist({ initial, onNewPlan }: { initial: Run; onNewPlan: (run: Run)
             </p>
           </header>
 
+          <WindowWarning stops={run.stops} />
+
           <div className="flex flex-col gap-4 md:hidden">
             {unloadCards}
             <CapacityCard {...capacity} />
@@ -262,6 +266,7 @@ function Checklist({ initial, onNewPlan }: { initial: Run; onNewPlan: (run: Run)
               className="flex flex-col gap-2"
             >
               <StopHeader stop={stop} stopCount={stops.length} />
+              <WindowChip stop={stop} />
               {stop.orders.map((order) => (
                 <OrderRow
                   key={order.order_number}
@@ -311,4 +316,43 @@ function footerHint(run: Run): string {
   }
   if (onlyNewOrdersLeft(run)) return "Load the new order by the door to unlock.";
   return `Unlocks when all ${total} orders are checked or flagged.`;
+}
+
+/** The outlet's delivery window, "05:00–07:30". */
+function windowLabel(stop: RunStop): string {
+  return `${formatClock(stop.outlet.window_start)}–${formatClock(stop.outlet.window_end)}`;
+}
+
+/** Under a stop's header: the truck reaches it after (or near the end of) the outlet's window. */
+function WindowChip({ stop }: { stop: RunStop }) {
+  if (stop.window_status === "closed") {
+    return (
+      <LoaderPill tone="error" className="w-fit">
+        Window closed · {windowLabel(stop)}
+      </LoaderPill>
+    );
+  }
+  if (stop.window_status === "closing") {
+    return (
+      <LoaderPill tone="warning" className="w-fit">
+        Window closing · {windowLabel(stop)}
+      </LoaderPill>
+    );
+  }
+  return null;
+}
+
+/** On the run: stops the truck will reach after their window. Loading is not blocked. */
+function WindowWarning({ stops }: { stops: RunStop[] }) {
+  const closed = [...stops]
+    .filter((stop) => stop.window_status === "closed")
+    .sort((a, b) => a.stop_sequence - b.stop_sequence);
+  if (closed.length === 0) return null;
+  const list = closed.map((stop) => `${stop.outlet.code} (${windowLabel(stop)})`).join(", ");
+  return (
+    <AlertRow
+      tone="error"
+      message={`Delivery window closed for ${closed.length === 1 ? "1 stop" : `${closed.length} stops`}: ${list}. Keep loading and tell the Dispatcher.`}
+    />
+  );
 }

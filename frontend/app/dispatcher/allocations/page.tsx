@@ -147,18 +147,14 @@ export default function AllocationsPage() {
           onTypeChange={setTypeFilter}
         />
 
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            Loading allocations...
-          </div>
-        ) : fetchError ? (
+        {fetchError && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
             <p className="text-sm font-medium text-destructive">Failed to load allocations from server.</p>
             <p className="text-xs text-muted-foreground">Check the backend is running, then retry.</p>
             <Button variant="outline" size="sm" onClick={fetchAllocations}>Retry</Button>
           </div>
         ) : (
-          <AllocationTable allocations={filteredData} onViewClick={handleViewClick} />
+          <AllocationTable allocations={filteredData} isLoading={isLoading} onViewClick={handleViewClick} />
         )}
       </div>
 

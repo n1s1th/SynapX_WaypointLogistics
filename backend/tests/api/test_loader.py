@@ -399,6 +399,7 @@ def test_dev_endpoints_are_not_mounted_in_production(monkeypatch):
             "/dispatch-trips/{trip_id}/handoff",
             "/dispatch-trips/{trip_id}/gate-out",
             "/issues/{issue_id}/decision",
+            "/issues/by-action/{client_action_id}/photo",
             "/runs/{code}/orders/{order_number}/check",
             "/runs/{code}/orders/{order_number}/recheck",
             "/runs/{code}/plan/{version}/acknowledge",

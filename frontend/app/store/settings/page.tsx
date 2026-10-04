@@ -66,9 +66,9 @@ export default function OutletSettingsPage() {
       toast.success("Outlet settings saved successfully", {
         description: "Your updates are now synchronized with Central Dispatch.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to save settings", {
-        description: err?.message || "Please check your network and try again.",
+        description: err instanceof Error ? err.message : "Please check your network and try again.",
       });
     } finally {
       setIsSaving(false);
@@ -87,9 +87,9 @@ export default function OutletSettingsPage() {
       setEmailAlertsIssues(reset.emailAlertsIssues);
       setSmsAlertsPriority(reset.smsAlertsPriority);
       toast.info("Settings restored to defaults");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Failed to reset settings", {
-        description: err?.message || "Please try again.",
+        description: err instanceof Error ? err.message : "Please try again.",
       });
     } finally {
       setIsResetting(false);

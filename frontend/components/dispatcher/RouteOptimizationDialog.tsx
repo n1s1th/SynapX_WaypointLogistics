@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 import { DeliveryRun, DeliveryRunStop } from "@/app/dispatcher/delivery-runs/page";
 
@@ -21,84 +20,61 @@ export function RouteOptimizationDialog({ run, onClose, onApply }: RouteOptimiza
   const currentStops: DeliveryRunStop[] = (run.stop_sequence || [])
     .filter((s): s is DeliveryRunStop => typeof s === "object");
 
-  // Group stops: first by SLA urgency, then within groups by district-order
-  // Since stops don't directly carry district, use SLA as primary sort and
-  // cluster consecutive stops from the same name prefix (district approximation)
+  const [proposedStops, setProposedStops] = useState<DeliveryRunStop[]>(() => {
+    const passing = currentStops.filter(s => s.sla_ok);
+    const failing = currentStops.filter(s => !s.sla_ok);
+    return [...failing, ...passing.sort((a, b) => a.name.localeCompare(b.name))];
+  });
 
-  // Step 1: separate urgent (SLA failing) from passing
-  const passing = currentStops.filter(s => s.sla_ok);
-  const failing = currentStops.filter(s => !s.sla_ok);
-
-  // Step 2: cluster passing stops - sort alphabetically by name to group 
-  // nearby destinations (same district typically sorts together)
-  const sortedPassing = [...passing].sort((a, b) => a.name.localeCompare(b.name));
-
-  // Step 3: urgent stops go first, then clustered passing stops
-  const proposedStops: DeliveryRunStop[] = currentStops.length > 0
-    ? [...failing, ...sortedPassing]
-    : [];
-
+  const moveStop = (index: number, direction: -1 | 1) => {
+    setProposedStops(previous => {
+      const next = [...previous];
+      [next[index], next[index + direction]] = [next[index + direction], next[index]];
+      return next;
+    });
+  };
   // Mark moved-earlier stops as "SLA recovered"
   const proposedWithSLA = proposedStops.map((stop, i) => {
     const originalIdx = currentStops.findIndex(s => s.id === stop.id);
     const recovered = !stop.sla_ok && i < originalIdx;
     return { ...stop, sla_ok: recovered ? true : stop.sla_ok, sla_note: recovered ? "SLA recovered" : stop.sla_note };
   });
+  const hasRouteChange = proposedWithSLA.some((stop, index) => stop.id !== currentStops[index]?.id);
 
   const handleApply = async () => {
     setIsApplying(true);
     try {
       const headers = { 'Content-Type': 'application/json' };
-      // 1. Update the stop sequence
-      const r1 = await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ stop_sequence: proposedWithSLA }),
-      });
-      if (!r1.ok) throw new Error("patch failed");
-      
-      // 2. Call loader plan change if loader exists
-      if (run.loader) {
-        const p1 = await fetch(`${API_BASE}/api/v1/loader/dispatch-trips/${run.id}/plan`, {
+      if (proposedWithSLA.some(s => !s.outlet_code)) throw new Error("A stop has no outlet code. Refresh the run.");
+      const p1 = await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/plan`, {
           method: 'POST', headers,
           body: JSON.stringify({
+            stop_sequence: proposedWithSLA,
+            plan: {
             client_action_id: crypto.randomUUID(),
-            base_version: run.loader.plan_version,
-            stop_order: proposedWithSLA.map((s: any) => s.outlet_code || s.name),
+            base_version: run.loader?.plan_version ?? 1,
+            stop_order: proposedWithSLA.map(s => s.outlet_code),
             dispatcher: "Dispatcher"
-          }),
+          }}),
         });
         if (p1.status === 409) {
             const data = await p1.json();
             if (data.detail && data.detail.code === 'PLAN_LOCKED') {
                 toast.error("Released — ask the dock to undo");
-                setIsApplying(false);
                 return;
             } else {
                 toast.error("Plan changed by someone else. Please refresh.");
-                setIsApplying(false);
                 return;
             }
         } else if (!p1.ok) {
-            toast.error("Failed to sync plan to loader");
+            throw new Error("Failed to update the dock plan");
         }
-      } else {
-        // Record the event in loading_events (fallback if no loader)
-        await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/add-loading-event`, {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            event: "Route optimized",
-            time: format(new Date(), "HH:mm"),
-            note: "Dispatcher applied optimized stop sequence",
-            status: "ok"
-          }),
-        });
-      }
       
       toast.success("Optimized route applied");
       onApply();
       onClose();
-    } catch {
-      toast.error("Failed to apply optimized route");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to apply optimized route");
     } finally {
       setIsApplying(false);
     }
@@ -151,9 +127,19 @@ export function RouteOptimizationDialog({ run, onClose, onApply }: RouteOptimiza
               <div className="p-3 space-y-2 max-h-[300px] overflow-y-auto bg-emerald-50/30">
                 {proposedWithSLA.map((stop, i) => (
                   <div key={stop.id} className="p-3 rounded-[6px] border bg-white border-slate-200 shadow-sm">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-slate-500 w-4">{i + 1}</span>
-                      <span className="text-sm font-semibold text-slate-900">{stop.name} · {stop.eta}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm text-slate-500 w-4">{i + 1}</span>
+                        <span className="text-sm font-semibold text-slate-900">{stop.name} · {stop.eta}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="icon" aria-label={`Move ${stop.name} earlier`} disabled={i === 0 || isApplying} onClick={() => moveStop(i, -1)}>
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" aria-label={`Move ${stop.name} later`} disabled={i === proposedWithSLA.length - 1 || isApplying} onClick={() => moveStop(i, 1)}>
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <p className={`text-xs font-medium mt-0.5 ml-6 ${stop.sla_note === "SLA recovered" ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
                       {stop.sla_note}
@@ -174,7 +160,7 @@ export function RouteOptimizationDialog({ run, onClose, onApply }: RouteOptimiza
             <Button variant="outline" onClick={onClose} className="flex-1 h-11 border-slate-200 text-slate-700 font-semibold">
               Keep Current
             </Button>
-            <Button onClick={handleApply} disabled={isApplying || currentStops.length === 0}
+            <Button onClick={handleApply} disabled={isApplying || !hasRouteChange}
               className="flex-1 h-11 bg-[#18385F] hover:bg-[#12294a] text-white font-semibold">
               {isApplying ? "Applying..." : "Apply Optimized Route"}
             </Button>

@@ -25,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { TableLoading } from "@/components/ui/table-loading";
 import {
   Select,
   SelectContent,
@@ -85,7 +86,8 @@ export default function DispatcherOutletsPage() {
   }, []);
 
   useEffect(() => {
-    void loadOutlets();
+    const initial = setTimeout(() => { void loadOutlets(); }, 0);
+    return () => clearTimeout(initial);
   }, [loadOutlets]);
 
   // Handle Export CSV
@@ -138,7 +140,8 @@ export default function DispatcherOutletsPage() {
 
   // Reset pagination on filter change
   useEffect(() => {
-    setCurrentPage(1);
+    const reset = setTimeout(() => setCurrentPage(1), 0);
+    return () => clearTimeout(reset);
   }, [searchQuery, brandFilter, depotFilter, accessFilter, pageSize]);
 
   // Paginated records
@@ -462,7 +465,7 @@ export default function DispatcherOutletsPage() {
       {/* Outlets Data Table */}
       <Card className="border-border shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="dispatcher-table min-w-[1080px]">
             <TableHeader className="bg-muted/40">
               <TableRow className="border-border">
                 <TableHead className="w-[100px] font-semibold text-xs text-muted-foreground uppercase">
@@ -498,10 +501,7 @@ export default function DispatcherOutletsPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} className="h-48 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="size-6 animate-spin text-primary" />
-                      <span className="text-sm">Loading outlet directory from administrative registry...</span>
-                    </div>
+                    <TableLoading label="Loading outlet directory from administrative registry..." />
                   </TableCell>
                 </TableRow>
               ) : error ? (

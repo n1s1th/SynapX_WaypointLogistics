@@ -30,12 +30,14 @@ from app.models.loader_activity import (
     ReleaseAction,
     RunReleaseAction,
 )
+from app.models.driver import DriverTrip, DriverTripStatus
 from app.models.fleet import Vehicle
 from app.models.loader_issue import IssueStatus, IssueType, LoaderIssue, LoaderIssueOption
 from app.models.loader_user import LoaderSession, LoaderUser
 from app.models.order import Order, OrderStatus
 from app.models.plan_revision import PlanChangeKind, PlanRevision, PlanRevisionChange
 from app.models.shipment import DispatchTrip
+from app.models.user import User
 from app.models.reference import (
     Brand,
     CalendarDay,
@@ -48,6 +50,7 @@ from app.models.reference import (
     VehicleType,
 )
 from app.schemas import loader as schemas
+from app.services import photo_storage
 from app.services.calendar_service import calendar_service
 from app.services.order_service import order_service
 
@@ -103,6 +106,47 @@ def _depot_date(value: datetime) -> date:
 
 def _depot_hhmm(value: datetime) -> str:
     return _depot_time(value).strftime("%H:%M")
+
+
+# The derived last line of a gated-out run's log, once its driver trip is done.
+TRIP_COMPLETED_EVENT = "trip_completed"
+TRIP_COMPLETED_MESSAGE = "Trip complete · back at depot"
+
+# A stop that arrives this close to the end of the outlet's window is "closing".
+WINDOW_CLOSING_MINUTES = 30
+
+
+def stop_window_status(run: DeliveryRun, stop: RunStop) -> Optional[str]:
+    """Will the truck reach this outlet inside its delivery window?
+
+    Arrival is the stop's ETA, or the run's departure while the ETA is pending,
+    in depot time. The window applies on the stop's delivery day (its orders'
+    operating date, else the arrival day): arriving the evening before is fine
+    (the truck waits), arriving after the day's window_end is "closed", in its
+    last 30 minutes "closing". None when the outlet has no window. Advisory
+    only: loading is never blocked on it.
+    """
+    outlet = stop.outlet
+    if outlet is None or outlet.window_start is None or outlet.window_end is None:
+        return None
+    arrival = _depot_time(stop.eta or run.departs_at)
+    days = []
+    for row in stop.orders:
+        try:
+            days.append(date.fromisoformat((row.order.operating_date or "")[:10]))
+        except ValueError:
+            continue
+    delivery_day = max(days) if days else arrival.date()
+    if arrival.date() < delivery_day:
+        return "ok"
+    if arrival.date() > delivery_day:
+        return "closed"
+    end = datetime.combine(delivery_day, outlet.window_end)
+    if arrival > end:
+        return "closed"
+    if arrival >= end - timedelta(minutes=WINDOW_CLOSING_MINUTES):
+        return "closing"
+    return "ok"
 
 
 def _day_label(day: date) -> str:
@@ -615,6 +659,30 @@ class LoaderService:
         return issue
 
     @staticmethod
+    def attach_issue_photo(
+        db: Session, client_action_id: str, contents: bytes, content_type: str
+    ) -> LoaderIssue:
+        """Store the flag's photo and keep its address in photo_path.
+
+        The tablet uploads by the flag's client_action_id, which it knows even
+        while the flag is still queued offline: 404 until the flag has reached
+        the server, so the tablet tries again after the next sync. A photo
+        already attached is kept (a retried upload stores nothing new).
+        """
+        issue = db.execute(
+            select(LoaderIssue).filter_by(client_action_id=client_action_id)
+        ).scalars().first()
+        if issue is None:
+            raise NotFoundError(
+                f"No issue flagged under action {client_action_id} yet.",
+                entity="LoaderIssue", entity_id=client_action_id,
+            )
+        if issue.photo_path is None:
+            issue.photo_path = photo_storage.save_photo(contents, content_type, folder="loader")
+            db.flush()
+        return issue
+
+    @staticmethod
     def current_stops(db: Session, run: DeliveryRun) -> List[RunStop]:
         """Stops for the run's current plan version, in LOADING order.
 
@@ -676,6 +744,7 @@ class LoaderService:
                     handling_minutes=stop.handling_minutes,
                     status=stop.status,
                     outlet=schemas.OutletRead.model_validate(stop.outlet),
+                    window_status=stop_window_status(run, stop),
                     orders=order_reads,
                     **(diff.stop_fields(stop) if diff else {}),
                 )
@@ -983,6 +1052,7 @@ class LoaderService:
             quick_note_tag=issue.quick_note_tag,
             note=issue.note,
             photo_path=issue.photo_path,
+            photo_url=issue.photo_path,
             reported_by=issue.reported_by.short_name,
             reported_at=issue.reported_at,
             status=issue.status,
@@ -1029,7 +1099,46 @@ class LoaderService:
             .order_by(LoaderActivity.at.desc(), LoaderActivity.id.desc())
         ).scalars().all()
         stops = LoaderService._stops_by_order(db, run)
-        return [LoaderService._to_run_event(row, stops) for row in rows]
+        events = [LoaderService._to_run_event(row, stops) for row in rows]
+        done = LoaderService._trip_completions(db, [run]).get(run.id)
+        if done is not None:
+            at, driver = done
+            events.append(schemas.RunActivityEventRead(
+                id=-run.id,  # derived, not a loader_activities row
+                type=TRIP_COMPLETED_EVENT,
+                at=at,
+                actor=schemas.ActivityActorRead(kind=ActorKind.SYSTEM, name=driver, full_name=None),
+                summary=TRIP_COMPLETED_MESSAGE,
+            ))
+            events.sort(key=lambda e: (_naive_utc(e.at), e.id), reverse=True)
+        return events
+
+    @staticmethod
+    def _trip_completions(db: Session, runs: List[DeliveryRun]) -> Dict[int, Tuple[datetime, str]]:
+        """(completed_at, driver name) for each gated-out run whose driver
+        trip is completed - the run's last line in the Log, "Trip complete ·
+        back at depot". Read from driver_trips (linked by dispatch_trip_id), so
+        the driver's code does not have to log anything."""
+        by_trip = {
+            run.dispatch_trip_id: run
+            for run in runs
+            if run.status == RunStatus.GATED_OUT and run.dispatch_trip_id is not None
+        }
+        if not by_trip:
+            return {}
+        rows = db.execute(
+            select(DriverTrip, User)
+            .join(User, User.id == DriverTrip.driver_id)
+            .where(
+                DriverTrip.dispatch_trip_id.in_(by_trip),
+                DriverTrip.status == DriverTripStatus.COMPLETED,
+                DriverTrip.completed_at.is_not(None),
+            )
+        ).all()
+        return {
+            by_trip[trip.dispatch_trip_id].id: (trip.completed_at, user.full_name or "Driver")
+            for trip, user in rows
+        }
 
     @staticmethod
     def _stops_by_order(db: Session, run: DeliveryRun) -> Dict[int, RunStop]:
@@ -1160,7 +1269,22 @@ class LoaderService:
         rows = db.execute(
             query.order_by(LoaderActivity.at.desc(), LoaderActivity.id.desc()).limit(limit)
         ).scalars()
-        return [LoaderService._to_activity_read(row) for row in rows]
+        feed = [LoaderService._to_activity_read(row) for row in rows]
+        runs = db.execute(
+            select(DeliveryRun).where(
+                DeliveryRun.dock_id == dock.id,
+                DeliveryRun.status == RunStatus.GATED_OUT,
+                *([DeliveryRun.code == run_code] if run_code is not None else []),
+            )
+        ).scalars().all()
+        codes = {run.id: run.code for run in runs}
+        for run_id, (at, driver) in LoaderService._trip_completions(db, list(runs)).items():
+            feed.append(schemas.ActivityRead(
+                at=at, run_code=codes[run_id], actor_kind=ActorKind.SYSTEM, actor=driver,
+                event_type=TRIP_COMPLETED_EVENT, message=TRIP_COMPLETED_MESSAGE,
+            ))
+        feed.sort(key=lambda e: _naive_utc(e.at), reverse=True)
+        return feed[:limit]
 
     # --- L2 sign-in: users and sessions ------------------------------------
 

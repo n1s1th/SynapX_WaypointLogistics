@@ -1,16 +1,14 @@
-import React from "react";
+import React, { type CSSProperties } from "react";
 import { AppSidebar } from "@/components/dispatcher/AppSidebar";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 import { DispatcherNavbar } from "@/components/dispatcher/DispatcherNavbar";
 
 export default function DispatcherLayout({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      <SidebarProvider style={{ "--sidebar-width": "15rem" } as CSSProperties}>
         <AppSidebar />
         <SidebarInset className="bg-background overflow-hidden flex flex-col h-screen">
           <DispatcherNavbar />

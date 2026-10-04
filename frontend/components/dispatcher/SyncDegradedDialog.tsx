@@ -28,7 +28,8 @@ export function SyncDegradedDialog({ open, run, onClose, onReviewConflict }: Syn
 
   const queuedCount = Math.ceil((run.last_update_mins || 0) / 3);
   const stops = run.stop_sequence || [];
-  const lastKnownStop = run.stops_completed > 0 ? (typeof stops[run.stops_completed - 1] === 'string' ? stops[run.stops_completed - 1] : (stops[run.stops_completed - 1] as any).name || `Stop ${run.stops_completed}`) : "—";
+  const lastStop = run.stops_completed > 0 ? stops[run.stops_completed - 1] : undefined;
+  const lastKnownStop = lastStop ? (typeof lastStop === 'string' ? lastStop : lastStop.name || `Stop ${run.stops_completed}`) : "—";
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>

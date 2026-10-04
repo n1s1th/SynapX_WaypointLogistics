@@ -16,7 +16,9 @@ import type {
   Run,
   RunOrder,
 } from "@/lib/loader/types";
+import { queuePhoto } from "@/lib/loader/offline/photo-queue";
 import { FilterChip } from "./filter-chip";
+import { FlagPhotoField } from "./flag-photo-field";
 import { IssueTypePicker } from "./issue-type-picker";
 import { LoaderButton } from "./loader-button";
 import { useLoaderShell } from "./loader-shell";
@@ -162,6 +164,7 @@ function FlagForm({ request, onDone }: { request: FlagRequest; onDone: () => voi
   const [units, setUnits] = React.useState(1);
   const [tag, setTag] = React.useState<string | null>(null);
   const [note, setNote] = React.useState("");
+  const [photo, setPhoto] = React.useState<Blob | null>(null);
   const [status, setStatus] = React.useState<"idle" | "sending" | "blocked">("idle");
   const [openedAt] = React.useState(() => new Date().toISOString());
   const noteId = React.useId();
@@ -189,6 +192,8 @@ function FlagForm({ request, onDone }: { request: FlagRequest; onDone: () => voi
     });
     // Refused while a new plan waits to be acknowledged (the takeover shows).
     if (!action) return setStatus("blocked");
+    // The photo follows the flag on its own; it never holds the flag back.
+    if (photo) void queuePhoto({ client_action_id: action.client_action_id, run_code: run.code, order_number: order.order_number, blob: photo, created_at: new Date().toISOString() });
     onDone();
   };
 
@@ -247,6 +252,7 @@ function FlagForm({ request, onDone }: { request: FlagRequest; onDone: () => voi
               placeholder="Add notes or reason…"
               className="min-h-16 bg-card"
             />
+            <FlagPhotoField value={photo} onChange={setPhoto} />
           </section>
         </>
       )}

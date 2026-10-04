@@ -312,15 +312,10 @@ def list_outlets(
         records = db.query(OutletSettings).filter(OutletSettings.outlet_id.in_(outlet_ids)).all()
         settings_map = {rec.outlet_id: rec for rec in records}
 
-    users = db.query(User).filter(User.role.in_(["WAREHOUSE_MANAGER", "ADMIN"])).all()
-    user_name_to_id = {u.full_name.strip().lower(): u.id for u in users if u.full_name}
-
     results = []
     for o in outlets:
         s = settings_map.get(o.id)
-        mgr_name = s.store_manager.strip().lower() if (s and s.store_manager) else None
-        u_id = user_name_to_id.get(mgr_name) if mgr_name else None
-        results.append(outlet_to_read(o, s, u_id))
+        results.append(outlet_to_read(o, s, s.store_manager_user_id if s else None))
     return results
 
 
@@ -337,13 +332,7 @@ def get_outlet(outlet_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Outlet not found")
 
     settings = db.query(OutletSettings).filter(OutletSettings.outlet_id == outlet.id).first()
-    u_id = None
-    if settings and settings.store_manager:
-        matched_user = db.query(User).filter(User.full_name.ilike(settings.store_manager.strip())).first()
-        if matched_user:
-            u_id = matched_user.id
-
-    return outlet_to_read(outlet, settings, u_id)
+    return outlet_to_read(outlet, settings, settings.store_manager_user_id if settings else None)
 
 
 def set_children(outlet: Outlet, data: Any):
@@ -387,12 +376,6 @@ def create_outlet(data: OutletCreate, db: Session = Depends(get_db), _: User = D
         db.add(settings)
         db.commit()
         db.refresh(settings)
-
-    u_id = None
-    if settings and settings.store_manager:
-        matched_user = db.query(User).filter(User.full_name.ilike(settings.store_manager.strip())).first()
-        if matched_user:
-            u_id = matched_user.id
 
     return get_outlet(outlet.id, db)
 
@@ -446,6 +429,11 @@ def update_outlet(outlet_id: int, data: OutletUpdate, db: Session = Depends(get_
             db.add(settings)
         else:
             if data.store_manager is not None:
+                if data.store_manager != settings.store_manager:
+                    # A different manager name unlinks the old account everywhere: for emails (this column)
+                    # and for login (store_manager_assignments). Link the new one with assign-manager.
+                    settings.store_manager_user_id = None
+                    db.query(StoreManagerAssignment).filter(StoreManagerAssignment.outlet_id == outlet.id).delete()
                 settings.store_manager = data.store_manager
             if data.store_manager_phone is not None:
                 settings.contact_phone = data.store_manager_phone
@@ -490,6 +478,10 @@ def assign_outlet_manager(
     if user_id is not None:
         db.query(StoreManagerAssignment).filter(StoreManagerAssignment.user_id == user_id).delete()
         db.add(StoreManagerAssignment(user_id=user_id, outlet_id=outlet.id))
+        # Moving a manager here unlinks them from the outlet they ran before, for emails too.
+        db.query(OutletSettings).filter(
+            OutletSettings.store_manager_user_id == user_id, OutletSettings.outlet_id != outlet.id
+        ).update({OutletSettings.store_manager_user_id: None, OutletSettings.store_manager: None})
     else:
         db.query(StoreManagerAssignment).filter(StoreManagerAssignment.outlet_id == outlet.id).delete()
 
@@ -498,12 +490,14 @@ def assign_outlet_manager(
         settings = OutletSettings(
             outlet_id=outlet.id,
             store_manager=manager_name,
+            store_manager_user_id=user_id,
             contact_phone=manager_phone or "077-0000000",
             parking="No restrictions",
         )
         db.add(settings)
     else:
         settings.store_manager = manager_name
+        settings.store_manager_user_id = user_id
         if manager_phone is not None:
             settings.contact_phone = manager_phone
 

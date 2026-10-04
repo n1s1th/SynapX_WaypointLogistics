@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { type Order } from "@/types/order";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Snowflake, Package, Clock, ShieldAlert, ArrowRight, Ban, CheckCircle2, Eye } from "lucide-react";
 import { RepeatDeferralModal } from "./RepeatDeferralModal";
@@ -162,7 +163,7 @@ export function OrdersTable({
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="dispatcher-table min-w-[1180px] text-left">
             <thead>
               <tr className="border-b border-[#E5E5E2] bg-[#F8F9FA] text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">
                 <th className="py-3 px-4 w-12 text-center">
@@ -190,7 +191,7 @@ export function OrdersTable({
               {isLoading ? (
                 <tr>
                   <td colSpan={12} className="py-12 text-center text-[#6B7280] text-xs">
-                    Loading orders queue...
+                    <TableLoading label="Loading orders queue..." />
                   </td>
                 </tr>
               ) : orders.length === 0 ? (

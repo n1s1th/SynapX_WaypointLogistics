@@ -99,6 +99,11 @@ export function mergeLocalProgress<S extends StopLike>(stops: S[]): S[] {
 // The trip under way, so an SOS sent with no signal still names it
 const ACTIVE_TRIP_KEY = "driver-active-trip";
 
+/** "peliyagoda" → "Peliyagoda Depot"; no depot known (old test trips) → "Your depot". */
+export function depotLabel(depot: string | null | undefined) {
+  return depot ? `${depot.charAt(0).toUpperCase()}${depot.slice(1)} Depot` : "Your depot";
+}
+
 export function rememberActiveTrip(tripId: number | null) {
   try {
     if (tripId === null) localStorage.removeItem(ACTIVE_TRIP_KEY);

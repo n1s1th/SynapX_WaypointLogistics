@@ -6,7 +6,7 @@ from app.api import deps
 from app.models.order import Order, OrderStatus
 from app.models.reference import Depot
 from app.schemas.order import OrderCreate, OrderRead, OrderUpdate
-from app.services.order_service import order_service
+from app.services.order_service import TRANSITIONS, order_service
 from pydantic import BaseModel
 
 router = APIRouter()

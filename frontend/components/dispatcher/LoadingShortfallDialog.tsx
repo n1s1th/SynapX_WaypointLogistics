@@ -15,32 +15,45 @@ interface LoadingShortfallDialogProps {
   onAction: () => void;
 }
 
+interface DockIssue {
+  id: number;
+  status: string;
+  outlet_code?: string | null;
+  order_number: string;
+  issue_type: string;
+  units_affected?: number | null;
+  units_total?: number | null;
+  decide_by?: string | null;
+  note?: string | null;
+  options: { id: number; label: string; detail?: string | null; is_default: boolean }[];
+}
+
 export function LoadingShortfallDialog({ run, onClose, onAction }: LoadingShortfallDialogProps) {
-  const [issues, setIssues] = useState<any[]>([]);
+  const [issues, setIssues] = useState<DockIssue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [resolving, setResolving] = useState<string | null>(null);
+  const dockCode = run.loader?.dock;
   
   useEffect(() => {
     const fetchIssues = async () => {
+      if (!dockCode) {
+        setLoading(false);
+        return;
+      }
       try {
-        const depot = run.depot_name || "peliyagoda";
-        const res = await fetch(`${API_BASE}/api/v1/loader/issues?dock=${depot}`);
-        if (res.ok) {
-          const data = await res.json();
-          const runIssues = data.filter((i: any) => 
-            i.run_code === run.trip_code && 
-            (i.status === "sent" || i.status === "seen")
-          );
-          setIssues(runIssues);
-        }
+        const res = await fetch(`${API_BASE}/api/v1/loader/issues?dock=${encodeURIComponent(dockCode)}&run=${encodeURIComponent(run.trip_code)}`);
+        if (!res.ok) throw new Error(`Dock flags request failed (${res.status})`);
+        const data: DockIssue[] = await res.json();
+        setIssues(data.filter(i => i.status === "sent" || i.status === "seen"));
       } catch (e) {
-        toast.error("Failed to load dock flags");
+        setLoadError(e instanceof Error ? e.message : "Failed to load dock flags");
       } finally {
         setLoading(false);
       }
     };
     fetchIssues();
-  }, [run.depot_name, run.trip_code]);
+  }, [dockCode, run.trip_code]);
 
   const handleDecision = async (issueId: number, optionId: number, optionLabel: string) => {
     setResolving(`${issueId}-${optionId}`);
@@ -61,23 +74,21 @@ export function LoadingShortfallDialog({ run, onClose, onAction }: LoadingShortf
         if (optionLabel.toLowerCase().includes("hold") && run.departure_time) {
             const newDepTime = new Date(new Date(run.departure_time).getTime() + 30 * 60000);
             
-            await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}`, {
-              method: 'PATCH',
+            const planRes = await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/plan`, {
+              method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ departure_time: newDepTime.toISOString() })
-            });
-
-            if (run.loader) {
-                await fetch(`${API_BASE}/api/v1/loader/dispatch-trips/${run.id}/plan`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
+              body: JSON.stringify({ plan: {
                     client_action_id: crypto.randomUUID(),
-                    base_version: run.loader.plan_version,
+                    base_version: run.loader?.plan_version ?? 1,
                     departs_at: newDepTime.toISOString(),
                     dispatcher: "Dispatcher"
-                  })
-                });
+                  } })
+            });
+            if (!planRes.ok) {
+              toast.error("Decision saved, but departure was not changed. Refresh the run and try again.");
+              onAction();
+              onClose();
+              return;
             }
             toast.success("Departure held by 30 minutes");
         }
@@ -94,7 +105,7 @@ export function LoadingShortfallDialog({ run, onClose, onAction }: LoadingShortf
       } else {
         toast.error("Failed to submit decision");
       }
-    } catch (e) {
+    } catch {
       toast.error("Error connecting to server");
     } finally {
       setResolving(null);
@@ -123,6 +134,10 @@ export function LoadingShortfallDialog({ run, onClose, onAction }: LoadingShortf
 
           {loading ? (
             <div className="py-8 text-center text-slate-500">Loading dock flags...</div>
+          ) : loadError ? (
+            <div role="alert" className="py-8 text-center text-destructive">{loadError}</div>
+          ) : !run.loader ? (
+            <div className="py-8 text-center text-muted-foreground">This run has not been sent to a dock.</div>
           ) : issues.length === 0 ? (
             <div className="py-8 text-center text-slate-500">No open dock flags found.</div>
           ) : (
@@ -153,7 +168,7 @@ export function LoadingShortfallDialog({ run, onClose, onAction }: LoadingShortf
                   <div className="p-4 space-y-3 bg-white">
                     <h5 className="text-sm font-bold text-slate-700 mb-2">Resolution Options:</h5>
                     <div className="flex flex-col gap-2">
-                      {issue.options.map((opt: any) => (
+                      {issue.options.map(opt => (
                         <div key={opt.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-[6px] hover:border-slate-300 transition-colors">
                           <div>
                             <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">

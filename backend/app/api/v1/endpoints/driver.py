@@ -1,5 +1,3 @@
-import os
-import uuid
 from datetime import date, datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, UploadFile, File, HTTPException, Query
@@ -11,7 +9,7 @@ from app.schemas.driver import (
     DriverTripSummary, DriverTripDetail, DeliveryStopRead, DeliveryStopDetail, ProofOfDeliveryCreate, ProofOfDeliveryRead,
     DriverProfileRead, DriverProfileUpdate, DriverReadyRead, DriverAvailabilityRead,
 )
-from app.services import driver_service
+from app.services import driver_service, photo_storage
 from app.models.driver import DeliveryStopStatus
 from pydantic import BaseModel
 
@@ -170,9 +168,6 @@ from app.schemas.driver import IssueReportCreate, IssueReportRead
 
 
 # --- Photo Upload ---
-UPLOAD_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "static", "uploads")
-)
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
@@ -181,7 +176,8 @@ async def upload_photo(
     file: UploadFile = File(...),
     current_user: User = Depends(deps.require_driver)
 ):
-    """Accepts a multipart image upload, saves to disk, returns its public URL."""
+    """Accepts a multipart image upload and returns its address: Cloudflare R2 when
+    backend/.env has the R2 settings, else the local uploads folder."""
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {file.content_type}")
 
@@ -189,15 +185,7 @@ async def upload_photo(
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
 
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else "jpg"
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    save_path = os.path.join(UPLOAD_DIR, filename)
-
-    with open(save_path, "wb") as f:
-        f.write(contents)
-
-    return {"photo_url": f"/static/uploads/{filename}"}
+    return {"photo_url": photo_storage.save_photo(contents, file.content_type)}
 
 @router.post("/trips/{trip_id}/issues", response_model=IssueReportRead)
 def report_issue(

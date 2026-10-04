@@ -7,7 +7,7 @@ import {
   Map as MapIcon, Home, TriangleAlert, Layers
 } from "lucide-react";
 import { cachedGet } from "@/lib/driverCache";
-import { mergeLocalProgress } from "@/lib/driverStop";
+import { depotLabel, mergeLocalProgress } from "@/lib/driverStop";
 import DeviceClock from "@/components/driver/DeviceClock";
 import SyncStatus from "@/components/driver/SyncStatus";
 
@@ -167,8 +167,10 @@ export default function TripSummaryPage() {
               <MapPin size={18} color="#2167D5" />
             </div>
             <div className="flex flex-col gap-0.5 flex-1">
-              <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>Paliyagoda Depot</span>
-              <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>14 Logistics Ave · 2.4 km away</span>
+              <span className="font-bold text-[14px]" style={{ color: "#12202E" }}>{depotLabel(tripDetail?.depot_name)}</span>
+              <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>
+                {tripDetail?.vehicle_number ? `Home depot of truck ${tripDetail.vehicle_number}` : "Check in when you're back"}
+              </span>
             </div>
             <CheckCircle2 size={22} color="#D9E1E8" className="shrink-0" />
           </div>

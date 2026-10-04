@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TableLoading } from "@/components/ui/table-loading";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -526,7 +527,7 @@ export function VehiclesTab({ vehicles, users = [], isLoading, onRefresh }: Vehi
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-xs text-muted-foreground">
-                  Loading fleet vehicles...
+                  <TableLoading label="Loading fleet vehicles..." />
                 </TableCell>
               </TableRow>
             ) : filteredVehicles.length === 0 ? (

@@ -38,7 +38,101 @@ interface PlanChangeViewProps {
  * over it, so there is nothing to close and nothing to tap outside of: the
  * only way back to the checklist is to acknowledge.
  */
-export function PlanChangeView({
+export function PlanChangeView(props: PlanChangeViewProps) {
+  const to = props.run.unacknowledged_plan_version ?? props.run.current_plan_version;
+  // A new run's first plan has nothing to compare with: no "v0 → v1" diff.
+  return to <= 1 ? <NewRunView {...props} /> : <ChangedPlanView {...props} />;
+}
+
+/**
+ * A new run's plan v1, waiting for the first acknowledgement: what the run is
+ * and the driver's stop order, then "Start loading". Still blocking (the API
+ * refuses row writes until a plan is acknowledged).
+ */
+function NewRunView({ run, subtitle, status, loaderName, loaderInitials, onAcknowledge }: PlanChangeViewProps) {
+  const orders = run.stops.reduce((n, stop) => n + stop.orders.length, 0);
+  const footer = (
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-6">
+      <AcknowledgingAs runCode={run.code} name={loaderName} initials={loaderInitials}>
+        The Dispatcher sees who started loading, with the time.
+      </AcknowledgingAs>
+      <LoaderButton className="w-full md:w-auto" onClick={onAcknowledge}>
+        Start loading
+      </LoaderButton>
+    </div>
+  );
+
+  return (
+    <LoaderScreen title="New run" subtitle={subtitle} plan={planSource(run)} footer={footer}>
+      <div className="mx-auto flex max-w-5xl flex-col gap-4">
+        <header className="flex flex-col gap-1.5">
+          <Link
+            href="/loader"
+            className="w-fit rounded-sm text-xs leading-[17px] font-medium text-muted-foreground outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            Queue / {run.code}
+          </Link>
+          <h1 className="text-xl leading-[26px] font-semibold text-primary">New run · plan v1</h1>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <LoaderPill tone="info">Plan v1</LoaderPill>
+            <LoaderPill tone={status.tone}>{status.label}</LoaderPill>
+          </div>
+          <p className="text-xs leading-[17px] text-muted-foreground">
+            {run.vehicle.code} · Trip {run.trip_number} · {run.district} · departs {formatTime(run.departs_at)}
+          </p>
+        </header>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <LoaderCard title="What to load" description={`${run.vehicle.code} · ${formatKg(run.vehicle.max_weight_kg)} / ${formatM3(run.vehicle.max_volume_m3)}`}>
+            <p className="text-sm text-foreground">
+              {orders} {orders === 1 ? "order" : "orders"} for {run.stops.length} {run.stops.length === 1 ? "stop" : "stops"}.
+              The checklist opens once you start.
+            </p>
+          </LoaderCard>
+          <LoaderCard title="Delivery order" description="Driver’s stops, first to last">
+            <div className="flex flex-wrap gap-1.5">
+              {[...run.stops]
+                .sort((a, b) => a.stop_sequence - b.stop_sequence)
+                .map((stop) => (
+                  <InfoChip key={stop.stop_sequence}>
+                    {stop.stop_sequence} · {stop.outlet.code}
+                  </InfoChip>
+                ))}
+            </div>
+          </LoaderCard>
+        </div>
+      </div>
+    </LoaderScreen>
+  );
+}
+
+/** "Acknowledging as Saman J. · Switch", with a line about what happens next. */
+function AcknowledgingAs({ runCode, name, initials, children }: { runCode: string; name: string; initials: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden
+          className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+        >
+          {initials}
+        </span>
+        <span className="text-sm font-medium text-foreground">Acknowledging as {name}</span>
+        {/* Sign-in ends the open session for reason=switch_user, then returns here. */}
+        <Link
+          href={switchUserHref(runCode)}
+          className="ml-2 flex min-h-12 items-center rounded-md px-1.5 text-sm font-semibold text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          Switch
+        </Link>
+      </div>
+      <p className="text-xs leading-[17px] text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+/** Plan v2 and later: the blocking diff against the plan before it. */
+function ChangedPlanView({
   run,
   subtitle,
   status,

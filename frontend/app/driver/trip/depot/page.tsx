@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Warehouse, MapPin, Clock } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { cachedGet } from "@/lib/driverCache";
+import { depotLabel } from "@/lib/driverStop";
 
 export default function ArrivedAtDepotPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function ArrivedAtDepotPage() {
   useEffect(() => {
     async function loadActiveTrip() {
       try {
-        const trips = await cachedGet<{ id: number; status: string }[]>("/driver/trips/today");
+        const trips = await cachedGet<{ id: number; status: string; depot_name?: string | null }[]>("/driver/trips/today");
         // Could be completed but not yet checked-in at depot
         const trip = trips.find(t => t.status === "completed" || t.status === "started");
         setActiveTrip(trip);
@@ -117,7 +118,7 @@ export default function ArrivedAtDepotPage() {
           <div className="flex flex-col items-center gap-2 w-full text-center">
             <h2 className="font-bold text-[22px]" style={{ color: "#163A5F" }}>Arrived at depot?</h2>
             <p className="font-normal text-[14px] leading-[20px]" style={{ color: "#5D6A78" }}>
-              You're about to notify the dispatcher that you have returned to the depot.
+              You&apos;re about to notify the dispatcher that you have returned to the depot.
             </p>
           </div>
         </div>
@@ -132,7 +133,7 @@ export default function ArrivedAtDepotPage() {
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="font-medium text-[12px]" style={{ color: "#8793A0" }}>Depot</span>
-              <span className="font-bold text-[15px]" style={{ color: "#163A5F" }}>Colombo Main Depot</span>
+              <span className="font-bold text-[15px]" style={{ color: "#163A5F" }}>{loading ? "Loading..." : depotLabel(activeTrip?.depot_name)}</span>
             </div>
           </div>
 
@@ -146,10 +147,6 @@ export default function ArrivedAtDepotPage() {
             <div className="flex flex-col gap-0.5">
               <span className="font-medium text-[12px]" style={{ color: "#8793A0" }}>Arrival time</span>
               <span className="font-bold text-[15px]" style={{ color: "#163A5F" }}>{now}</span>
-              <div className="flex items-center gap-1 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#18794E" }}></div>
-                <span className="font-medium text-[12px]" style={{ color: "#18794E" }}>Location detected</span>
-              </div>
             </div>
           </div>
 

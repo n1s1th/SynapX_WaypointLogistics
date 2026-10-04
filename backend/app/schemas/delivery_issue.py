@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class DeliveryIssueBase(BaseModel):
@@ -14,7 +14,7 @@ class DeliveryIssueBase(BaseModel):
     expected_units: Optional[int] = None
     received_units: Optional[int] = None
     description: str
-    photo_url: Optional[str] = None
+    photo_url: Optional[str] = Field(default=None, max_length=2_000_000)
     photo_name: Optional[str] = None
     photo_size: Optional[str] = None
     reported_by: Optional[str] = "Sarah Jenkins (Store Manager)"
@@ -35,7 +35,7 @@ class DeliveryIssueUpdate(BaseModel):
     expected_units: Optional[int] = None
     received_units: Optional[int] = None
     description: Optional[str] = None
-    photo_url: Optional[str] = None
+    photo_url: Optional[str] = Field(default=None, max_length=2_000_000)
     photo_name: Optional[str] = None
     photo_size: Optional[str] = None
     status: Optional[str] = None

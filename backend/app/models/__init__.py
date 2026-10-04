@@ -10,6 +10,7 @@ from app.models.fleet import Vehicle, DriverProfile
 from app.models.allocation import Allocation
 from app.models.outlet import OutletContact, OutletReceivingWindow
 from app.models.notification import Notification
+from app.models.email_outbox import EmailOutbox
 from app.models.receipts import DeliveryReceipt
 from app.models.delivery_issue import DeliveryIssue
 from app.models.outlet_settings import OutletSettings
@@ -65,6 +66,7 @@ __all__ = [
     "OutletContact",
     "OutletReceivingWindow",
     "Notification",
+    "EmailOutbox",
     "DeliveryReceipt",
     "DeliveryIssue",
     "OutletSettings",

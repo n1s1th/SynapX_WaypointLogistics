@@ -181,3 +181,48 @@
     display: none;
   }
 }
+
+.dispatcher-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+.dispatcher-table thead tr {
+  border-bottom: 1px solid var(--border);
+  background-color: var(--background);
+}
+
+.dispatcher-table th {
+  height: 2.75rem;
+  padding: 0.625rem 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dispatcher-table tbody {
+  background-color: var(--card);
+}
+
+.dispatcher-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 150ms ease;
+}
+
+.dispatcher-table tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.dispatcher-table tbody tr:hover {
+  background-color: color-mix(in srgb, var(--accent) 35%, var(--card));
+}
+
+.dispatcher-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}

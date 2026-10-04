@@ -4,6 +4,7 @@ and the driver's progress reaches the loader, dispatcher and store.
 Built on the loader's trip_setup (VEH014, three Fresh outlets, four orders):
 the dispatcher's trip names the driver, the loader builds and releases the run.
 """
+import base64
 import time
 from datetime import date, datetime
 
@@ -445,6 +446,20 @@ def test_trip_shows_the_run_code_and_truck(loader_client, released):
     assert (detail["run_code"], detail["vehicle_number"]) == ("RUN-0024", "VEH014")
 
 
+def test_trip_shows_the_trucks_depot(loader_client, released):
+    db, driver = released["db"], released["driver"]
+
+    trip = today(loader_client, driver)[0]
+
+    assert trip["depot_name"] == "peliyagoda"
+    # No depot copied onto the dispatcher's trip: the truck's own depot (a Kandy truck here)
+    dispatch_trip = released["dispatch_trip"]
+    dispatch_trip.depot_name = None
+    dispatch_trip.allocation.vehicle.depot_name = "kandy"
+    db.flush()
+    assert trip_detail(loader_client, driver, trip["id"])["depot_name"] == "kandy"
+
+
 # ---- End of trip -----------------------------------------------------------------------
 
 def test_completing_the_trip_closes_the_dispatchers_run(loader_client, released):
@@ -784,3 +799,125 @@ def test_dispatcher_sees_who_is_ready(loader_client, trip_setup):
     ]
     assert loader_client.get(f"{API}/availability").json()[0]["driver_id"] == driver.id  # default: next working day
     assert loader_client.get(f"{API}/availability", params={"date": "2026-10-06"}).json() == []
+
+
+# ---- Photos: Cloudflare R2 when set up, else the local folder -----------------------
+# A fake R2 stands in: tests never send files to the real bucket.
+
+PNG_BYTES = base64.b64decode(  # a 1x1 PNG
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+
+
+def r2_set_up(monkeypatch, client):
+    from app.services import photo_storage
+    monkeypatch.setattr(photo_storage, "r2_settings", lambda: photo_storage.R2Settings(
+        R2_ENDPOINT="https://account.r2.cloudflarestorage.com", R2_ACCESS_KEY_ID="key",
+        R2_SECRET_ACCESS_KEY="secret", R2_BUCKET="waypoint-photos", R2_PUBLIC_URL="https://pub-test.r2.dev/",
+    ))
+    monkeypatch.setattr(photo_storage, "r2_client", lambda: client)
+
+
+def upload(client, driver):
+    return client.post(f"{API}/upload/photo", headers=auth(driver), files={"file": ("pod.png", PNG_BYTES, "image/png")})
+
+
+def test_photo_goes_to_cloudflare_r2_when_set_up(loader_client, released, monkeypatch):
+    saved = {}
+
+    class FakeR2:
+        def put_object(self, **fields):
+            saved.update(fields)
+
+    r2_set_up(monkeypatch, FakeR2())
+
+    res = upload(loader_client, released["driver"])
+
+    assert res.status_code == 200, res.text
+    url = res.json()["photo_url"]
+    assert url.startswith("https://pub-test.r2.dev/driver/") and url.endswith(".png")
+    assert (saved["Bucket"], saved["ContentType"], saved["Body"]) == ("waypoint-photos", "image/png", PNG_BYTES)
+    assert url == f"https://pub-test.r2.dev/{saved['Key']}"
+
+
+def test_photo_is_kept_locally_if_r2_fails(loader_client, released, monkeypatch, tmp_path):
+    from app.services import photo_storage
+
+    class BrokenR2:
+        def put_object(self, **fields):
+            raise ConnectionError("no route to R2")
+
+    r2_set_up(monkeypatch, BrokenR2())
+    monkeypatch.setattr(photo_storage, "UPLOAD_DIR", str(tmp_path))
+
+    url = upload(loader_client, released["driver"]).json()["photo_url"]
+
+    assert url.startswith("/static/uploads/")
+    assert (tmp_path / url.rsplit("/", 1)[-1]).read_bytes() == PNG_BYTES
+
+
+def test_photo_stays_local_without_r2_settings(loader_client, released, monkeypatch, tmp_path):
+    from app.services import photo_storage
+    monkeypatch.setattr(photo_storage, "r2_settings", lambda: photo_storage.R2Settings(
+        R2_ENDPOINT="", R2_ACCESS_KEY_ID="", R2_SECRET_ACCESS_KEY="", R2_BUCKET="", R2_PUBLIC_URL="",
+    ))
+    monkeypatch.setattr(photo_storage, "UPLOAD_DIR", str(tmp_path))
+
+    url = upload(loader_client, released["driver"]).json()["photo_url"]
+
+    assert url.startswith("/static/uploads/") and url.endswith(".png")
+    assert (tmp_path / url.rsplit("/", 1)[-1]).exists()
+
+
+# ---- SOS photo (sos_alerts.photo_url, migration 0016) ------------------------------
+
+def sos_photo(db, alert_id):
+    sos = SOSAlert.__table__
+    return db.execute(select(sos.c.photo_url).where(sos.c.id == alert_id)).scalar()
+
+
+def test_sos_photo_link_is_saved(loader_client, released):
+    trip = started_trip(loader_client, released)
+    link = "https://pub-test.r2.dev/driver/2026-10-04/abc.jpg"
+
+    res = loader_client.post(f"{API}/sos", headers=auth(released["driver"]), json={
+        "driver_trip_id": trip["id"], "latitude": 6.9, "longitude": 79.86,
+        "message": "Vehicle Breakdown", "photo_url": link,
+    })
+
+    assert res.status_code == 200, res.text
+    assert sos_photo(released["db"], res.json()["id"]) == link
+
+
+def test_offline_sos_keeps_its_photo_link(loader_client, released):
+    trip = started_trip(loader_client, released)
+    link = "https://pub-test.r2.dev/driver/2026-10-04/offline.jpg"
+
+    res = loader_client.post(f"{API}/sync", headers=auth(released["driver"]), json=[{
+        "action_id": "sos-photo-1", "action_type": "sos", "trip_id": trip["id"],
+        "client_timestamp": "2026-10-04T04:10:00Z",
+        "payload": {"driver_trip_id": trip["id"], "message": "Accident", "photo_url": link},
+    }])
+
+    assert res.status_code == 200, res.text
+    alert = released["db"].query(SOSAlert).filter(SOSAlert.message == "Accident").one()
+    assert sos_photo(released["db"], alert.id) == link
+
+
+def test_sos_goes_through_even_if_the_photo_link_cant_be_saved(loader_client, released, monkeypatch):
+    """Before migration 0016 the photo column is missing: the SOS must still be saved."""
+    from sqlalchemy.exc import OperationalError
+    from app.services import driver_service
+
+    def missing_column(*_args, **_kwargs):
+        raise OperationalError("UPDATE sos_alerts", {}, Exception("no such column: photo_url"))
+
+    monkeypatch.setattr(driver_service, "update", missing_column)
+    trip = started_trip(loader_client, released)
+
+    res = loader_client.post(f"{API}/sos", headers=auth(released["driver"]), json={
+        "driver_trip_id": trip["id"], "message": "Medical Emergency", "photo_url": "https://pub-test.r2.dev/x.jpg",
+    })
+
+    assert res.status_code == 200, res.text
+    assert released["db"].query(SOSAlert).filter(SOSAlert.message == "Medical Emergency").count() == 1

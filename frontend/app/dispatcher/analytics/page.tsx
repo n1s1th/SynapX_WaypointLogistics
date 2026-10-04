@@ -5,7 +5,7 @@ import { MetricCard } from "@/components/domain/metric-card";
 import { Button } from "@/components/ui/button";
 import { useOrders } from "@/components/dispatcher/operations/use-orders";
 import { dailyCounts, downloadCsv, groupDestinations, isOpen, orderDay, shiftDay } from "@/components/dispatcher/operations/data";
-import { Bars, Choice, DataGate, ModuleHeader, Notice, PagedTable, Panel, Status } from "@/components/dispatcher/operations/shared";
+import { Bars, Choice, DataGate, ModuleHeader, PagedTable, Panel, Status } from "@/components/dispatcher/operations/shared";
 
 export default function AnalyticsPage() {
   const source = useOrders();
@@ -24,7 +24,6 @@ export default function AnalyticsPage() {
     <ModuleHeader title="Analytics" description="Understand order intake and the current outcomes of orders created in a selected period." loading={source.loading} refresh={source.refresh}>
       <Button variant="outline" disabled={source.loading || !!source.error || !orders.length} onClick={() => downloadCsv("order-analytics.csv", [["Order", "Customer", "Address", "Created date (Asia/Colombo)", "Current status"], ...orders.map((o) => [o.order_number, o.client_name, o.destination_address, orderDay(o.created_at), o.status])])}>Export CSV</Button>
     </ModuleHeader>
-    <Notice>Metrics describe orders by creation date and their status now—not deliveries completed during that period. On-time delivery, historical utilization, and fuel efficiency need additional operational records.</Notice>
     <div className="flex flex-wrap items-center gap-3"><Choice label="Reporting period" value={period} onChange={(v) => { setPeriod(v); setStatus("all"); setPage(1); }} options={[7, 30, 90].map((n) => ({ value: String(n), label: `Last ${n} days` }))} /><span className="text-xs text-muted-foreground">{today ? `${start} to ${today} · Asia/Colombo · includes today` : "Dates use Asia/Colombo"}</span></div>
     <DataGate loading={source.loading} error={source.error} retry={source.refresh}>
       <section aria-label="Order summary" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

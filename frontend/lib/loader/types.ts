@@ -134,6 +134,8 @@ export interface RunStop {
   note?: string | null;
   /** L7: stop added in the current plan. */
   is_new?: boolean;
+  /** Arrival (ETA, or departure while pending) against the outlet's window; null: no window. */
+  window_status?: "ok" | "closing" | "closed" | null;
 }
 
 export interface RunCapacity {
