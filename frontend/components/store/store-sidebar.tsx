@@ -13,11 +13,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { isStoreNavActive, storeSidebarItems } from "@/components/store/store-nav";
-import { brandLabels, currentManager, currentOutlet } from "@/components/store/mock-data";
+import { brandLabels } from "@/components/store/mock-data";
+import { useStoreManager, useStoreOutlet } from "@/components/store/outlet-context";
 
 export function StoreSidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const outlet = useStoreOutlet();
+  const manager = useStoreManager();
 
   return (
     <Sidebar>
@@ -59,13 +62,15 @@ export function StoreSidebar() {
 
         <SidebarFooter className="px-4 pt-4 pb-6">
           <div className="flex flex-col gap-2 rounded-lg bg-primary-foreground/10 p-4 text-sm">
-            <span className="font-bold">{currentOutlet.code}</span>
-            <span className="text-primary-foreground/70">
-              {brandLabels[currentOutlet.brand]} · {currentOutlet.district}
-            </span>
-            <span className="text-primary-foreground/70">
-              {currentManager.fullName} · Store Manager
-            </span>
+            <span className="font-bold">{outlet?.code ?? "Outlet unavailable"}</span>
+            {outlet && (
+              <span className="text-primary-foreground/70">
+                {brandLabels[outlet.brand]} · {outlet.district}
+              </span>
+            )}
+            {manager && (
+              <span className="text-primary-foreground/70">{manager.fullName} · Store Manager</span>
+            )}
           </div>
         </SidebarFooter>
       </div>

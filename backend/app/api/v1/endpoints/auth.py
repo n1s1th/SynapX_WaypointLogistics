@@ -6,6 +6,7 @@ from app.api import deps
 from app.core import security
 from app.core.config import settings
 from app.models.user import User
+from app.models.user import UserRole
 from app.schemas.auth import Token, UserCreate, UserRead
 
 router = APIRouter()
@@ -56,3 +57,34 @@ def login(
 @router.get("/me", response_model=UserRead)
 def read_current_user(current_user: User = Depends(deps.get_current_user)):
     return current_user
+
+
+from app.models.depot_dispatcher import DepotDispatcherAssignment
+
+
+@router.get("/depot-scope")
+def read_depot_scope(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+    x_waypoint_depot: str | None = None,
+):
+    """The depot enforced for the signed-in dispatcher workspace."""
+    is_admin = current_user.role == UserRole.ADMIN
+    assignment = db.query(DepotDispatcherAssignment).filter(
+        DepotDispatcherAssignment.user_id == current_user.id
+    ).first()
+
+    raw_requested = (x_waypoint_depot or settings.DISPATCHER_DEFAULT_DEPOT).strip().lower()
+    default_depot = raw_requested if raw_requested in ("peliyagoda", "kandy") else "peliyagoda"
+
+    assigned_depot = assignment.depot.value if assignment else None
+
+    return {
+        "depot": assigned_depot or (default_depot if (is_admin or current_user.id == 0) else None),
+        "can_switch": is_admin or current_user.id == 0,
+        "is_assigned": bool(assignment is not None or is_admin or current_user.id == 0),
+        "user_name": current_user.full_name,
+        "user_email": current_user.email,
+        "user_role": current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role),
+    }
+

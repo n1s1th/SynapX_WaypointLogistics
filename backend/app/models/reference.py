@@ -1,6 +1,7 @@
 import enum
-from sqlalchemy import Boolean, Column, Date, Float, ForeignKey, Integer, String, Time, Enum
-from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, Text, Time, Enum
+from sqlalchemy.orm import deferred, relationship
 from app.core.database import Base
 
 
@@ -87,6 +88,16 @@ class Outlet(Base):
     window_start = Column(Time, nullable=True)
     window_end = Column(Time, nullable=True)
     depot = Column(Enum(Depot), default=Depot.PELIYAGODA, nullable=False)
+    # Deferred so existing loader/store reads work before the profile migration is applied.
+    address = deferred(Column(String(500), nullable=True))
+    active = deferred(Column(Boolean, default=True, nullable=False))
+    delivery_restrictions = deferred(Column(Text, nullable=True))
+    created_at = deferred(Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False))
+    updated_at = deferred(Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False))
+    contacts = relationship("OutletContact", back_populates="outlet", cascade="all, delete-orphan", order_by="OutletContact.id")
+    receiving_windows = relationship("OutletReceivingWindow", back_populates="outlet", cascade="all, delete-orphan", order_by="OutletReceivingWindow.id")
+    parking_constraint = Column(String(50), default="normal", nullable=False)
+    mall_window = Column(String(50), nullable=True)
 
 
 class Dock(Base):

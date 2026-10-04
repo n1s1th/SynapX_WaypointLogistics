@@ -20,24 +20,41 @@ import {
   Building2,
   Truck,
   Download,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StorePill, StorePillTone } from "@/components/store/status-pill";
 import { StoreMetricCard } from "@/components/store/store-cards";
-import { getStoredIssues, saveIssue, StoreIssue } from "@/services/issues-store";
+import {
+  createStoreIssue,
+  fetchStoreIssues,
+  updateStoreIssue,
+  deleteStoreIssue,
+  StoreIssue,
+} from "@/services/issues-store";
 
-export default function ExceptionsAndIssuesPage() {
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function ExceptionsAndIssuesContent() {
+  const searchParams = useSearchParams();
+  const initialOrderParam = searchParams.get("order") || "";
+  const initialSearchParam = searchParams.get("search") || "";
+  const autoOpenReport = searchParams.get("report") === "true" || !!initialOrderParam;
+
   const [issues, setIssues] = useState<StoreIssue[]>([]);
   const [selectedTab, setSelectedTab] = useState<"all" | "open" | "under_review" | "resolved">("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchParam || initialOrderParam);
   const [typeFilter, setTypeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("30");
   const [selectedIssue, setSelectedIssue] = useState<StoreIssue | null>(null);
 
-  // Report Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newOrderId, setNewOrderId] = useState("ORD0000001");
+  // Report & Edit Modal State
+  const [showCreateModal, setShowCreateModal] = useState(autoOpenReport);
+  const [editingIssue, setEditingIssue] = useState<StoreIssue | null>(null);
+  const [newOrderId, setNewOrderId] = useState(initialOrderParam || "");
   const [newItemName, setNewItemName] = useState("");
   const [newItemSku, setNewItemSku] = useState("");
   const [newType, setNewType] = useState<"Damaged Goods" | "Missing Items" | "Quantity Mismatch" | "Temperature Breach">("Damaged Goods");
@@ -45,17 +62,47 @@ export default function ExceptionsAndIssuesPage() {
   const [newReceived, setNewReceived] = useState(8);
   const [newDescription, setNewDescription] = useState("");
   const [newPhoto, setNewPhoto] = useState<{ name: string; url: string; size: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const loadIssues = () => {
-    setIssues(getStoredIssues());
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [issueToCancel, setIssueToCancel] = useState<StoreIssue | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const loadIssues = async () => {
+    try {
+      setIssues(await fetchStoreIssues());
+      setLoadError(null);
+    } catch {
+      setLoadError("Couldn't load your issues. Check your connection and refresh.");
+    }
   };
 
   useEffect(() => {
-    loadIssues();
-    const handleUpdate = () => loadIssues();
-    window.addEventListener("waypoint_issues_updated", handleUpdate);
-    return () => window.removeEventListener("waypoint_issues_updated", handleUpdate);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads once on mount
+    void loadIssues();
   }, []);
+
+  useEffect(() => {
+    if (initialOrderParam) {
+      setNewOrderId(initialOrderParam);
+      setShowCreateModal(true);
+    }
+    if (initialSearchParam) {
+      setSearchQuery(initialSearchParam);
+      const found = issues.find(
+        (i) =>
+          i.id.toLowerCase() === initialSearchParam.toLowerCase() ||
+          i.orderId.toLowerCase() === initialSearchParam.toLowerCase()
+      );
+      if (found) {
+        setSelectedIssue(found);
+      }
+    }
+  }, [initialOrderParam, initialSearchParam, issues]);
 
   const openCount = issues.filter((i) => i.status === "open").length;
   const underReviewCount = issues.filter((i) => i.status === "under_review").length;
@@ -71,6 +118,18 @@ export default function ExceptionsAndIssuesPage() {
     // Type filter
     if (typeFilter !== "all" && iss.type !== typeFilter) return false;
 
+    // Date filter
+    if (dateFilter !== "all") {
+      const days = parseInt(dateFilter, 10);
+      if (!isNaN(days) && iss.reportedAt) {
+        const parsed = Date.parse(iss.reportedAt);
+        if (!isNaN(parsed)) {
+          const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+          if (parsed < cutoff) return false;
+        }
+      }
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -84,42 +143,129 @@ export default function ExceptionsAndIssuesPage() {
     return true;
   });
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const totalPages = Math.ceil(filteredIssues.length / pageSize) || 1;
+  const paginatedIssues = filteredIssues.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    try {
+      const url = await shrinkPhoto(file);
       setNewPhoto({
         name: file.name,
-        url: URL.createObjectURL(file),
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB • Captured today`,
+        url,
+        size: `${Math.max(1, Math.round((url.length * 3) / 4 / 1024))} KB • Captured today`,
       });
+    } catch {
+      setSaveError("That photo couldn't be read. Try a JPG or PNG.");
     }
   };
 
-  const handleCreateIssue = (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingIssue(null);
+    setNewOrderId(initialOrderParam || "");
+    setNewItemName("");
+    setNewItemSku("");
+    setNewType("Damaged Goods");
+    setNewExpected(0);
+    setNewReceived(0);
+    setNewDescription("");
+    setNewPhoto(null);
+    setSaveError(null);
+    setShowCreateModal(true);
+  };
+
+  const openEditModal = (issue: StoreIssue) => {
+    setEditingIssue(issue);
+    setNewOrderId(issue.orderId);
+    setNewItemName(issue.affectedItem === "Whole delivery" || issue.affectedItem === "Consignment Item" ? "" : issue.affectedItem);
+    setNewItemSku(issue.sku);
+    setNewType((issue.type as any) || "Damaged Goods");
+    setNewExpected(issue.expectedUnits);
+    setNewReceived(issue.receivedUnits);
+    setNewDescription(issue.description);
+    setNewPhoto(
+      issue.photoUrl
+        ? {
+            name: issue.photoName || "evidence_photo.jpg",
+            url: issue.photoUrl,
+            size: issue.photoSize || "Attached photo",
+          }
+        : null
+    );
+    setSaveError(null);
+    setShowCreateModal(true);
+  };
+
+  const promptCancelIssue = (issue: StoreIssue) => {
+    setCancelError(null);
+    setIssueToCancel(issue);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!issueToCancel) return;
+    setIsDeleting(true);
+    setCancelError(null);
+    try {
+      await deleteStoreIssue(issueToCancel.id);
+      await loadIssues();
+      setSelectedIssue(null);
+      setIssueToCancel(null);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "Couldn't withdraw the issue. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleSaveIssue = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDescription.trim()) return;
 
-    const created = saveIssue({
-      orderId: newOrderId,
-      type: newType,
-      title: `${newType}: ${newItemName || "Order Discrepancy"}`,
-      affectedItem: newItemName || "Consignment Item",
-      sku: newItemSku || "SKU-GEN",
-      expectedUnits: newExpected,
-      receivedUnits: newReceived,
-      description: newDescription,
-      photoUrl: newPhoto?.url,
-      photoName: newPhoto?.name,
-      photoSize: newPhoto?.size,
-      driverName: "Marcus Vance",
-      vehicleId: "VEH001",
-    });
-
-    loadIssues();
-    setSelectedIssue(created);
-    setShowCreateModal(false);
-    setNewDescription("");
-    setNewPhoto(null);
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      if (editingIssue) {
+        const updated = await updateStoreIssue(editingIssue.id, {
+          type: newType,
+          title: `${newType}: ${newItemName || "Order Discrepancy"}`,
+          affectedItem: newItemName,
+          sku: newItemSku,
+          expectedUnits: newExpected,
+          receivedUnits: newReceived,
+          description: newDescription,
+          photoUrl: newPhoto?.url || "",
+          photoName: newPhoto?.name || "",
+          photoSize: newPhoto?.size || "",
+        });
+        await loadIssues();
+        setSelectedIssue(updated);
+      } else {
+        const created = await createStoreIssue({
+          orderId: newOrderId,
+          type: newType,
+          title: `${newType}: ${newItemName || "Order Discrepancy"}`,
+          affectedItem: newItemName,
+          sku: newItemSku,
+          expectedUnits: newExpected,
+          receivedUnits: newReceived,
+          description: newDescription,
+          photoUrl: newPhoto?.url,
+          photoName: newPhoto?.name,
+          photoSize: newPhoto?.size,
+        });
+        await loadIssues();
+        setSelectedIssue(created);
+      }
+      setShowCreateModal(false);
+      setEditingIssue(null);
+      setNewDescription("");
+      setNewPhoto(null);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Couldn't save the issue. Try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getStatusTone = (status: StoreIssue["status"]): StorePillTone => {
@@ -160,13 +306,13 @@ export default function ExceptionsAndIssuesPage() {
             Exceptions &amp; Issues
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Track delivery discrepancies, short shipments, damage claims, and credit notes.
+            Track delivery discrepancies, short shipments, damage reports, and reconciliation status.
           </p>
         </div>
 
         <Button
           type="button"
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateModal}
           className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 gap-1.5 shadow-xs"
         >
           <Plus className="size-4" />
@@ -175,6 +321,12 @@ export default function ExceptionsAndIssuesPage() {
       </div>
 
       {/* 4 Metric Cards (Figma 16:828) */}
+      {loadError && (
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive-muted p-4 text-sm font-medium text-destructive">
+          {loadError}
+        </p>
+      )}
+
       <section aria-label="Exceptions Summary" className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <StoreMetricCard
           label="Total Issues"
@@ -197,7 +349,7 @@ export default function ExceptionsAndIssuesPage() {
         <StoreMetricCard
           label="Resolved"
           value={String(resolvedCount)}
-          caption="Credits issued or reconciled"
+          caption="Discrepancies settled or reconciled"
           mobileCaption="14 closed"
         />
       </section>
@@ -280,14 +432,14 @@ export default function ExceptionsAndIssuesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {filteredIssues.length === 0 ? (
+              {paginatedIssues.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-muted-foreground">
                     No exceptions or issues match your criteria.
                   </td>
                 </tr>
               ) : (
-                filteredIssues.map((issue) => (
+                paginatedIssues.map((issue) => (
                   <tr
                     key={issue.id}
                     onClick={() => setSelectedIssue(issue)}
@@ -341,6 +493,41 @@ export default function ExceptionsAndIssuesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {filteredIssues.length > 0 && (
+          <div className="p-3.5 border-t border-border/60 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <span className="text-muted-foreground">
+              Showing {(currentPage - 1) * pageSize + 1} &ndash;{" "}
+              {Math.min(currentPage * pageSize, filteredIssues.length)} of {filteredIssues.length} issues
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-8 text-xs font-semibold"
+              >
+                Previous
+              </Button>
+              <span className="px-2 text-xs font-medium text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="h-8 text-xs font-semibold"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Side Panel / Issue Details Drawer (Figma 16:816 & 16:939) */}
@@ -520,50 +707,84 @@ export default function ExceptionsAndIssuesPage() {
             </div>
 
             {/* Panel Footer (Figma 16:1010) */}
-            <div className="p-4 border-t border-border bg-card/95 flex items-center justify-end gap-2 sticky bottom-0">
-              <Button type="button" variant="outline" size="sm" onClick={() => setSelectedIssue(null)}>
-                Close
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 gap-1.5"
-                onClick={() => {
-                  alert(`Credit Note Request #REQ-${selectedIssue.id} submitted to Central Dispatch.`);
-                }}
-              >
-                <Download className="size-3.5" />
-                <span>Request Credit Note</span>
-              </Button>
+            <div className="p-4 border-t border-border bg-card/95 flex items-center justify-between gap-2 sticky bottom-0">
+              <div className="flex items-center gap-2">
+                {selectedIssue.status === "open" && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditModal(selectedIssue)}
+                      className="gap-1.5 text-xs"
+                    >
+                      <Pencil className="size-3.5" />
+                      <span>Edit</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isDeleting}
+                      onClick={() => promptCancelIssue(selectedIssue)}
+                      className="text-destructive border-destructive/30 hover:bg-destructive-muted hover:text-destructive gap-1.5 text-xs"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>Cancel Issue</span>
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setSelectedIssue(null)}>
+                  Close
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 gap-1.5"
+                >
+                  <Link href={`/store/deliveries/${selectedIssue.orderId}`}>
+                    <span>View Delivery</span>
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Manual "Report New Issue" Modal */}
+      {/* Manual "Report New Issue" / Edit Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="max-w-lg w-full bg-card border border-border rounded-xl p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="size-5 text-warning" />
-                <h3 className="text-base font-bold text-foreground">Report Delivery Discrepancy</h3>
+                <h3 className="text-base font-bold text-foreground">
+                  {editingIssue ? `Edit Issue (${editingIssue.id})` : "Report Delivery Discrepancy"}
+                </h3>
               </div>
               <button
                 type="button"
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setEditingIssue(null);
+                }}
                 className="p-1 rounded-md text-muted-foreground hover:bg-muted"
               >
                 <X className="size-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateIssue} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveIssue} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="font-bold text-muted-foreground">Order ID *</label>
                   <Input
                     required
+                    disabled={!!editingIssue}
                     value={newOrderId}
                     onChange={(e) => setNewOrderId(e.target.value)}
                     placeholder="e.g. ORD0000001"
@@ -679,22 +900,117 @@ export default function ExceptionsAndIssuesPage() {
                 )}
               </div>
 
+              {saveError && (
+                <p role="alert" className="text-sm font-medium text-destructive">
+                  {saveError}
+                </p>
+              )}
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
-                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingIssue(null);
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!newDescription.trim()}
+                  disabled={!newDescription.trim() || isSaving}
                   className="bg-primary text-primary-foreground font-bold hover:bg-primary/90"
                 >
-                  Submit Issue Report
+                  {editingIssue ? (isSaving ? "Saving..." : "Save Changes") : (isSaving ? "Submitting..." : "Submit Issue Report")}
                 </Button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog Popup for Cancellation */}
+      {issueToCancel && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-card border border-border rounded-xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">Withdraw Complaint?</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Are you sure you want to cancel and withdraw complaint{" "}
+                  <span className="font-semibold text-foreground font-mono">{issueToCancel.id}</span>
+                  {issueToCancel.title ? ` (${issueToCancel.title})` : ""}? This action will permanently remove the issue report.
+                </p>
+              </div>
+            </div>
+
+            {cancelError && (
+              <p role="alert" className="text-xs font-medium text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
+                {cancelError}
+              </p>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isDeleting}
+                onClick={() => setIssueToCancel(null)}
+              >
+                Keep Complaint
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isDeleting}
+                onClick={handleConfirmCancel}
+                className="bg-destructive text-destructive-foreground font-bold hover:bg-destructive/90 gap-1.5"
+              >
+                <Trash2 className="size-3.5" />
+                <span>{isDeleting ? "Cancelling..." : "Confirm Cancellation"}</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+/**
+ * Photos are stored with the issue until shared file storage exists, so keep them small: at most 1280px on the
+ * longest side, as a JPEG data URL (usually 100–300 KB).
+ */
+function shrinkPhoto(file: File, maxSide = 1280): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(image.width * scale);
+      canvas.height = Math.round(image.height * scale);
+      canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.75));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Not an image"));
+    };
+    image.src = url;
+  });
+}
+
+export default function ExceptionsAndIssuesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground text-xs">Loading issues...</div>}>
+      <ExceptionsAndIssuesContent />
+    </Suspense>
+  );
+}
+

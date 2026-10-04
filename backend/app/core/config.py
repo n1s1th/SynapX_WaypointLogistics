@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     KEYCLOAK_AUDIENCE: str = "account"
     KEYCLOAK_DEV_MODE: bool = True  # Allows local / test bypass when Keycloak container is offline
 
+    # Temporary operational scope while Keycloak depot claims are being wired.
+    # Requests without an explicit depot scope stay in Peliyagoda, never a
+    # combined cross-depot view.
+    DISPATCHER_DEFAULT_DEPOT: str = "peliyagoda"
+
     # Loader module
     # Mounts /loader/dev/* which simulates dispatcher actions while there is no
     # dispatcher UI. Never mounted when ENVIRONMENT == "production".

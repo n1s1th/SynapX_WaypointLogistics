@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Loader2, Truck, User, Calendar, Hash, MapPin, Lightbulb } from "lucide-react";
+import { Loader2, Truck, Calendar, Hash, MapPin, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 
 interface AllocationFormDrawerProps {
@@ -29,21 +29,15 @@ interface VehicleOption {
   depot_name: string;
 }
 
-interface DriverOption {
-  id: number;
-  license_type: string;
-  user: { full_name: string } | null;
-}
-
 import { fetchWithFallback } from "@/lib/api";
 
 export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: AllocationFormDrawerProps) {
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
-  const [drivers, setDrivers] = useState<DriverOption[]>([]);
+
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
-  const [selectedDriverId, setSelectedDriverId] = useState("");
+
   const [runId, setRunId] = useState("");
   const [departureTime, setDepartureTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,15 +47,11 @@ export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: Allocati
   const fetchFormData = async () => {
     setIsLoadingData(true);
     try {
-      const [vehRes, drvRes] = await Promise.all([
-        fetchWithFallback("/api/v1/fleet/vehicles?status=AVAILABLE"),
-        fetchWithFallback("/api/v1/fleet/drivers"),
-      ]);
+      const vehRes = await fetchWithFallback("/api/v1/fleet/vehicles?status=AVAILABLE");
       if (vehRes.ok) setVehicles(await vehRes.json());
-      if (drvRes.ok) setDrivers(await drvRes.json());
     } catch (error) {
       console.error("Error fetching form data", error);
-      toast.error("Failed to load vehicles and drivers");
+      toast.error("Failed to load vehicles");
     } finally {
       setIsLoadingData(false);
     }
@@ -72,7 +62,7 @@ export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: Allocati
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchFormData();
       setSelectedVehicleId("");
-      setSelectedDriverId("");
+
       setRunId("");
       setDepartureTime("");
     }
@@ -86,7 +76,7 @@ export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: Allocati
     try {
       const payload = {
         vehicle_id: parseInt(selectedVehicleId),
-        driver_id: selectedDriverId ? parseInt(selectedDriverId) : null,
+
         run_id: runId.trim() || null,
         departure_time: departureTime ? new Date(departureTime).toISOString() : null,
         load_percentage: 0,
@@ -106,7 +96,9 @@ export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: Allocati
         onOpenChange(false);
       } else {
         const err = await res.json();
-        const errorMessage = Array.isArray(err.detail) ? err.detail[0]?.msg : err.detail;
+        const errorMessage = typeof err.detail === "string" ? err.detail :
+                             Array.isArray(err.detail) ? err.detail[0]?.msg :
+                             err.detail?.message || "Failed to create allocation";
         toast.error(errorMessage || "Failed to create allocation");
       }
     } catch (error) {
@@ -176,27 +168,6 @@ export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: Allocati
                 )}
               </div>
 
-              {/* Driver */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-slate-400" />
-                  Driver <span className="text-slate-400 font-normal">(optional)</span>
-                </Label>
-                <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-                  <SelectTrigger className="w-full h-9">
-                    <SelectValue placeholder="Assign later" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id.toString()}>
-                        <span className="font-medium">{d.user?.full_name ?? "Unknown"}</span>
-                        <span className="text-muted-foreground ml-1.5 text-xs">— {d.license_type} licence</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Run ID + Departure — flex-1 ensures identical widths */}
               <div className="flex gap-3">
                 <div className="flex-1 space-y-1.5">
@@ -230,7 +201,7 @@ export function AllocationFormDrawer({ open, onOpenChange, onSuccess }: Allocati
                 <Lightbulb className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-slate-500 leading-relaxed">
                   <span className="font-semibold text-slate-600">Draft → Review → Ready → Dispatch.</span>{" "}
-                  Driver and run ID can be assigned now or later.
+                  Driver is automatically assigned from the vehicle. Run ID and departure can be set now or later.
                 </p>
               </div>
 

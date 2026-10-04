@@ -1,7 +1,11 @@
+import { apiFetch, ApiError } from "@/components/store/api/client";
+import { STORE_DATA_SOURCE } from "@/components/store/api/config";
+import { getStoreOrder, getStoreSession } from "@/components/store/api/store-data";
+
 export interface StoreIssue {
   id: string;
   orderId: string;
-  type: "Damaged Goods" | "Missing Items" | "Quantity Mismatch" | "Temperature Breach" | "Wrong Consignment";
+  type: "Damaged Goods" | "Missing Items" | "Quantity Mismatch" | "Temperature Breach" | "Wrong Consignment" | "Other";
   title: string;
   affectedItem: string;
   sku: string;
@@ -18,6 +22,62 @@ export interface StoreIssue {
   claimedAmount?: string;
   driverName?: string;
   vehicleId?: string;
+}
+
+export interface ApiDeliveryIssue {
+  id: number;
+  order_id: number | null;
+  order_number: string | null;
+  outlet_id: number | null;
+  issue_type: string;
+  title: string;
+  affected_item: string | null;
+  sku: string | null;
+  expected_units: number | null;
+  received_units: number | null;
+  description: string;
+  photo_url: string | null;
+  photo_name: string | null;
+  photo_size: string | null;
+  reported_by: string;
+  status: "open" | "under_review" | "resolved" | "credit_issued";
+  resolution_notes: string | null;
+  claimed_amount: string | null;
+  driver_name: string | null;
+  vehicle_id: string | null;
+  reported_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function fromApiIssue(api: ApiDeliveryIssue): StoreIssue {
+  return {
+    id: `ISS${String(api.id).padStart(7, "0")}`,
+    orderId: api.order_number ?? "",
+    type: (api.issue_type as StoreIssue["type"]) || "Damaged Goods",
+    title: api.title,
+    affectedItem: api.affected_item || "Whole delivery",
+    sku: api.sku || "",
+    expectedUnits: api.expected_units ?? 0,
+    receivedUnits: api.received_units ?? 0,
+    description: api.description,
+    photoUrl: api.photo_url || undefined,
+    photoName: api.photo_name || undefined,
+    photoSize: api.photo_size || undefined,
+    reportedAt: new Date(api.reported_at).toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    reportedBy: api.reported_by || "Store Manager",
+    status: api.status,
+    resolutionNotes: api.resolution_notes || undefined,
+    claimedAmount: api.claimed_amount || undefined,
+    driverName: api.driver_name || undefined,
+    vehicleId: api.vehicle_id || undefined,
+  };
 }
 
 export const initialMockIssues: StoreIssue[] = [
@@ -82,47 +142,94 @@ export const initialMockIssues: StoreIssue[] = [
   },
 ];
 
-const STORAGE_KEY = "waypoint_store_issues";
+// ── Reading and logging issues ──────────────────────────────────────────────────────────────────────────
+// Live data only: the backend scopes issues to the signed-in manager's outlet. Nothing is kept in the
+// browser, so every device and the Dispatcher see the same list. initialMockIssues is for mock mode only.
 
-export function getStoredIssues(): StoreIssue[] {
-  if (typeof window === "undefined") return initialMockIssues;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMockIssues));
-      return initialMockIssues;
-    }
-    return JSON.parse(raw);
-  } catch {
-    return initialMockIssues;
-  }
+/** The outlet's delivery issues, newest first. */
+export async function fetchStoreIssues(): Promise<StoreIssue[]> {
+  if (STORE_DATA_SOURCE !== "api") return initialMockIssues;
+  const { outlet } = await getStoreSession();
+  const issues = await apiFetch<ApiDeliveryIssue[]>(`/issues?outlet_id=${outlet.id}`);
+  return issues.map(fromApiIssue);
 }
 
-export function saveIssue(issue: Omit<StoreIssue, "id" | "reportedAt" | "reportedBy" | "status">): StoreIssue {
-  const current = getStoredIssues();
-  const nextNum = current.length + 1;
-  const newIssue: StoreIssue = {
-    ...issue,
-    id: `ISS${String(nextNum).padStart(7, "0")}`,
-    reportedAt: new Date().toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+export type NewStoreIssue = Omit<StoreIssue, "id" | "reportedAt" | "reportedBy" | "status">;
+
+/** Logs an issue against one of the outlet's orders. Throws (ApiError) if the server doesn't accept it. */
+export async function createStoreIssue(issue: NewStoreIssue): Promise<StoreIssue> {
+  if (STORE_DATA_SOURCE !== "api") {
+    throw new ApiError("Issue reporting needs the Waypoint server. Switch to live data.", 400);
+  }
+  const [{ outlet }, order] = await Promise.all([
+    getStoreSession(),
+    issue.orderId ? getStoreOrder(issue.orderId) : Promise.resolve(null),
+  ]);
+  if (issue.orderId && !order) {
+    throw new ApiError(`${issue.orderId} isn't one of your orders.`, 404);
+  }
+  const created = await apiFetch<ApiDeliveryIssue>("/issues", {
+    method: "POST",
+    body: JSON.stringify({
+      // The real order id, not the digits of the order number.
+      order_id: order?.id ?? null,
+      order_number: order?.orderNumber ?? null,
+      outlet_id: outlet.id,
+      issue_type: issue.type,
+      title: issue.title,
+      affected_item: issue.affectedItem || null,
+      sku: issue.sku || null,
+      expected_units: issue.expectedUnits,
+      received_units: issue.receivedUnits,
+      description: issue.description,
+      photo_url: issue.photoUrl || null,
+      photo_name: issue.photoName || null,
+      photo_size: issue.photoSize || null,
+      claimed_amount: issue.claimedAmount || null,
     }),
-    reportedBy: "Sarah Jenkins (Store Manager)",
-    status: "open",
-  };
-
-  const updated = [newIssue, ...current];
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event("waypoint_issues_updated"));
-    } catch (e) {
-      console.error("Failed to save issue to localStorage", e);
-    }
-  }
-  return newIssue;
+  });
+  return fromApiIssue(created);
 }
+
+/** Updates an existing issue complaint. */
+export async function updateStoreIssue(
+  issueId: string | number,
+  updates: Partial<StoreIssue>
+): Promise<StoreIssue> {
+  if (STORE_DATA_SOURCE !== "api") {
+    throw new ApiError("Issue reporting needs the Waypoint server. Switch to live data.", 400);
+  }
+  const numericId = typeof issueId === "string" ? parseInt(issueId.replace(/^ISS/i, ""), 10) : issueId;
+  const payload: Record<string, unknown> = {};
+  if (updates.type !== undefined) payload.issue_type = updates.type;
+  if (updates.title !== undefined) payload.title = updates.title;
+  if (updates.affectedItem !== undefined) payload.affected_item = updates.affectedItem;
+  if (updates.sku !== undefined) payload.sku = updates.sku;
+  if (updates.expectedUnits !== undefined) payload.expected_units = updates.expectedUnits;
+  if (updates.receivedUnits !== undefined) payload.received_units = updates.receivedUnits;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.photoUrl !== undefined) payload.photo_url = updates.photoUrl;
+  if (updates.photoName !== undefined) payload.photo_name = updates.photoName;
+  if (updates.photoSize !== undefined) payload.photo_size = updates.photoSize;
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.claimedAmount !== undefined) payload.claimed_amount = updates.claimedAmount;
+  if (updates.resolutionNotes !== undefined) payload.resolution_notes = updates.resolutionNotes;
+
+  const updated = await apiFetch<ApiDeliveryIssue>(`/issues/${numericId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return fromApiIssue(updated);
+}
+
+/** Deletes/withdraws a logged issue complaint. */
+export async function deleteStoreIssue(issueId: string | number): Promise<void> {
+  if (STORE_DATA_SOURCE !== "api") {
+    throw new ApiError("Issue reporting needs the Waypoint server. Switch to live data.", 400);
+  }
+  const numericId = typeof issueId === "string" ? parseInt(issueId.replace(/^ISS/i, ""), 10) : issueId;
+  await apiFetch<void>(`/issues/${numericId}`, {
+    method: "DELETE",
+  });
+}
+

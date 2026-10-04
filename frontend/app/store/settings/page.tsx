@@ -18,6 +18,7 @@ import { mockOutletSettings, type OutletSettings } from "@/components/store/mock
 export default function OutletSettingsPage() {
   const [settings, setSettings] = useState<OutletSettings>(mockOutletSettings);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -42,6 +43,7 @@ export default function OutletSettingsPage() {
         setSmsAlertsPriority(data.smsAlertsPriority);
       } catch (err) {
         console.error("Failed to load outlet settings:", err);
+        setLoadFailed(true);
       } finally {
         setLoading(false);
       }
@@ -92,6 +94,18 @@ export default function OutletSettingsPage() {
     } finally {
       setIsResetting(false);
     }
+  }
+
+  // Nothing is shown until the outlet's real settings arrive, so no placeholder values flash up.
+  if (loading) {
+    return <p className="p-8 text-center text-sm text-muted-foreground">Loading outlet settings…</p>;
+  }
+  if (loadFailed) {
+    return (
+      <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive-muted p-4 text-sm font-medium text-destructive">
+        Couldn&apos;t load your outlet settings. Check your connection and refresh the page.
+      </p>
+    );
   }
 
   return (

@@ -93,6 +93,7 @@ export function RepeatDeferralModal({
             className="w-full text-xs h-9 px-3 rounded-md border border-[#E5E5E2] bg-white text-[#171A1F] focus:outline-none focus:ring-1 focus:ring-[#18385F]"
           >
             <option value="Capacity limitation · no available reefer">Capacity limitation · no available reefer</option>
+            <option value="Depot stock shortage · low inventory on ordered items">Depot stock shortage · low inventory on ordered items</option>
             <option value="Outlet dock access restriction">Outlet dock access restriction</option>
             <option value="Weekly fuel quota limit reached">Weekly fuel quota limit reached</option>
             <option value="Customer requested reschedule">Customer requested reschedule</option>

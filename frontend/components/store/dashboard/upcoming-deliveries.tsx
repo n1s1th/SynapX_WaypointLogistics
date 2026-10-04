@@ -5,19 +5,19 @@ import { Table, TableBody, TableRow } from "@/components/ui/table";
 import { StoreArrowLink, StoreSectionCard } from "@/components/store/store-cards";
 import { StoreTableCell, StoreTableHeader } from "@/components/store/store-table";
 import { OrderStatusPill, PriorityPill } from "@/components/store/status-pill";
-import { formatItemCount, formatRelativeWindow, formatTime } from "@/components/store/format";
-import { currentOutlet, type StoreOrder } from "@/components/store/mock-data";
+import { formatItemCount, formatRelativeWindow, formatTime, windowFor } from "@/components/store/format";
+import type { StoreOrder, StoreOutlet } from "@/components/store/mock-data";
 import { MobileSectionTitle } from "@/components/store/dashboard/mobile-section-title";
 
 // Delivery details and receiving (Figma 06) belong to Dev B's flow.
 const deliveryHref = (order: StoreOrder) => `/store/deliveries/${order.orderNumber}`;
 const requestHref = (order: StoreOrder) => `/store/requests/${order.orderNumber}`;
 
-function windowText(order: StoreOrder, now: Date) {
+function windowText(order: StoreOrder, outlet: StoreOutlet | null, now: Date) {
   if (order.status === "delivered" && order.arrivedAt) {
     return `Arrived today, ${formatTime(order.arrivedAt)}`;
   }
-  return formatRelativeWindow(order.orderDate, currentOutlet, now);
+  return formatRelativeWindow(order.orderDate, windowFor(order, outlet), now);
 }
 
 function DeliveryAction({ order }: { order: StoreOrder }) {
@@ -38,7 +38,15 @@ function DeliveryAction({ order }: { order: StoreOrder }) {
   );
 }
 
-export function UpcomingDeliveries({ orders, now }: { orders: StoreOrder[]; now: Date }) {
+export function UpcomingDeliveries({
+  orders,
+  outlet,
+  now,
+}: {
+  orders: StoreOrder[];
+  outlet: StoreOutlet | null;
+  now: Date;
+}) {
   return (
     <>
       {/* Desktop: table (Figma 01 Dashboard) */}
@@ -70,7 +78,7 @@ export function UpcomingDeliveries({ orders, now }: { orders: StoreOrder[]; now:
                       {order.orderNumber}
                     </Link>
                   </StoreTableCell>
-                  <StoreTableCell className="min-w-36 whitespace-normal">{windowText(order, now)}</StoreTableCell>
+                  <StoreTableCell className="min-w-36 whitespace-normal">{windowText(order, outlet, now)}</StoreTableCell>
                   <StoreTableCell>{formatItemCount(order.items.length)}</StoreTableCell>
                   <StoreTableCell>
                     <PriorityPill isHighPriority={order.isHighPriority} />
@@ -104,7 +112,7 @@ export function UpcomingDeliveries({ orders, now }: { orders: StoreOrder[]; now:
               <dl className="flex flex-col gap-2 text-sm">
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Window</dt>
-                  <dd className="text-right font-medium">{windowText(order, now)}</dd>
+                  <dd className="text-right font-medium">{windowText(order, outlet, now)}</dd>
                 </div>
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Items</dt>

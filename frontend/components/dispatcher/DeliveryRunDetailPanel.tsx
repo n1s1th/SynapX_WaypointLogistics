@@ -46,6 +46,7 @@ export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest,
   const loadPercentage = run.total_volume_m3 ? Math.round((run.total_volume_m3 / 24.0) * 100) : 0; // Using 24m3 max as proxy
 
   const currentStatus = run.displayStatus || run.status || "unknown";
+  const dockStatusText = run.loader ? run.loader.status.replace(/_/g, " ") : "Not sent to dock";
 
   return (
     <div className="bg-white border rounded-[8px] flex flex-col h-full shadow-sm overflow-hidden">
@@ -66,6 +67,7 @@ export function DeliveryRunDetailPanel({ run, onClose, onUpdate, onViewManifest,
             />
           </div>
           <p className="text-sm text-slate-500 font-medium">{run.vehicle_number} · {run.driver_name}</p>
+          <p className="text-xs text-slate-400 mt-1 capitalize">Dock: {dockStatusText}</p>
         </div>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
           <X className="h-5 w-5" />

@@ -3,9 +3,10 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoreMetricCard } from "@/components/store/store-cards";
 import { formatTime, greeting } from "@/components/store/format";
-import { currentManager, mockIssues } from "@/components/store/mock-data";
+import { mockIssues, type StoreIssue as DashboardIssue } from "@/components/store/mock-data";
+import { fetchStoreIssues } from "@/services/issues-store";
 import { STORE_DATA_SOURCE, storeNow } from "@/components/store/api/config";
-import { getStoreOrders } from "@/components/store/api/store-data";
+import { getStoreOrders, getStoreSession } from "@/components/store/api/store-data";
 import { getDashboardData } from "@/components/store/dashboard/dashboard-data";
 import { UpcomingDeliveries } from "@/components/store/dashboard/upcoming-deliveries";
 import { RecentRequests } from "@/components/store/dashboard/recent-requests";
@@ -14,9 +15,19 @@ import { NeedsAttention } from "@/components/store/dashboard/needs-attention";
 // Figma: Desktop / 01 Dashboard and Mobile / 01 Dashboard.
 export default async function StoreDashboardPage() {
   const now = storeNow();
-  // Delivery issues belong to Dev B's receipts flow; there's no API for them yet.
-  const issues = STORE_DATA_SOURCE === "api" ? [] : mockIssues;
-  const data = getDashboardData(await getStoreOrders(), issues);
+  // Open delivery issues for "Needs attention" (live: the outlet's issues from the API).
+  const issues: DashboardIssue[] =
+    STORE_DATA_SOURCE === "api"
+      ? (await fetchStoreIssues().catch(() => [])).map((issue) => ({
+          code: issue.id,
+          orderNumber: issue.orderId,
+          summary: issue.title,
+          isOpen: issue.status === "open" || issue.status === "under_review",
+        }))
+      : mockIssues;
+  const [orders, session] = await Promise.all([getStoreOrders(), getStoreSession().catch(() => null)]);
+  const outlet = session?.outlet ?? null;
+  const data = getDashboardData(orders, issues);
   const next = data.nextDelivery;
   const nextEta = next?.eta ? formatTime(next.eta) : null;
   const issueCount = data.openIssues.length;
@@ -29,7 +40,8 @@ export default async function StoreDashboardPage() {
         <div className="flex min-w-0 flex-col gap-2">
           <h1 className="text-xl font-semibold text-primary md:text-3xl md:font-bold">
             <span className="md:hidden">
-              {greeting(now)}, {currentManager.firstName}
+              {greeting(now)}
+              {session ? `, ${session.manager.firstName}` : ""}
             </span>
             <span className="hidden md:inline">Dashboard</span>
           </h1>
@@ -90,10 +102,13 @@ export default async function StoreDashboardPage() {
       />
 
       <div className="min-[1400px]:col-span-2 min-[1400px]:row-start-3">
-        <UpcomingDeliveries orders={data.upcomingDeliveries} now={now} />
+        <UpcomingDeliveries orders={data.upcomingDeliveries} outlet={outlet} now={now} />
       </div>
 
-      <RecentRequests orders={data.recentRequests} className="min-[1400px]:col-start-1 min-[1400px]:row-start-4" />
+      <RecentRequests
+        orders={data.recentRequests}
+        outlet={outlet}
+        className="min-[1400px]:col-start-1 min-[1400px]:row-start-4" />
     </div>
   );
 }

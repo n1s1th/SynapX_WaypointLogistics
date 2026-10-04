@@ -1,13 +1,60 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Signal, BatteryFull, Check, CloudOff,
-  Map, Home, TriangleAlert, Layers
+  Map as MapIcon, Home, TriangleAlert, Layers
 } from "lucide-react";
+import { cachedGet } from "@/lib/driverCache";
+import { isStopOpen, mergeLocalProgress } from "@/lib/driverStop";
+import DeviceClock from "@/components/driver/DeviceClock";
 
-export default function StopCompletePage() {
+interface DeliveryStop {
+  id: number;
+  sequence: number;
+  address: string;
+  customer_name: string;
+  status: string;
+}
+
+function StopCompleteContent() {
+  const searchParams = useSearchParams();
+  const stopId = searchParams.get("stop_id");
+
+  const [stop, setStop] = useState<DeliveryStop | null>(null);
+  const [tripDetail, setTripDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const trips = await cachedGet<{ id: number; status: string }[]>("/driver/trips/today");
+        const startedTrip = trips.find(t => t.status === "started");
+        
+        if (startedTrip) {
+          const detail = await cachedGet<any>(`/driver/trips/${startedTrip.id}`);
+          setTripDetail({ ...detail, stops: mergeLocalProgress(detail.stops) });
+
+          if (stopId) {
+            const foundStop = detail.stops.find((s: any) => s.id.toString() === stopId);
+            if (foundStop) setStop(foundStop);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load trip detail:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [stopId]);
+
+  const totalCount = tripDetail?.stops?.length || 0;
+  const pendingStops = tripDetail?.stops?.filter(isStopOpen) || [];
+  const nextStop = pendingStops[0];
+
   return (
     <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
       
@@ -18,9 +65,9 @@ export default function StopCompletePage() {
       >
         {/* Device status */}
         <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
+          <DeviceClock className="text-[12px] font-semibold" style={{ color: "#12202E" }} />
           <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Pending sync</span>
+            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Online</span>
             <Signal size={16} color="#BDBDBD" />
             <BatteryFull size={18} color="#BDBDBD" />
           </div>
@@ -32,8 +79,8 @@ export default function StopCompletePage() {
             <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
               Delivery complete
             </h1>
-            <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              Harbor Fresh Foods
+            <p className="text-[12px] font-normal leading-[1.45em] truncate max-w-full" style={{ color: "#5D6A78" }}>
+              {loading ? "..." : stop?.customer_name || "Unknown Stop"}
             </p>
           </div>
         </div>
@@ -48,14 +95,17 @@ export default function StopCompletePage() {
             <Check size={36} color="#FFFFFF" strokeWidth={3} />
           </div>
           <div className="flex flex-col items-center gap-[5px] w-full text-center">
-            <h2 className="font-bold text-[24px]" style={{ color: "#12202E" }}>Stop 2 of 4 complete</h2>
+            <h2 className="font-bold text-[24px]" style={{ color: "#12202E" }}>
+              {loading ? "Completing..." : `Stop ${stop?.sequence || '?'} of ${totalCount} complete`}
+            </h2>
             <p className="font-normal text-[14px] leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              Harbor Fresh Foods · Full delivery · POD captured
+              {stop?.customer_name} · POD captured
             </p>
           </div>
         </div>
 
-        {/* Offline Warning Card */}
+        {/* Offline Warning Card (Hidden by default, can be toggled by offline state) */}
+        {/*
         <div 
           className="flex flex-col p-[13px] gap-[10px] rounded-xl w-full"
           style={{ backgroundColor: "#FFF4D6", border: "2px solid #A85D00" }}
@@ -73,26 +123,39 @@ export default function StopCompletePage() {
             </div>
           </div>
         </div>
+        */}
 
         {/* Next Stop Card */}
-        <div 
-          className="flex flex-col p-4 gap-2.5 rounded-xl w-full bg-white"
-          style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
-        >
-          <span className="font-bold text-[10px]" style={{ color: "#2167D5" }}>NEXT STOP · 3 OF 4</span>
-          <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>Lakeside Grocers</span>
-          
-          <div className="flex w-full gap-2.5 mt-1">
-            <div className="flex-1 flex flex-col p-3 rounded-lg gap-[3px]" style={{ backgroundColor: "#F2F5F8" }}>
-              <span className="font-bold text-[22px]" style={{ color: "#163A5F" }}>2</span>
-              <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Remaining</span>
-            </div>
-            <div className="flex-1 flex flex-col p-3 rounded-lg gap-[3px]" style={{ backgroundColor: "#F2F5F8" }}>
-              <span className="font-bold text-[22px]" style={{ color: "#163A5F" }}>3.1 km</span>
-              <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Distance</span>
+        {nextStop ? (
+          <div 
+            className="flex flex-col p-4 gap-2.5 rounded-xl w-full bg-white"
+            style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
+          >
+            <span className="font-bold text-[10px]" style={{ color: "#2167D5" }}>NEXT STOP · {nextStop.sequence} OF {totalCount}</span>
+            <span className="font-bold text-[18px] truncate" style={{ color: "#12202E" }}>{nextStop.customer_name}</span>
+            
+            <div className="flex w-full gap-2.5 mt-1">
+              <div className="flex-1 flex flex-col p-3 rounded-lg gap-[3px]" style={{ backgroundColor: "#F2F5F8" }}>
+                <span className="font-bold text-[22px]" style={{ color: "#163A5F" }}>{pendingStops.length}</span>
+                <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Remaining</span>
+              </div>
+              <div className="flex-1 flex flex-col p-3 rounded-lg gap-[3px]" style={{ backgroundColor: "#F2F5F8" }}>
+                <span className="font-bold text-[22px]" style={{ color: "#163A5F" }}>-- km</span>
+                <span className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Distance</span>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          !loading && (
+            <div 
+              className="flex flex-col p-4 gap-2.5 rounded-xl w-full bg-white text-center"
+              style={{ border: "1px solid #D9E1E8", boxShadow: "0px 5px 16px 0px rgba(22, 58, 95, 0.08)" }}
+            >
+              <span className="font-bold text-[18px]" style={{ color: "#12202E" }}>All stops complete!</span>
+              <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Return to the route to finish your trip.</span>
+            </div>
+          )
+        )}
       </div>
 
       {/* Actions */}
@@ -102,10 +165,10 @@ export default function StopCompletePage() {
             className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
             style={{ backgroundColor: "#092C4C" }}
           >
-            Continue to stop 3
+            {nextStop ? `Continue to stop ${nextStop.sequence}` : 'Return to route'}
           </button>
         </Link>
-        <Link href="/driver/trip/TRIP-1042" className="w-full">
+        <Link href="/driver/trip" className="w-full">
           <button 
             className="w-full flex justify-center items-center h-[40px] rounded-md font-semibold text-[13px] bg-white"
             style={{ border: "1px solid #E5E5E2", color: "#171A1F" }}
@@ -125,7 +188,7 @@ export default function StopCompletePage() {
           <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
         </Link>
         <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <Map size={22} color="#8793A0" />
+          <MapIcon size={22} color="#8793A0" />
           <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
         </Link>
         <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
@@ -138,5 +201,13 @@ export default function StopCompletePage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function StopCompletePage() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <StopCompleteContent />
+    </React.Suspense>
   );
 }

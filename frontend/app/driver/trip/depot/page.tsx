@@ -1,10 +1,60 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Warehouse, MapPin, Clock } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { cachedGet } from "@/lib/driverCache";
 
 export default function ArrivedAtDepotPage() {
+  const router = useRouter();
+  
+  const [activeTrip, setActiveTrip] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [checkingIn, setCheckingIn] = useState(false);
+
+  useEffect(() => {
+    async function loadActiveTrip() {
+      try {
+        const trips = await cachedGet<{ id: number; status: string }[]>("/driver/trips/today");
+        // Could be completed but not yet checked-in at depot
+        const trip = trips.find(t => t.status === "completed" || t.status === "started");
+        setActiveTrip(trip);
+      } catch (error) {
+        console.error("Failed to load active trip:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadActiveTrip();
+  }, []);
+
+  async function handleConfirm() {
+    if (!activeTrip) {
+      // Just go home if no active trip
+      router.push("/driver");
+      return;
+    }
+    
+    setCheckingIn(true);
+    try {
+      await apiFetch("/driver/depot/checkin", {
+        method: "POST",
+        body: JSON.stringify({
+          trip_id: activeTrip.id,
+          notes: "Checked in via driver app"
+        })
+      });
+      router.push("/driver");
+    } catch (error) {
+      console.error("Failed to check in at depot:", error);
+      setCheckingIn(false);
+    }
+  }
+
+  const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
   return (
     <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
       
@@ -95,7 +145,7 @@ export default function ArrivedAtDepotPage() {
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="font-medium text-[12px]" style={{ color: "#8793A0" }}>Arrival time</span>
-              <span className="font-bold text-[15px]" style={{ color: "#163A5F" }}>08:58 AM</span>
+              <span className="font-bold text-[15px]" style={{ color: "#163A5F" }}>{now}</span>
               <div className="flex items-center gap-1 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#18794E" }}></div>
                 <span className="font-medium text-[12px]" style={{ color: "#18794E" }}>Location detected</span>
@@ -107,14 +157,14 @@ export default function ArrivedAtDepotPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col items-center gap-4 w-full">
-          <Link href="/driver" className="w-full">
-            <button 
-              className="w-full flex justify-center items-center py-[14px] px-6 rounded-full text-white font-semibold text-[16px]"
-              style={{ backgroundColor: "#FF6B00" }}
-            >
-              Confirm arrival
-            </button>
-          </Link>
+          <button 
+            onClick={handleConfirm}
+            disabled={checkingIn || loading}
+            className="w-full flex justify-center items-center py-[14px] px-6 rounded-full text-white font-semibold text-[16px] disabled:opacity-50"
+            style={{ backgroundColor: "#FF6B00" }}
+          >
+            {checkingIn ? "Checking in..." : "Confirm arrival"}
+          </button>
           <Link href="/driver/trip/summary">
             <span className="font-semibold text-[15px] underline" style={{ color: "#5D6A78" }}>
               Cancel

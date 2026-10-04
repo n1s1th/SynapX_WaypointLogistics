@@ -5,13 +5,14 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { getStorePageTitle } from "@/components/store/store-nav";
-import { currentOutlet } from "@/components/store/mock-data";
+import { useStoreOutlet } from "@/components/store/outlet-context";
 import { NotificationBell } from "@/components/store/notifications/notification-bell";
 
 // Mobile app bar (Figma: Components / Mobile App Bar). Hidden from md up.
 export function StoreMobileAppBar() {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
+  const outlet = useStoreOutlet();
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between bg-primary px-2 text-primary-foreground md:hidden">
@@ -26,9 +27,11 @@ export function StoreMobileAppBar() {
 
       <div className="flex min-w-0 flex-col items-center">
         <p className="truncate text-base font-bold">{getStorePageTitle(pathname)}</p>
-        <p className="truncate text-sm font-medium text-primary-foreground/70">
-          {currentOutlet.code} · {currentOutlet.name}
-        </p>
+        {outlet && (
+          <p className="truncate text-sm font-medium text-primary-foreground/70">
+            {outlet.code} · {outlet.name}
+          </p>
+        )}
       </div>
 
       <NotificationBell tone="inverse" />

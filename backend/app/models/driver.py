@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, DateTime, Enum, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -52,6 +52,21 @@ class DriverTrip(Base):
     dispatch_trip = relationship("DispatchTrip")
     stops = relationship("DeliveryStop", back_populates="driver_trip", cascade="all, delete-orphan")
     issues = relationship("IssueReport", back_populates="driver_trip")
+
+    @property
+    def planned_departure(self):
+        """The dispatcher's departure time for this trip (not a column)."""
+        return self.dispatch_trip.departure_time if self.dispatch_trip else None
+
+    @property
+    def run_code(self):
+        """The run's code the dispatcher and loader use, e.g. RUN-0067 (not a column)."""
+        return self.dispatch_trip.trip_code if self.dispatch_trip else None
+
+    @property
+    def vehicle_number(self):
+        """The truck on this trip, e.g. VEH005 (not a column)."""
+        return self.dispatch_trip.vehicle_number if self.dispatch_trip else None
 
 
 class DeliveryStop(Base):
@@ -122,3 +137,17 @@ class SOSAlert(Base):
 
     driver = relationship("User")
     driver_trip = relationship("DriverTrip")
+
+
+class DriverAvailability(Base):
+    """A driver's "I'm ready" for a working day, so the dispatcher can plan around
+    who is available (migration 0013_driver_availability)."""
+    __tablename__ = "driver_availability"
+    __table_args__ = (UniqueConstraint("driver_id", "for_date", name="uq_driver_availability_driver_day"),)
+
+    id = Column(Integer, primary_key=True)
+    driver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)  # users.id
+    for_date = Column(Date, nullable=False, index=True)  # the working day the driver can take a run
+    confirmed_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    driver = relationship("User")

@@ -51,7 +51,7 @@ class DispatchTripRead(DispatchTripBase):
 
 
 class DeliveryRunResponse(DispatchTripRead):
-    pass
+    loader: Optional[Dict[str, Any]] = None
 
 
 class DeliveryRunUpdate(BaseModel):

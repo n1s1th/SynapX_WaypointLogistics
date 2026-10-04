@@ -51,6 +51,11 @@ export interface Transport {
    * NetworkError when unreachable.
    */
   fetchIssues(query: { dock: string; run?: string }): Promise<LoaderIssue[]>;
+  /**
+   * GET /loader/issues/{id}: one issue, for the L8 waiting / decision screen.
+   * Undefined when it does not exist; throws NetworkError when unreachable.
+   */
+  fetchIssue(id: number): Promise<LoaderIssue | undefined>;
   /** GET /loader/users: the loaders registered at this tablet's depot. */
   fetchUsers(): Promise<LoaderUser[]>;
   /** POST /loader/session. Undefined for a wrong PIN (401); throws NetworkError when unreachable. */
@@ -135,6 +140,12 @@ export function apiTransport(baseUrl: string): Transport {
       const res = await request(`${api}/loader/issues?${params}`, { cache: "no-store" });
       if (!res.ok) throw new NetworkError(`HTTP ${res.status}`);
       return (await res.json()) as LoaderIssue[];
+    },
+    async fetchIssue(id) {
+      const res = await request(`${api}/loader/issues/${id}`, { cache: "no-store" });
+      if (res.status === 404) return undefined;
+      if (!res.ok) throw new NetworkError(`HTTP ${res.status}`);
+      return (await res.json()) as LoaderIssue;
     },
     async fetchUsers() {
       const res = await request(`${api}/loader/users`, { cache: "no-store" });
@@ -533,6 +544,11 @@ export function mockTransport(latencyMs = 300): Transport {
       return loadMockIssues()
         .filter((i) => !run || i.run_code === run)
         .sort((a, b) => b.reported_at.localeCompare(a.reported_at));
+    },
+    async fetchIssue(id) {
+      if (!(await probeConnectivity())) throw new NetworkError();
+      await new Promise((r) => setTimeout(r, latencyMs));
+      return loadMockIssues().find((i) => i.id === id);
     },
     async fetchUsers() {
       if (!(await probeConnectivity())) throw new NetworkError();

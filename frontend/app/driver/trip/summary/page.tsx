@@ -1,13 +1,57 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Signal, BatteryFull, Check, CloudCheck, MapPin, CheckCircle2,
-  Map, Home, TriangleAlert, Layers
+  Map as MapIcon, Home, TriangleAlert, Layers
 } from "lucide-react";
+import { cachedGet } from "@/lib/driverCache";
+import { mergeLocalProgress } from "@/lib/driverStop";
+import DeviceClock from "@/components/driver/DeviceClock";
+import SyncStatus from "@/components/driver/SyncStatus";
+
+type SummaryStop = { id: number; status: string; pod: unknown; completed_at: string | null };
 
 export default function TripSummaryPage() {
+  const [tripDetail, setTripDetail] = useState<any>(null);
+  const [issueCount, setIssueCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const trips = await cachedGet<{ id: number; status: string }[]>("/driver/trips/today");
+        // Prioritize started trip, otherwise take the most recently completed one
+        const targetTrip = trips.find(t => t.status === "started") || trips.find(t => t.status === "completed");
+        
+        if (targetTrip) {
+          const [detail, issues] = await Promise.all([
+            cachedGet<{ stops: SummaryStop[] }>(`/driver/trips/${targetTrip.id}`),
+            cachedGet<unknown[]>(`/driver/trips/${targetTrip.id}/issues`),
+          ]);
+          setTripDetail({ ...detail, stops: mergeLocalProgress(detail.stops) });
+          setIssueCount(issues.length);
+        }
+      } catch (error) {
+        console.error("Failed to load trip summary:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const stops: SummaryStop[] = tripDetail?.stops ?? [];
+  const totalStops = stops.length;
+  const processedStops = stops.filter((s) => ["delivered", "partial", "failed", "rescheduled"].includes(s.status)).length;
+  const fullDeliveries = stops.filter((s) => s.status === "delivered").length;
+  const partialDeliveries = stops.filter((s) => s.status === "partial").length;
+  // A proof saved offline shows as the stop closed before the server has it
+  const podComplete = stops.filter((s) => s.pod || (s.completed_at && (s.status === "delivered" || s.status === "partial"))).length;
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
   return (
     <div className="min-h-screen flex flex-col font-sans relative" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
       
@@ -18,9 +62,9 @@ export default function TripSummaryPage() {
       >
         {/* Device status */}
         <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
+          <DeviceClock className="text-[12px] font-semibold" style={{ color: "#12202E" }} />
           <div className="flex items-center gap-2">
-            <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Synced</span>
+            <SyncStatus className="text-[14px] font-normal" style={{ color: "#BDBDBD" }} />
             <Signal size={16} color="#BDBDBD" />
             <BatteryFull size={18} color="#BDBDBD" />
           </div>
@@ -41,7 +85,7 @@ export default function TripSummaryPage() {
           <div className="flex flex-col items-center gap-[5px] w-full mt-1 text-center">
             <h1 className="font-bold text-[32px]" style={{ color: "#12202E" }}>Trip complete</h1>
             <p className="font-normal text-[14px] leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              Trip R-1042 · Tue, Sep 29
+              {loading ? "..." : tripDetail ? `Trip R-${tripDetail.id} · ${today}` : "No trip data"}
             </p>
           </div>
         </div>
@@ -52,14 +96,18 @@ export default function TripSummaryPage() {
             className="flex-1 flex flex-col p-4 rounded-xl gap-[10px]"
             style={{ backgroundColor: "#E8F6EF", border: "2px solid #18794E" }}
           >
-            <span className="font-bold text-[28px]" style={{ color: "#18794E" }}>4 / 4</span>
+            <span className="font-bold text-[28px]" style={{ color: "#18794E" }}>
+              {loading ? "-" : `${processedStops} / ${totalStops}`}
+            </span>
             <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#5D6A78" }}>Stops processed</span>
           </div>
           <div 
             className="flex-1 flex flex-col p-4 rounded-xl gap-[10px]"
             style={{ backgroundColor: "#EAF2FF", border: "2px solid #2167D5" }}
           >
-            <span className="font-bold text-[28px]" style={{ color: "#2167D5" }}>4 / 4</span>
+            <span className="font-bold text-[28px]" style={{ color: "#2167D5" }}>
+              {loading ? "-" : `${podComplete} / ${totalStops}`}
+            </span>
             <span className="font-normal text-[12px] leading-[1.45em]" style={{ color: "#5D6A78" }}>POD complete</span>
           </div>
         </div>
@@ -71,15 +119,15 @@ export default function TripSummaryPage() {
         >
           <div className="flex justify-between items-center py-1.5">
             <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Full deliveries</span>
-            <span className="font-bold text-[18px]" style={{ color: "#18794E" }}>3</span>
+            <span className="font-bold text-[18px]" style={{ color: "#18794E" }}>{loading ? "-" : fullDeliveries}</span>
           </div>
           <div className="flex justify-between items-center py-1.5">
             <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Partial deliveries</span>
-            <span className="font-bold text-[18px]" style={{ color: "#A85D00" }}>1</span>
+            <span className="font-bold text-[18px]" style={{ color: "#A85D00" }}>{loading ? "-" : partialDeliveries}</span>
           </div>
           <div className="flex justify-between items-center py-1.5">
             <span className="font-normal text-[14px]" style={{ color: "#5D6A78" }}>Issues reported</span>
-            <span className="font-bold text-[18px]" style={{ color: "#5D6A78" }}>0</span>
+            <span className="font-bold text-[18px]" style={{ color: "#5D6A78" }}>{loading ? "-" : issueCount}</span>
           </div>
         </div>
 
@@ -147,7 +195,7 @@ export default function TripSummaryPage() {
           <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
         </Link>
         <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <Map size={22} color="#8793A0" />
+          <MapIcon size={22} color="#8793A0" />
           <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Map</span>
         </Link>
         <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">

@@ -10,11 +10,11 @@ export default async function GoodsRequestsPage({ searchParams }: PageProps<"/st
   const initialTab = isRequestTab(tab) ? tab : "active";
 
   const orders = (await getStoreOrders()).filter((order) => order.status !== "draft");
-  // Shortfalls come from Dev B's loading flow; there's no API for them yet.
-  const shortfalls = STORE_DATA_SOURCE === "api" ? [] : mockShortfalls;
-  const shortfallOrderNumbers = [
-    ...new Set(shortfalls.filter((s) => s.status !== "resolved").map((s) => s.orderNumber)),
-  ];
+  // Live: the order-level shortfall the API derives from the loader's issues. Mock: the per-item mock list.
+  const shortfallOrderNumbers =
+    STORE_DATA_SOURCE === "api"
+      ? orders.filter((order) => order.shortfall).map((order) => order.orderNumber)
+      : [...new Set(mockShortfalls.filter((s) => s.status !== "resolved").map((s) => s.orderNumber))];
 
   return (
     <GoodsRequestsView

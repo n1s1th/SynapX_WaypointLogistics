@@ -1,17 +1,25 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Truck, Search } from "lucide-react";
 import { MetricCard } from "@/components/dispatcher/MetricCard";
+import { FilterBar } from "@/components/dispatcher/FilterBar";
 import { DeliveryRunTable } from "@/components/dispatcher/DeliveryRunTable";
 import { DeliveryRunDetailPanel } from "@/components/dispatcher/DeliveryRunDetailPanel";
 import { RouteOptimizationDialog } from "@/components/dispatcher/RouteOptimizationDialog";
 import { LoadingReadinessDialog } from "@/components/dispatcher/LoadingReadinessDialog";
 import { LoadingShortfallDialog } from "@/components/dispatcher/LoadingShortfallDialog";
 import { ManifestDialog } from "@/components/dispatcher/ManifestDialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 import { toast } from "sonner";
+import { dispatcherDepotHeaders } from "@/lib/dispatcher-depot";
+
+const STATUS_OPTIONS = [
+  { label: "All Statuses", value: "" },
+  { label: "Planned", value: "scheduled" },
+  { label: "Ready", value: "ready" },
+  { label: "On Route", value: "en_route" },
+  { label: "Delayed", value: "delayed" },
+  { label: "Completed", value: "completed" },
+];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
 
@@ -41,26 +49,28 @@ export interface DeliveryRun {
   loading_events: any[];
   total_weight_kg: number;
   total_volume_m3: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  loader?: any;
 }
 
 export default function DeliveryRunsPage() {
   const [runs, setRuns] = useState<DeliveryRun[]>([]);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [depotFilter, setDepotFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [depotFilter, setDepotFilter] = useState("");
   const [selectedRun, setSelectedRun] = useState<DeliveryRun | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Dialog state
   const [showRouteOpt, setShowRouteOpt] = useState(false);
   const [showLoadingReadiness, setShowLoadingReadiness] = useState(false);
   const [showShortfall, setShowShortfall] = useState(false);
   const [showManifest, setShowManifest] = useState(false);
 
-  const fetchRuns = useCallback(async () => {
-    setIsLoading(true);
+  const fetchRuns = useCallback(async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/delivery-runs/`);
+      const res = await fetch(`${API_BASE}/api/v1/delivery-runs/`, { headers: dispatcherDepotHeaders() });
       if (res.ok) {
         const data: DeliveryRun[] = await res.json();
         setRuns(data);
@@ -70,17 +80,26 @@ export default function DeliveryRunsPage() {
           return data.find((r) => r.id === prev.id) ?? prev;
         });
       } else {
-        toast.error("Failed to load delivery runs from server");
+        if (!isBackground) toast.error("Failed to load delivery runs from server");
       }
     } catch {
-      toast.error("Failed to load delivery runs — check your connection");
+      if (!isBackground) toast.error("Failed to load delivery runs — check your connection");
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   }, []); // No dependencies — fetchRuns is stable
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { fetchRuns(); }, [fetchRuns]);
+  useEffect(() => { 
+    fetchRuns(false); 
+    let interval: NodeJS.Timeout;
+    if (selectedRun) {
+      interval = setInterval(() => fetchRuns(true), 15000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    }
+  }, [fetchRuns, selectedRun !== null]);
 
   // Derive "delayed" status on frontend (en_route + overdue ETA)
   const now = new Date();
@@ -90,17 +109,21 @@ export default function DeliveryRunsPage() {
       ? "delayed" : r.status
   }));
 
+  const depots = useMemo(() => [...new Set(runs.map(r => r.depot_name).filter(Boolean))], [runs]);
+
+  const depotOptions = useMemo(() => [
+    { label: "All Depots", value: "" },
+    ...depots.map(d => ({ label: d.charAt(0).toUpperCase() + d.slice(1), value: d }))
+  ], [depots]);
+
   const filtered = enriched.filter(r => {
-    const s = search.toLowerCase();
+    const s = searchQuery.toLowerCase();
     const matchSearch = !s || r.trip_code.toLowerCase().includes(s) ||
       r.vehicle_number.toLowerCase().includes(s) || r.driver_name.toLowerCase().includes(s);
-    const matchStatus = statusFilter === "all" || r.displayStatus === statusFilter;
-    const matchDepot = depotFilter === "all" || r.depot_name === depotFilter;
+    const matchStatus = !statusFilter || r.displayStatus === statusFilter;
+    const matchDepot = !depotFilter || r.depot_name === depotFilter;
     return matchSearch && matchStatus && matchDepot;
   });
-
-  // Derive depots list dynamically from real data
-  const depots = useMemo(() => [...new Set(runs.map(r => r.depot_name).filter(Boolean))], [runs]);
 
   const planned = enriched.filter(r => r.displayStatus === "scheduled").length;
   const ready   = enriched.filter(r => r.displayStatus === "ready").length;
@@ -108,76 +131,58 @@ export default function DeliveryRunsPage() {
   const delayed = enriched.filter(r => r.displayStatus === "delayed").length;
 
   return (
-    <div className="max-w-full mx-auto space-y-4">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-          <Truck className="h-6 w-6 text-[#18385F]" />
-          Delivery Runs
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage planned trips, stop sequences, manifests, and route readiness.
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-          <Input placeholder="Search vehicle, driver or run..." value={search}
-            onChange={e => setSearch(e.target.value)} className="h-9 pl-9" />
+    <div className="space-y-6 flex flex-col h-full">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Delivery Runs</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage planned trips, stop sequences, manifests, and route readiness.
+          </p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="scheduled">Planned</SelectItem>
-            <SelectItem value="ready">Ready</SelectItem>
-            <SelectItem value="en_route">On Route</SelectItem>
-            <SelectItem value="delayed">Delayed</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={depotFilter} onValueChange={setDepotFilter}>
-          <SelectTrigger className="h-9 w-[130px]"><SelectValue placeholder="Depot" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Depots</SelectItem>
-            {depots.map(d => (
-              <SelectItem key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-3">
-        <MetricCard title="Planned" value={planned.toString()} />
-        <MetricCard title="Ready" value={ready.toString()} />
-        <MetricCard title="On Route" value={onRoute.toString()} />
-        <MetricCard title="Delayed" value={delayed.toString()} />
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard title="PLANNED" value={planned.toString()} />
+        <MetricCard title="READY" value={ready.toString()} />
+        <MetricCard title="ON ROUTE" value={onRoute.toString()} />
+        <MetricCard title="DELAYED" value={delayed.toString()} />
       </div>
 
-      {/* Table + Detail Panel */}
-      <div className="flex gap-4 items-start">
-        <div className={selectedRun ? "flex-1 min-w-0" : "w-full"}>
-          <DeliveryRunTable runs={filtered} isLoading={isLoading}
-            selectedRunId={selectedRun?.id ?? null} onRowClick={setSelectedRun} />
-        </div>
-        {selectedRun && (
-          <div className="w-[340px] shrink-0">
-            <DeliveryRunDetailPanel
-              run={selectedRun}
-              onClose={() => setSelectedRun(null)}
-              onUpdate={fetchRuns}
-              onViewManifest={() => setShowManifest(true)}
-              onOptimizeRoute={() => setShowRouteOpt(true)}
-              onViewLoadingStatus={() => {
-                if (selectedRun.open_shortfalls > 0) setShowShortfall(true);
-                else setShowLoadingReadiness(true);
-              }}
-            />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col gap-4">
+        <FilterBar
+          searchPlaceholder="Search vehicle, driver or run..."
+          onSearchChange={setSearchQuery}
+          statusOptions={STATUS_OPTIONS}
+          onStatusChange={setStatusFilter}
+          typeOptions={depotOptions}
+          onTypeChange={setDepotFilter}
+        />
+
+        {/* Table + Detail Panel */}
+        <div className="flex gap-4 items-start">
+          <div className={selectedRun ? "flex-1 min-w-0" : "w-full"}>
+            <DeliveryRunTable runs={filtered} isLoading={isLoading}
+              selectedRunId={selectedRun?.id ?? null} onRowClick={setSelectedRun} />
           </div>
-        )}
+          {selectedRun && (
+            <div className="w-[340px] shrink-0">
+              <DeliveryRunDetailPanel
+                run={selectedRun}
+                onClose={() => setSelectedRun(null)}
+                onUpdate={fetchRuns}
+                onViewManifest={() => setShowManifest(true)}
+                onOptimizeRoute={() => setShowRouteOpt(true)}
+                onViewLoadingStatus={() => {
+                  if (selectedRun.open_shortfalls > 0) setShowShortfall(true);
+                  else setShowLoadingReadiness(true);
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Dialogs */}

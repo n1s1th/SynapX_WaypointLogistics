@@ -11,6 +11,10 @@ import { AllocationSuccessBanner } from "@/components/dispatcher/orders/Allocati
 import { MetricCard } from "@/components/dispatcher/MetricCard";
 import { Button } from "@/components/ui/button";
 import { fetchWithFallback } from "@/lib/api";
+import { DEPOT_CHANGE_EVENT } from "@/lib/dispatcher-depot";
+import { RefreshCw, Package, Layers } from "lucide-react";
+import { StocksView } from "@/components/dispatcher/orders/StocksView";
+import { OrderDetailDrawer } from "@/components/dispatcher/orders/OrderDetailDrawer";
 
 export default function DispatcherOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -25,11 +29,13 @@ export default function DispatcherOrdersPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [refreshCount, setRefreshCount] = useState(0);
+  const [activeViewTab, setActiveViewTab] = useState<"orders" | "stocks">("orders");
 
   // Drawers and Modals
   const [isAllocationOpen, setIsAllocationOpen] = useState(false);
   const [isLateOrdersOpen, setIsLateOrdersOpen] = useState(false);
   const [isCapacityShortfallOpen, setIsCapacityShortfallOpen] = useState(false);
+  const [inspectingOrder, setInspectingOrder] = useState<Order | null>(null);
 
   // Success Banner
   const [successBanner, setSuccessBanner] = useState<{
@@ -82,8 +88,23 @@ export default function DispatcherOrdersPage() {
 
     loadOrdersAndMetrics();
 
+    // Auto-poll every 5 seconds so new store manager orders show up automatically
+    const interval = setInterval(loadOrdersAndMetrics, 5000);
+
+    const onFocus = () => {
+      loadOrdersAndMetrics();
+    };
+    const onDepotChange = () => {
+      loadOrdersAndMetrics();
+    };
+    window.addEventListener("focus", onFocus);
+    window.addEventListener(DEPOT_CHANGE_EVENT, onDepotChange);
+
     return () => {
       ignore = true;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener(DEPOT_CHANGE_EVENT, onDepotChange);
     };
   }, [statusFilter, brandFilter, districtFilter, searchQuery, refreshCount]);
 
@@ -176,8 +197,19 @@ export default function DispatcherOrdersPage() {
           </p>
         </div>
 
-        {/* Action Triggers: Late Orders & Capacity Shortfall Warning */}
+        {/* Action Triggers: Refresh, Late Orders & Capacity Shortfall Warning */}
         <div className="flex flex-wrap items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setRefreshCount((c) => c + 1)}
+            disabled={isLoading}
+            className="text-xs h-9 bg-white border-border text-[#18385F] hover:bg-slate-50 font-semibold gap-1.5 shrink-0"
+          >
+            <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
+          </Button>
+
           {/* Capacity Shortfall Warning matching Figma frame 229:2309 */}
           <div className="flex items-center justify-between gap-3 p-3 px-3.5 rounded-lg bg-[#FDF2F2] border border-[#FEE2E2] shadow-xs">
             <div className="flex items-center gap-2">
@@ -214,53 +246,113 @@ export default function DispatcherOrdersPage() {
         </div>
       </div>
 
-      {/* 02 Filters & Actions */}
-      <OrdersFilterBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        brandFilter={brandFilter}
-        onBrandChange={setBrandFilter}
-        districtFilter={districtFilter}
-        onDistrictChange={setDistrictFilter}
-        dateFilter={dateFilter}
-        onDateChange={setDateFilter}
-      />
+      {/* Sub-Navigation Switcher: Orders Queue vs Chain Stock Inventory */}
+      <div className="flex items-center gap-2 border-b border-[#E5E5E2] pb-3">
+        <button
+          onClick={() => setActiveViewTab("orders")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            activeViewTab === "orders"
+              ? "bg-[#18385F] text-white shadow-xs"
+              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          <Package className="size-3.5" />
+          <span>Orders Queue</span>
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+              activeViewTab === "orders" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+            }`}
+          >
+            {metrics.total_orders}
+          </span>
+        </button>
 
-      {/* 03 Summary Metrics Cards matching Figma 03 Summary Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Orders"
-          value={metrics.total_orders}
-          className="border-border bg-card"
-        />
-        <MetricCard
-          title="Unallocated"
-          value={metrics.unallocated}
-          className="border-border bg-card text-[#18385F]"
-        />
-        <MetricCard
-          title="Allocated"
-          value={metrics.allocated}
-          className="border-border bg-card text-[#166534]"
-        />
-        <MetricCard
-          title="Deferred"
-          value={metrics.deferred}
-          className="border-border bg-card text-amber-700"
-        />
+        <button
+          onClick={() => setActiveViewTab("stocks")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            activeViewTab === "stocks"
+              ? "bg-[#18385F] text-white shadow-xs"
+              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          <Layers className="size-3.5" />
+          <span>Chain Cargo Catalog</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+            3 Chains (Fresh · Style · Tech)
+          </span>
+        </button>
       </div>
 
-      {/* 04 Main Orders Queue Table matching Figma 04 Main Workspace */}
-      <OrdersTable
-        orders={orders}
-        selectedOrderIds={selectedOrderIds}
-        onToggleSelectOrder={handleToggleSelectOrder}
-        onToggleSelectAll={handleToggleSelectAll}
-        onOpenAllocation={() => setIsAllocationOpen(true)}
-        onDeferOrder={handleDeferOrder}
-        isLoading={isLoading}
+      {activeViewTab === "stocks" ? (
+        /* ── Stock Inventory Interface with 3-chain views, CSV import/export ── */
+        <StocksView />
+      ) : (
+        <>
+          {/* 02 Filters & Actions */}
+          <OrdersFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            brandFilter={brandFilter}
+            onBrandChange={setBrandFilter}
+            districtFilter={districtFilter}
+            onDistrictChange={setDistrictFilter}
+            dateFilter={dateFilter}
+            onDateChange={setDateFilter}
+          />
+
+          {/* 03 Summary Metrics Cards matching Figma 03 Summary Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <MetricCard
+              title="Total Orders"
+              value={metrics.total_orders}
+              className="border-border bg-card"
+            />
+            <MetricCard
+              title="Unallocated"
+              value={metrics.unallocated}
+              className="border-border bg-card text-[#18385F]"
+            />
+            <MetricCard
+              title="Allocated"
+              value={metrics.allocated}
+              className="border-border bg-card text-[#166534]"
+            />
+            <MetricCard
+              title="Deferred"
+              value={metrics.deferred}
+              className="border-border bg-card text-amber-700"
+            />
+          </div>
+
+          {/* 04 Main Orders Queue Table matching Figma 04 Main Workspace */}
+          <OrdersTable
+            orders={orders}
+            selectedOrderIds={selectedOrderIds}
+            onToggleSelectOrder={handleToggleSelectOrder}
+            onToggleSelectAll={handleToggleSelectAll}
+            onOpenAllocation={() => setIsAllocationOpen(true)}
+            onDeferOrder={handleDeferOrder}
+            onViewOrder={(order) => setInspectingOrder(order)}
+            isLoading={isLoading}
+          />
+        </>
+      )}
+
+      {/* Order Item Details Drawer */}
+      <OrderDetailDrawer
+        order={inspectingOrder}
+        isOpen={!!inspectingOrder}
+        onClose={() => setInspectingOrder(null)}
+        onAllocate={(order) => {
+          setSelectedOrderIds([order.id]);
+          setIsAllocationOpen(true);
+        }}
+        onOrderUpdated={() => {
+          setRefreshCount((c) => c + 1);
+          setInspectingOrder(null);
+        }}
       />
 
       {/* Quick Allocation Sheet Drawer with Constraint Review (Figma Frames 9:370 & 163:2021) */}

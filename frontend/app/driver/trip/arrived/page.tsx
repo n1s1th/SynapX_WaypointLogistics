@@ -1,13 +1,70 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Signal, BatteryFull, MapPinCheck, LocateFixed,
-  Map, Home, TriangleAlert, Layers
+  Map as MapIcon, Home, TriangleAlert, Layers
 } from "lucide-react";
+import { apiFetch, ApiError } from "@/lib/api";
+import { fetchStopDetail, parseWindow, updateCachedStop, type StopDetail } from "@/lib/driverStop";
+import { useSyncContext } from "@/components/SyncProvider";
+import DeviceClock from "@/components/driver/DeviceClock";
 
-export default function ArrivalPage() {
+function ArrivalContent() {
+  const searchParams = useSearchParams();
+  const stopId = searchParams.get("stop_id");
+
+  const [stop, setStop] = useState<StopDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { enqueue } = useSyncContext();
+  const deliveryWindow = parseWindow(stop?.order?.delivery_window);
+
+  useEffect(() => {
+    if (!stopId) return;
+    // A screen left (or set up twice in development) must not queue the arrival again
+    let cancelled = false;
+
+    async function loadDataAndArrive() {
+      let loaded: StopDetail | null = null;
+      try {
+        // Step 1: Load stop details for display (the phone's copy when there's no signal)
+        loaded = await fetchStopDetail(stopId!);
+        setStop(loaded);
+      } catch (error) {
+        console.error("Failed to load stop details:", error);
+      }
+
+      // Step 2: Mark arrival — idempotent on backend (safe to call even if already arrived)
+      try {
+        await apiFetch(`/driver/stops/${stopId}/arrive`, { method: "PATCH" });
+      } catch (error) {
+        // No signal: keep the arrival time on the phone; it syncs when signal returns
+        if (cancelled) return;
+        if (error instanceof ApiError && error.isNetworkError && loaded?.status === "pending") {
+          await enqueue({
+            action_type: "arrive",
+            stop_id: Number(stopId),
+            payload: {},
+            label: `Arrived · ${loaded.customer_name}`,
+          });
+          updateCachedStop(stopId!, { status: "arrived" });
+        } else {
+          console.warn("Arrive call skipped (stop may already be arrived):", error);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadDataAndArrive();
+    return () => {
+      cancelled = true;
+    };
+  }, [stopId, enqueue]);
+
+
   return (
     <div className="min-h-screen flex flex-col font-sans relative overflow-hidden" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
       
@@ -18,7 +75,7 @@ export default function ArrivalPage() {
       >
         {/* Device status */}
         <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
+          <DeviceClock className="text-[12px] font-semibold" style={{ color: "#12202E" }} />
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Online</span>
             <Signal size={16} color="#BDBDBD" />
@@ -30,10 +87,10 @@ export default function ArrivalPage() {
         <div className="flex px-5 py-2.5 items-center w-full">
           <div className="flex flex-col gap-0.5">
             <h1 className="text-[18px] font-bold leading-[1.25em]" style={{ color: "#12202E" }}>
-              Harbor Fresh Foods
+              {loading ? "Loading..." : stop?.customer_name || "Unknown Stop"}
             </h1>
-            <p className="text-[12px] font-normal leading-[1.45em]" style={{ color: "#5D6A78" }}>
-              OUT041 · Rear dock
+            <p className="text-[12px] font-normal leading-[1.45em] truncate max-w-full" style={{ color: "#5D6A78" }}>
+              {loading ? "..." : stop?.address}
             </p>
           </div>
         </div>
@@ -81,13 +138,7 @@ export default function ArrivalPage() {
             <span className="text-[12px] font-bold text-white">✓</span>
           </div>
           <div className="absolute left-[174px] top-[128px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-white shadow-sm z-10" style={{ backgroundColor: "#163A5F" }}>
-            <span className="text-[12px] font-bold text-white">2</span>
-          </div>
-          <div className="absolute left-[270px] top-[76px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-[#163A5F] shadow-sm bg-white z-10">
-            <span className="text-[12px] font-bold" style={{ color: "#163A5F" }}>3</span>
-          </div>
-          <div className="absolute left-[328px] top-[42px] w-[30px] h-[30px] flex justify-center items-center rounded-full border-[3px] border-[#163A5F] shadow-sm bg-white z-10">
-            <span className="text-[12px] font-bold" style={{ color: "#163A5F" }}>4</span>
+            <span className="text-[12px] font-bold text-white">{stop?.sequence || ""}</span>
           </div>
         </div>
       </div>
@@ -109,19 +160,25 @@ export default function ArrivalPage() {
           </div>
           <div className="flex flex-col gap-0.5 w-full">
             <h2 className="font-bold text-[24px]" style={{ color: "#12202E" }}>You’ve arrived</h2>
-            <p className="font-normal text-[12px]" style={{ color: "#5D6A78" }}>Harbor Fresh Foods · Rear dock</p>
+            <p className="font-normal text-[12px] truncate" style={{ color: "#5D6A78" }}>{stop?.address}</p>
           </div>
         </div>
 
         {/* Arrival Times */}
         <div className="flex w-full gap-2.5">
           <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1" style={{ backgroundColor: "#F2F5F8" }}>
-            <span className="font-bold text-[10px]" style={{ color: "#5D6A78" }}>EXPECTED</span>
-            <span className="font-bold text-[22px]" style={{ color: "#12202E" }}>06:45</span>
+            <span className="font-bold text-[10px]" style={{ color: "#5D6A78" }}>
+              {deliveryWindow.close ? `WINDOW · FROM ${deliveryWindow.open}` : "EXPECTED"}
+            </span>
+            <span className="font-bold text-[22px]" style={{ color: "#12202E" }}>
+              {deliveryWindow.close ? `by ${deliveryWindow.close}` : "--:--"}
+            </span>
           </div>
           <div className="flex-1 flex flex-col p-3.5 rounded-xl gap-1" style={{ backgroundColor: "#E8F6EF" }}>
             <span className="font-bold text-[10px]" style={{ color: "#18794E" }}>ACTUAL · NOW</span>
-            <span className="font-bold text-[22px]" style={{ color: "#18794E" }}>06:58</span>
+            <span className="font-bold text-[22px]" style={{ color: "#18794E" }}>
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
         </div>
 
@@ -134,7 +191,7 @@ export default function ArrivalPage() {
         </div>
 
         {/* Primary Action Button */}
-        <Link href="/driver/trip/outcome" className="mt-auto pt-2">
+        <Link href={`/driver/trip/outcome${stopId ? `?stop_id=${stopId}` : ""}`} className="mt-auto pt-2">
           <button 
             className="w-full flex justify-center items-center h-[55px] rounded-lg text-white font-bold text-[16px]"
             style={{ backgroundColor: "#092C4C" }}
@@ -144,28 +201,14 @@ export default function ArrivalPage() {
         </Link>
       </div>
 
-      {/* Bottom Nav */}
-      <div
-        className="flex items-center justify-between px-8 py-2.5 bg-white z-50 shrink-0"
-        style={{ borderTop: "1px solid #D9E1E8" }}
-      >
-        <Link href="/driver" className="flex flex-col items-center gap-1 w-[72px]">
-          <Home size={22} color="#8793A0" />
-          <span className="text-[10px] font-medium" style={{ color: "#8793A0" }}>Home</span>
-        </Link>
-        <Link href="/driver/trip" className="flex flex-col items-center gap-1 w-[72px]">
-          <Map size={22} color="#163A5F" />
-          <span className="text-[10px] font-medium" style={{ color: "#163A5F" }}>Map</span>
-        </Link>
-        <Link href="/driver/report" className="flex flex-col items-center gap-1 w-[72px]">
-          <TriangleAlert size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Report</span>
-        </Link>
-        <Link href="/driver/queue" className="flex flex-col items-center gap-1 w-[72px]">
-          <Layers size={22} color="#5D6A78" />
-          <span className="text-[10px] font-medium" style={{ color: "#5D6A78" }}>Queue</span>
-        </Link>
-      </div>
     </div>
+  );
+}
+
+export default function ArrivalPage() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <ArrivalContent />
+    </React.Suspense>
   );
 }

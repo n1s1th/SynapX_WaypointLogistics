@@ -62,6 +62,33 @@ The other seeded loaders are Tharindu J. (2290) and Nimal S. (7735).
 **Without the backend:** leave `NEXT_PUBLIC_LOADER_TRANSPORT` unset and the
 frontend uses its mock data instead.
 
+## Mock data or the real API
+
+The tablet uses its built-in mock data unless `NEXT_PUBLIC_LOADER_TRANSPORT`
+is `api`. With `api` it calls `/api/v1/loader/...` at `NEXT_PUBLIC_API_URL`.
+Next.js bakes `NEXT_PUBLIC_*` values into the build, so restart `npm run dev`
+after you change it.
+
+- **Locally, for one terminal:** `$env:NEXT_PUBLIC_LOADER_TRANSPORT = "api"`
+  before `npm run dev`, as above.
+- **Locally, to keep it:** add `NEXT_PUBLIC_LOADER_TRANSPORT=api` (and
+  `NEXT_PUBLIC_API_URL` pointing at your backend) to `frontend/.env.local`. The
+  commented line in `frontend/.env.example` shows it.
+- **Vercel:** add `NEXT_PUBLIC_LOADER_TRANSPORT` = `api` under Project Settings →
+  Environment Variables, for the environments you demo from, then **redeploy**.
+  A deployment built before the variable was added keeps using mock data.
+
+**Which one am I on?**
+
+- **Mock:** the queue is always the six Figma runs (RUN-021, RUN-022, RUN-027,
+  RUN-029, RUN-031, RUN-033) and nothing else. The browser's Network tab shows
+  no `/api/v1/loader/` requests, and it keeps working with the backend stopped.
+- **Real, local seed:** the same six codes come from `seed_loader_demo.py`, so
+  RUN-021 alone does not tell you. Look for `/api/v1/loader/runs?dock=...` in the
+  Network tab, or create a run from the dispatcher: it appears in the queue
+  only on the real API.
+- **Real, Neon:** the queue shows `LDR-RUN-<MMDD>` (see below), not RUN-021.
+
 ## Seeding Neon
 
 Everything above is local. To demo the loader against the **shared Neon

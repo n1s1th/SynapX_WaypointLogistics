@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Union
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -34,7 +34,7 @@ class OutletService:
                 share_dock_gate_code=True,
                 email_alerts_issues=True,
                 sms_alerts_priority=False,
-                last_synced_at=datetime.utcnow(),
+                last_synced_at=datetime.now(timezone.utc),
             )
             db.add(settings)
             db.commit()
@@ -101,7 +101,7 @@ class OutletService:
         if update_data.sms_alerts_priority is not None:
             settings.sms_alerts_priority = update_data.sms_alerts_priority
 
-        settings.last_synced_at = datetime.utcnow()
+        settings.last_synced_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(settings)
 
@@ -118,7 +118,7 @@ class OutletService:
         settings.share_dock_gate_code = True
         settings.email_alerts_issues = True
         settings.sms_alerts_priority = False
-        settings.last_synced_at = datetime.utcnow()
+        settings.last_synced_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(settings)
 

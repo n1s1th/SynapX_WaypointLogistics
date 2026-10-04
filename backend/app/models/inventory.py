@@ -25,6 +25,11 @@ class InventoryItem(Base):
     quantity = Column(Integer, default=0, nullable=False)
     unit_price = Column(Float, default=0.0)
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=True)
+    chain = Column(String(50), nullable=True)  # fresh, style, tech
+    unit_weight_kg = Column(Float, default=0.0)
+    unit_volume_m3 = Column(Float, default=0.0)
+    temp_requirement = Column(String(50), default="Ambient")
+    depot_name = Column(String(100), nullable=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     warehouse = relationship("Warehouse", back_populates="items")

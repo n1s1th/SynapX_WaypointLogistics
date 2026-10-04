@@ -50,7 +50,12 @@ interface HealthCheckData {
   timestamp: string;
 }
 
+import { useAuth } from "@/lib/auth-context";
+import { ROLE_CONFIGS, KeycloakAppRole } from "@/lib/keycloak";
+import { UserCheck, LogOut, User } from "lucide-react";
+
 export default function Home() {
+  const { user, isAuthenticated, logout, loginWithKeycloak } = useAuth();
   const [healthData, setHealthData] = useState<HealthCheckData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastChecked, setLastChecked] = useState<string>("");
@@ -220,7 +225,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Action: Keycloak SSO & Status */}
+          {/* Right Action: Keycloak SSO & User Session */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-xs border border-slate-200">
               <span className={`h-2.5 w-2.5 rounded-full ${isKeycloakUp ? "bg-emerald-600 animate-pulse" : "bg-red-500"}`} />
@@ -228,12 +233,45 @@ export default function Home() {
               <span className="font-mono text-xs font-bold text-slate-900">{keycloakRealm}</span>
             </div>
 
-            <Button asChild size="sm" className="bg-[#092C4C] text-white hover:bg-[#061e34] shadow-xs font-medium">
-              <a href={keycloakLoginUrl} className="flex items-center gap-1.5">
-                <Lock className="size-3.5" />
-                <span>Keycloak SSO</span>
-              </a>
-            </Button>
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                  <div className="w-6 h-6 rounded-full bg-[#092C4C] text-white flex items-center justify-center font-bold text-[10px]">
+                    {user.name ? user.name.slice(0, 2).toUpperCase() : "U"}
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="font-bold text-slate-900 leading-tight truncate max-w-[120px]">
+                      {user.name || user.username}
+                    </span>
+                    <span className="text-[10px] font-mono text-teal-700 font-semibold uppercase">
+                      {user.primaryRole || user.roles[0] || "operator"}
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => logout(true)}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-100 text-xs h-8 px-2.5 gap-1.5"
+                  title="Sign out of Keycloak"
+                >
+                  <LogOut className="size-3.5" />
+                  <span className="hidden md:inline">Sign Out</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => loginWithKeycloak()}
+                  size="sm"
+                  className="bg-[#092C4C] text-white hover:bg-[#061e34] shadow-xs font-medium h-9 flex items-center gap-1.5"
+                >
+                  <Lock className="size-3.5" />
+                  <span>Sign In</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -514,57 +552,80 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {roles.map((r) => (
-              <Card
-                key={r.id}
-                className="border border-slate-200 bg-white hover:border-[#092C4C] hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-xs">
-                      {r.icon}
-                    </div>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${r.badgeStyle}`}>
-                      {r.badgeText}
-                    </span>
-                  </div>
-                  <CardTitle className="text-lg font-extrabold text-slate-900 mt-3">
-                    {r.title}
-                  </CardTitle>
-                  <div className="text-xs font-bold text-teal-800 -mt-0.5">
-                    {r.subtitle}
-                  </div>
-                  <CardDescription className="text-xs text-slate-600 mt-2 leading-relaxed font-normal">
-                    {r.description}
-                  </CardDescription>
-                </CardHeader>
+            {roles.map((r) => {
+              const matchedRoleKey = r.id === "store" ? "store_manager" : (r.id as KeycloakAppRole);
+              const isUserAssigned = user?.roles.includes(matchedRoleKey);
 
-                <CardContent className="py-2">
-                  <div className="space-y-2 border-t border-slate-100 pt-3">
-                    <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                      Core Operations
+              return (
+                <Card
+                  key={r.id}
+                  className={`border bg-white transition-all flex flex-col justify-between ${
+                    isUserAssigned
+                      ? "border-teal-500 ring-2 ring-teal-500/25 shadow-md"
+                      : "border-slate-200 hover:border-[#092C4C] hover:shadow-md"
+                  }`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200 shadow-xs">
+                        {r.icon}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isUserAssigned && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-900 border border-teal-300">
+                            Your Role
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${r.badgeStyle}`}>
+                          {r.badgeText}
+                        </span>
+                      </div>
                     </div>
-                    <ul className="text-xs space-y-1.5 text-slate-800">
-                      {r.features.map((feat, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-slate-700">
-                          <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                          <span className="font-medium">{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
+                    <CardTitle className="text-lg font-extrabold text-slate-900 mt-3">
+                      {r.title}
+                    </CardTitle>
+                    <div className="text-xs font-bold text-teal-800 -mt-0.5">
+                      {r.subtitle}
+                    </div>
+                    <CardDescription className="text-xs text-slate-600 mt-2 leading-relaxed font-normal">
+                      {r.description}
+                    </CardDescription>
+                  </CardHeader>
 
-                <CardFooter className="pt-4 border-t border-slate-100">
-                  <Button asChild className="w-full bg-[#092C4C] text-white hover:bg-[#061e34] text-xs font-bold gap-2 shadow-xs h-9">
-                    <Link href={r.href}>
-                      <span>Enter {r.title} Dashboard</span>
-                      <ArrowRight className="size-3.5" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                  <CardContent className="py-2">
+                    <div className="space-y-2 border-t border-slate-100 pt-3">
+                      <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                        Core Operations
+                      </div>
+                      <ul className="text-xs space-y-1.5 text-slate-800">
+                        {r.features.map((feat, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-slate-700">
+                            <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="font-medium">{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="pt-4 border-t border-slate-100">
+                    <Button
+                      asChild
+                      className={`w-full text-xs font-bold gap-2 shadow-xs h-9 ${
+                        isUserAssigned
+                          ? "bg-teal-700 hover:bg-teal-800 text-white"
+                          : "bg-[#092C4C] hover:bg-[#061e34] text-white"
+                      }`}
+                    >
+                      <Link href={r.href}>
+                        <span>{isUserAssigned ? `Open My ${r.title} Workspace` : `Enter ${r.title} Dashboard`}</span>
+                        <ArrowRight className="size-3.5" />
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         </section>
 

@@ -2,11 +2,16 @@ from app.core.database import Base  # noqa: F401
 from app.models.user import User
 from app.models.order import Order, OrderItem
 from app.models.inventory import InventoryItem, Warehouse
+from app.models.catalogue import FreshItem, StyleItem, TechItem
+from app.models.store_stock import StoreStockItem
+from app.models.store_manager import StoreManagerAssignment
 from app.models.shipment import Shipment, DispatchTrip
 from app.models.fleet import Vehicle, DriverProfile
 from app.models.allocation import Allocation
+from app.models.outlet import OutletContact, OutletReceivingWindow
 from app.models.notification import Notification
 from app.models.receipts import DeliveryReceipt
+from app.models.delivery_issue import DeliveryIssue
 from app.models.outlet_settings import OutletSettings
 from app.models.driver import DriverTrip, DeliveryStop, ProofOfDelivery, IssueReport, SOSAlert
 from app.models.reference import (
@@ -20,6 +25,7 @@ from app.models.reference import (
     TemperatureClass,
 )
 from app.models.loader_user import LoaderSession, LoaderUser, SessionEndReason
+from app.models.depot_dispatcher import DepotDispatcherAssignment
 from app.models.delivery_run import (
     DeliveryRun,
     RunOrderState,
@@ -43,6 +49,11 @@ __all__ = [
     "Base",
     "User",
     "Order",
+    "FreshItem",
+    "StyleItem",
+    "TechItem",
+    "StoreStockItem",
+    "StoreManagerAssignment",
     "OrderItem",
     "InventoryItem",
     "Warehouse",
@@ -51,8 +62,11 @@ __all__ = [
     "Vehicle",
     "DriverProfile",
     "Allocation",
+    "OutletContact",
+    "OutletReceivingWindow",
     "Notification",
     "DeliveryReceipt",
+    "DeliveryIssue",
     "OutletSettings",
     "DriverTrip",
     "DeliveryStop",
@@ -72,6 +86,7 @@ __all__ = [
     "LoaderSession",
     "LoaderUser",
     "SessionEndReason",
+    "DepotDispatcherAssignment",
     # Delivery runs
     "DeliveryRun",
     "RunOrderState",

@@ -21,11 +21,13 @@ import {
   formatItemCount,
   formatLongDate,
   formatShortWindow,
+  windowFor,
   formatTime,
   formatUnitCount,
 } from "@/components/store/format";
 import { downloadCsv } from "@/components/store/csv";
-import { currentOutlet, type StoreOrder } from "@/components/store/mock-data";
+import { type StoreOrder } from "@/components/store/mock-data";
+import { useStoreOutlet } from "@/components/store/outlet-context";
 import { DateRangeFilter } from "@/components/store/requests/date-range-filter";
 import {
   applyRequestFilters,
@@ -52,6 +54,7 @@ export function GoodsRequestsView({
   initialTab: RequestTab;
   summary: ReturnType<typeof getRequestSummary>;
 }) {
+  const outlet = useStoreOutlet();
   const [tab, setTab] = useState<RequestTab>(initialTab);
   const [search, setSearch] = useState("");
   const [priority, setPriority] = useState<PriorityFilter>("all");
@@ -99,13 +102,13 @@ export function GoodsRequestsView({
 
   const exportCsv = () =>
     downloadCsv(
-      `goods-requests-${currentOutlet.code}-${tab}.csv`,
+      `goods-requests-${outlet?.code ?? "outlet"}-${tab}.csv`,
       ["Request ID", "Request date", "Delivery date", "Delivery window", "Items", "Units", "Priority", "Status"],
       filtered.map((order) => [
         order.orderNumber,
         order.submittedAt,
         order.orderDate,
-        formatDeliveryWindow(currentOutlet),
+        formatDeliveryWindow(windowFor(order, outlet)),
         order.items.length,
         totalUnits(order),
         order.isHighPriority ? "High" : "Default",
@@ -305,7 +308,7 @@ export function GoodsRequestsView({
                       </StoreTableCell>
                       <StoreTableCell>
                         <span className="block font-medium">{formatLongDate(order.orderDate)}</span>
-                        <span className="mt-2 block text-muted-foreground">{formatDeliveryWindow(currentOutlet)}</span>
+                        <span className="mt-2 block text-muted-foreground">{formatDeliveryWindow(windowFor(order, outlet))}</span>
                       </StoreTableCell>
                       <StoreTableCell>
                         <span className="block font-medium">{formatItemCount(order.items.length)}</span>
@@ -345,7 +348,7 @@ export function GoodsRequestsView({
                     <dl className="flex flex-col gap-2 text-sm">
                       <div className="flex justify-between gap-2">
                         <dt className="text-muted-foreground">Delivery window</dt>
-                        <dd className="text-right font-medium">{formatShortWindow(order.orderDate, currentOutlet)}</dd>
+                        <dd className="text-right font-medium">{formatShortWindow(order.orderDate, windowFor(order, outlet))}</dd>
                       </div>
                       <div className="flex justify-between gap-2">
                         <dt className="text-muted-foreground">Items</dt>

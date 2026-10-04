@@ -1,0 +1,348 @@
+sku,name,chain,unit_weight_kg,unit_volume_m3,temp_requirement,depot_name,last_updated
+ST-BELT-01,Full Grain Leather Casual Belts,Style,0.22,0.0008,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-BLZR-02,Single-Breasted Casual Blazers,Style,1.1,0.008,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-DNM-01,Slim-Fit Stretch Denim Jeans,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-DRSS-03,Linen Wrap Floral Midi Dress,Style,0.45,0.0022,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-POLO-01,Pique Cotton Polo Shirts (Navy/White),Style,0.35,0.0015,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-SAND-02,Leather Beach Sandals,Style,0.75,0.004,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-SWTR-01,Merino Wool Knit Sweaters,Style,0.55,0.003,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-TSH-02,Organic Heavyweight Crew Neck Tees,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-BAG-01,Canvas Weekender Bags,Style,0.68,0.0065,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-JKT-01,Lightweight Quilted Jackets,Style,0.82,0.0068,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-SHR-01,Linen Long-Sleeve Shirts,Style,0.32,0.0018,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-SKRT-01,Pleated Midi Skirts,Style,0.38,0.0024,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-SNKR-01,Classic Canvas Sneakers,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T11:00:32.851246
+ST-TEE-100,Core Navy Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-101,Core Navy Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-102,Core Navy Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-103,Core Navy Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-104,Core Navy Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-105,Core Navy Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-106,Core Navy Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-107,Core Navy Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-108,Core Navy Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-109,Core Navy Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-110,Core Black Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-111,Core Black Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-112,Core Black Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-113,Core Black Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-114,Core Black Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-115,Core Black Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-116,Core Black Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-117,Core Black Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-118,Core Black Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-119,Core Black Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-120,Core White Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-121,Core White Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-122,Core White Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-123,Core White Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-124,Core White Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-125,Core White Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-126,Core White Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-127,Core White Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-128,Core White Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-129,Core White Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-130,Core Olive Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-131,Core Olive Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-132,Core Olive Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-133,Core Olive Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-134,Core Olive Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-135,Core Olive Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-136,Core Olive Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-137,Core Olive Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-138,Core Olive Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-139,Core Olive Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-140,Core Sand Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-141,Core Sand Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-142,Core Sand Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-143,Core Sand Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-144,Core Sand Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-145,Core Sand Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-146,Core Sand Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-147,Core Sand Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-148,Core Sand Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-149,Core Sand Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-150,Core Burgundy Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-151,Core Burgundy Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-152,Core Burgundy Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-153,Core Burgundy Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-154,Core Burgundy Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-155,Core Burgundy Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-156,Core Burgundy Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-157,Core Burgundy Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-158,Core Burgundy Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-159,Core Burgundy Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-160,Core Sky Blue Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-161,Core Sky Blue Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-162,Core Sky Blue Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-163,Core Sky Blue Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-164,Core Sky Blue Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-165,Core Sky Blue Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-166,Core Sky Blue Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-167,Core Sky Blue Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-168,Core Sky Blue Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-169,Core Sky Blue Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-170,Core Charcoal Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-171,Core Charcoal Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-172,Core Charcoal Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-173,Core Charcoal Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-174,Core Charcoal Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-175,Core Charcoal Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-176,Core Charcoal Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-177,Core Charcoal Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-178,Core Charcoal Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-179,Core Charcoal Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-180,Core Coral Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-181,Core Coral Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-182,Core Coral Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-183,Core Coral Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-184,Core Coral Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-185,Core Coral Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-186,Core Coral Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-187,Core Coral Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-188,Core Coral Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-189,Core Coral Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-190,Core Stone Cotton Crew Neck T-Shirt XS,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-191,Core Stone Oxford Button-Down Shirt XS,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-192,Core Stone Straight Fit Denim Jeans XS,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-193,Core Stone Printed Midi Dress XS,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-194,Core Stone Lightweight Bomber Jacket XS,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-195,Core Stone Everyday Canvas Sneakers XS,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-196,Core Stone Structured Tote Bag XS,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-197,Core Stone Fine Knit Cardigan XS,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-198,Core Stone Pleated A-Line Skirt XS,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-199,Core Stone Woven Fashion Scarf XS,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-200,Core Navy Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-201,Core Navy Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-202,Core Navy Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-203,Core Navy Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-204,Core Navy Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-205,Core Navy Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-206,Core Navy Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-207,Core Navy Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-208,Core Navy Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-209,Core Navy Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-210,Core Black Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-211,Core Black Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-212,Core Black Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-213,Core Black Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-214,Core Black Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-215,Core Black Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-216,Core Black Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-217,Core Black Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-218,Core Black Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-219,Core Black Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-220,Core White Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-221,Core White Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-222,Core White Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-223,Core White Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-224,Core White Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-225,Core White Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-226,Core White Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-227,Core White Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-228,Core White Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-229,Core White Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-230,Core Olive Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-231,Core Olive Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-232,Core Olive Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-233,Core Olive Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-234,Core Olive Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-235,Core Olive Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-236,Core Olive Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-237,Core Olive Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-238,Core Olive Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-239,Core Olive Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-240,Core Sand Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-241,Core Sand Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-242,Core Sand Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-243,Core Sand Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-244,Core Sand Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-245,Core Sand Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-246,Core Sand Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-247,Core Sand Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-248,Core Sand Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-249,Core Sand Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-250,Core Burgundy Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-251,Core Burgundy Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-252,Core Burgundy Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-253,Core Burgundy Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-254,Core Burgundy Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-255,Core Burgundy Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-256,Core Burgundy Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-257,Core Burgundy Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-258,Core Burgundy Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-259,Core Burgundy Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-260,Core Sky Blue Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-261,Core Sky Blue Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-262,Core Sky Blue Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-263,Core Sky Blue Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-264,Core Sky Blue Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-265,Core Sky Blue Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-266,Core Sky Blue Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-267,Core Sky Blue Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-268,Core Sky Blue Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-269,Core Sky Blue Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-270,Core Charcoal Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-271,Core Charcoal Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-272,Core Charcoal Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-273,Core Charcoal Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-274,Core Charcoal Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-275,Core Charcoal Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-276,Core Charcoal Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-277,Core Charcoal Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-278,Core Charcoal Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-279,Core Charcoal Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-280,Core Coral Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-281,Core Coral Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-282,Core Coral Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-283,Core Coral Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-284,Core Coral Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-285,Core Coral Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-286,Core Coral Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-287,Core Coral Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-288,Core Coral Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-289,Core Coral Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-290,Core Stone Cotton Crew Neck T-Shirt S,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-291,Core Stone Oxford Button-Down Shirt S,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-292,Core Stone Straight Fit Denim Jeans S,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-293,Core Stone Printed Midi Dress S,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-294,Core Stone Lightweight Bomber Jacket S,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-295,Core Stone Everyday Canvas Sneakers S,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-296,Core Stone Structured Tote Bag S,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-297,Core Stone Fine Knit Cardigan S,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-298,Core Stone Pleated A-Line Skirt S,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-299,Core Stone Woven Fashion Scarf S,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-300,Core Navy Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-301,Core Navy Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-302,Core Navy Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-303,Core Navy Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-304,Core Navy Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-305,Core Navy Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-306,Core Navy Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-307,Core Navy Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-308,Core Navy Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-309,Core Navy Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-310,Core Black Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-311,Core Black Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-312,Core Black Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-313,Core Black Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-314,Core Black Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-315,Core Black Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-316,Core Black Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-317,Core Black Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-318,Core Black Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-319,Core Black Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-320,Core White Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-321,Core White Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-322,Core White Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-323,Core White Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-324,Core White Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-325,Core White Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-326,Core White Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-327,Core White Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-328,Core White Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-329,Core White Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-330,Core Olive Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-331,Core Olive Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-332,Core Olive Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-333,Core Olive Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-334,Core Olive Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-335,Core Olive Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-336,Core Olive Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-337,Core Olive Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-338,Core Olive Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-339,Core Olive Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-340,Core Sand Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-341,Core Sand Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-342,Core Sand Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-343,Core Sand Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-344,Core Sand Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-345,Core Sand Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-346,Core Sand Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-347,Core Sand Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-348,Core Sand Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-349,Core Sand Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-350,Core Burgundy Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-351,Core Burgundy Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-352,Core Burgundy Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-353,Core Burgundy Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-354,Core Burgundy Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-355,Core Burgundy Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-356,Core Burgundy Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-357,Core Burgundy Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-358,Core Burgundy Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-359,Core Burgundy Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-360,Core Sky Blue Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-361,Core Sky Blue Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-362,Core Sky Blue Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-363,Core Sky Blue Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-364,Core Sky Blue Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-365,Core Sky Blue Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-366,Core Sky Blue Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-367,Core Sky Blue Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-368,Core Sky Blue Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-369,Core Sky Blue Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-370,Core Charcoal Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-371,Core Charcoal Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-372,Core Charcoal Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-373,Core Charcoal Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-374,Core Charcoal Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-375,Core Charcoal Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-376,Core Charcoal Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-377,Core Charcoal Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-378,Core Charcoal Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-379,Core Charcoal Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-380,Core Coral Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-381,Core Coral Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-382,Core Coral Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-383,Core Coral Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-384,Core Coral Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-385,Core Coral Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-386,Core Coral Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-387,Core Coral Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-388,Core Coral Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-389,Core Coral Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-390,Core Stone Cotton Crew Neck T-Shirt M,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-391,Core Stone Oxford Button-Down Shirt M,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-392,Core Stone Straight Fit Denim Jeans M,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-393,Core Stone Printed Midi Dress M,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-394,Core Stone Lightweight Bomber Jacket M,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-395,Core Stone Everyday Canvas Sneakers M,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-396,Core Stone Structured Tote Bag M,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-397,Core Stone Fine Knit Cardigan M,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-398,Core Stone Pleated A-Line Skirt M,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-399,Core Stone Woven Fashion Scarf M,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-400,Core Navy Cotton Crew Neck T-Shirt L,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-401,Core Navy Oxford Button-Down Shirt L,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-402,Core Navy Straight Fit Denim Jeans L,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-403,Core Navy Printed Midi Dress L,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-404,Core Navy Lightweight Bomber Jacket L,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-405,Core Navy Everyday Canvas Sneakers L,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-406,Core Navy Structured Tote Bag L,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-407,Core Navy Fine Knit Cardigan L,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-408,Core Navy Pleated A-Line Skirt L,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-409,Core Navy Woven Fashion Scarf L,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-410,Core Black Cotton Crew Neck T-Shirt L,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-411,Core Black Oxford Button-Down Shirt L,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-412,Core Black Straight Fit Denim Jeans L,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-413,Core Black Printed Midi Dress L,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-414,Core Black Lightweight Bomber Jacket L,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-415,Core Black Everyday Canvas Sneakers L,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-416,Core Black Structured Tote Bag L,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-417,Core Black Fine Knit Cardigan L,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-418,Core Black Pleated A-Line Skirt L,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-419,Core Black Woven Fashion Scarf L,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-420,Core White Cotton Crew Neck T-Shirt L,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-421,Core White Oxford Button-Down Shirt L,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-422,Core White Straight Fit Denim Jeans L,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-423,Core White Printed Midi Dress L,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JKT-424,Core White Lightweight Bomber Jacket L,Style,0.76,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SNE-425,Core White Everyday Canvas Sneakers L,Style,0.88,0.0052,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-BAG-426,Core White Structured Tote Bag L,Style,0.64,0.006,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-KNT-427,Core White Fine Knit Cardigan L,Style,0.48,0.0028,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SKT-428,Core White Pleated A-Line Skirt L,Style,0.4,0.0024,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-ACC-429,Core White Woven Fashion Scarf L,Style,0.18,0.001,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-TEE-430,Core Olive Cotton Crew Neck T-Shirt L,Style,0.28,0.0012,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-SHR-431,Core Olive Oxford Button-Down Shirt L,Style,0.35,0.0018,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-JNS-432,Core Olive Straight Fit Denim Jeans L,Style,0.72,0.0025,Ambient,Peliyagoda Central,2026-10-03T12:00:00
+ST-DRS-433,Core Olive Printed Midi Dress L,Style,0.45,0.0023,Ambient,Peliyagoda Central,2026-10-03T12:00:00

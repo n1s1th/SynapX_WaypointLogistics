@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/inter";
 import "./globals.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { OfflineSyncBanner } from "@/components/OfflineSyncBanner";
 import { Toaster } from "sonner";
 
@@ -22,17 +23,21 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { AuthProvider } from "@/lib/auth-context";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full font-sans antialiased">
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <OfflineSyncBanner />
-        <main className="flex-1 flex flex-col">{children}</main>
-        <Toaster position="top-right" richColors />
+    <html lang="en" className="h-full font-sans antialiased" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col bg-background text-foreground" suppressHydrationWarning>
+        <AuthProvider>
+          <OfflineSyncBanner />
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Toaster position="top-right" richColors />
+        </AuthProvider>
       </body>
     </html>
   );

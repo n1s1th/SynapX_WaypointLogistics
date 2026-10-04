@@ -6,6 +6,7 @@ import {
   Signal, BatteryFull, TriangleAlert, Smartphone, Cloud,
   Map, Home, Layers
 } from "lucide-react";
+import DeviceClock from "@/components/driver/DeviceClock";
 
 export default function SyncConflictPage() {
   return (
@@ -18,7 +19,7 @@ export default function SyncConflictPage() {
       >
         {/* Device status */}
         <div className="flex justify-between items-center px-5 h-[34px] w-full">
-          <span className="text-[12px] font-semibold" style={{ color: "#12202E" }}>06:58</span>
+          <DeviceClock className="text-[12px] font-semibold" style={{ color: "#12202E" }} />
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-normal" style={{ color: "#BDBDBD" }}>Conflict</span>
             <Signal size={16} color="#BDBDBD" />

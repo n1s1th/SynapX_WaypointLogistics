@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { CalendarDays, CircleAlert, CircleCheck, Plus } from "lucide-react";
+import { CalendarDays, CircleAlert, CircleCheck, Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -31,6 +31,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +44,7 @@ import type {
   StoreManager,
   StoreOrder,
   StoreOutlet,
+  StoreStock,
   TemperatureClass,
 } from "@/components/store/mock-data";
 import { AddItemPicker, TemperaturePill, temperatureLabel } from "@/components/store/new-request/add-item-picker";
@@ -50,6 +52,7 @@ import { QuantityStepper } from "@/components/store/new-request/quantity-stepper
 import { clearDraft, saveDraft, type RequestDraft } from "@/components/store/new-request/draft-storage";
 import { ApiError } from "@/components/store/api/client";
 import { placeGoodsRequest } from "@/components/store/api/store-data";
+import { STORE_DATA_SOURCE } from "@/components/store/api/config";
 import {
   cutoffFor,
   dateKey,
@@ -69,6 +72,16 @@ type SubmitState = "idle" | "submitting" | "failed" | "submitted";
 interface LineItem {
   sku: string;
   quantity: number;
+}
+
+/** "04:00", "04:15", … "07:45": the 15-minute steps a delivery window can start or end on. */
+function windowSlots(start: string, end: string) {
+  const toMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  const slots: string[] = [];
+  for (let minute = toMinutes(start); minute <= toMinutes(end); minute += 15) {
+    slots.push(`${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`);
+  }
+  return slots;
 }
 
 // Reads the saved draft without a server/client mismatch (the server always sees "no draft").
@@ -95,6 +108,8 @@ const shortDay = (date: Date) => format(date, "EEE d MMM");
 export function NewRequestForm({
   catalogue,
   existingOrders,
+  stock,
+  repeatFrom,
   holidays,
   outlet,
   manager,
@@ -103,6 +118,10 @@ export function NewRequestForm({
 }: {
   catalogue: CatalogueItem[];
   existingOrders: StoreOrder[];
+  /** The store's on-hand counts from its last CSV import, shown in the item picker. */
+  stock: StoreStock | null;
+  /** Set when repeating an earlier order: its items (already limited to the catalogue) and what was left out. */
+  repeatFrom?: { orderNumber: string; items: LineItem[]; unavailable: string[] };
   holidays: { date: string; name: string }[];
   outlet: StoreOutlet;
   manager: StoreManager;
@@ -110,7 +129,10 @@ export function NewRequestForm({
   now: Date;
 }) {
   const router = useRouter();
-  const [items, setItems] = useState<LineItem[]>([]);
+  const [items, setItems] = useState<LineItem[]>(() => repeatFrom?.items ?? []);
+  // Defaults to the outlet's whole receiving window; the manager can narrow it for this delivery.
+  const [windowStart, setWindowStart] = useState(outlet.windowStart);
+  const [windowEnd, setWindowEnd] = useState(outlet.windowEnd);
   const [isHighPriority, setIsHighPriority] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState<Date | undefined>();
   const [notes, setNotes] = useState("");
@@ -135,6 +157,13 @@ export function NewRequestForm({
   }, [savedDraftRaw]);
 
   const catalogueBySku = useMemo(() => new Map(catalogue.map((item) => [item.sku, item])), [catalogue]);
+  const onHand = useMemo(
+    () => (stock ? Object.fromEntries(stock.items.map((item) => [item.sku, item.quantityOnHand])) : undefined),
+    [stock]
+  );
+  const slots = windowSlots(outlet.windowStart, outlet.windowEnd);
+  const chosenWindow = { windowStart, windowEnd };
+  const isCustomWindow = windowStart !== outlet.windowStart || windowEnd !== outlet.windowEnd;
   const lines = items
     .map((line) => ({ ...line, item: catalogueBySku.get(line.sku) }))
     .filter((line): line is LineItem & { item: CatalogueItem } => line.item !== undefined);
@@ -142,8 +171,29 @@ export function NewRequestForm({
     .map((temperature) => ({ temperature, lines: lines.filter((line) => line.item.temperatureClass === temperature) }))
     .filter((group) => group.lines.length > 0);
   const totalUnits = lines.reduce((sum, line) => sum + line.quantity, 0);
+  // Mock mode predicts the numbers; live numbers are assigned by the server on submit (one sequence for all
+  // outlets), so the screen doesn't guess them.
   const orderNumbers = nextOrderNumbers(existingOrders, Math.max(1, groups.length));
+  const numbersPreview = STORE_DATA_SOURCE === "api" ? null : orderNumbers;
   const earliest = earliestDeliveryDate(now, isHighPriority, holidays);
+
+  // Days that already have an active order (shown with a dot), and whether this request may still use a day:
+  // Fresh outlets get one chilled and one ambient order per day, other brands one order per day.
+  const bookedDays = useMemo(
+    () =>
+      existingOrders
+        .filter((order) => order.status !== "cancelled" && order.status !== "draft")
+        .map((order) => parseISO(order.orderDate)),
+    [existingOrders]
+  );
+  const requestZones: TemperatureClass[] = groups.length
+    ? groups.map((group) => group.temperature)
+    : ["chilled", "ambient"];
+  const isFullyBooked = (date: Date) => {
+    const taken = findDuplicateOrders(existingOrders, outlet.brand, date, requestZones);
+    // With no items yet, a Fresh day is only full once both zones are taken.
+    return outlet.brand === "fresh" && groups.length === 0 ? taken.length >= 2 : taken.length > 0;
+  };
 
   // ── Validation (contract §6) ──
   const errors: { field: "items" | "date"; message: string }[] = [];
@@ -190,7 +240,13 @@ export function NewRequestForm({
   const removeItem = (sku: string) => setItems((current) => current.filter((line) => line.sku !== sku));
 
   const persistDraft = () =>
-    saveDraft({ items, isHighPriority, deliveryDate: deliveryDate ? dateKey(deliveryDate) : undefined, notes });
+    saveDraft({
+      items,
+      isHighPriority,
+      deliveryDate: deliveryDate ? dateKey(deliveryDate) : undefined,
+      notes,
+      window: isCustomWindow ? { start: windowStart, end: windowEnd } : undefined,
+    });
 
   const handleSaveDraft = () => {
     if (!hasContent) {
@@ -211,6 +267,11 @@ export function NewRequestForm({
     setIsHighPriority(savedDraft.isHighPriority);
     setDeliveryDate(savedDraft.deliveryDate ? parseISO(savedDraft.deliveryDate) : undefined);
     setNotes(savedDraft.notes);
+    // Only restore a saved window that still fits the outlet's hours.
+    if (savedDraft.window && slots.includes(savedDraft.window.start) && slots.includes(savedDraft.window.end)) {
+      setWindowStart(savedDraft.window.start);
+      setWindowEnd(savedDraft.window.end);
+    }
     setDraftDismissed(true);
   };
 
@@ -233,6 +294,7 @@ export function NewRequestForm({
           deliveryDate: dateKey(deliveryDate!),
           isHighPriority,
           notes,
+          window: isCustomWindow ? { start: windowStart, end: windowEnd } : undefined,
           items: lines.map((line) => ({
             sku: line.sku,
             itemName: line.item.itemName,
@@ -268,7 +330,7 @@ export function NewRequestForm({
         orderNumbers={submittedNumbers}
         groups={groups.map((group) => group.temperature)}
         deliveryDate={deliveryDate!}
-        outlet={outlet}
+        deliveryWindow={chosenWindow}
       />
     );
   }
@@ -315,6 +377,20 @@ export function NewRequestForm({
         </Button>
       </div>
 
+      {repeatFrom && (
+        <Alert className="border-info/30 bg-info-muted" role="status">
+          <RotateCcw className="text-info" aria-hidden="true" />
+          <AlertTitle className="text-foreground">Repeating {repeatFrom.orderNumber}</AlertTitle>
+          <AlertDescription className="text-foreground/80">
+            {repeatFrom.items.length > 0
+              ? `${formatItemCount(repeatFrom.items.length)} copied with the same quantities. Check them, then choose a delivery date.`
+              : "None of its items are in your catalogue any more. Add items to continue."}
+            {repeatFrom.unavailable.length > 0 &&
+              ` Left out because they're no longer in your catalogue: ${repeatFrom.unavailable.join(", ")}.`}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {savedDraft && !draftDismissed && !hasContent && (
         <Alert className="border-info/30 bg-info-muted">
           <AlertTitle className="text-foreground">You have an unsent draft</AlertTitle>
@@ -345,7 +421,9 @@ export function NewRequestForm({
       {submitState === "failed" && (
         <Alert className="border-destructive/30 bg-destructive-muted" role="alert">
           <CircleAlert className="text-destructive" aria-hidden="true" />
-          <AlertTitle className="font-bold text-destructive">Couldn&apos;t submit {orderNumbers.join(" and ")}</AlertTitle>
+          <AlertTitle className="font-bold text-destructive">
+            Couldn&apos;t submit {numbersPreview ? numbersPreview.join(" and ") : "your request"}
+          </AlertTitle>
           <AlertDescription className="flex flex-col gap-3 text-foreground/80 md:flex-row md:items-center md:justify-between">
             <span>
               The connection to central dispatch dropped while sending. Your request is saved as a draft on this device,
@@ -520,7 +598,7 @@ export function NewRequestForm({
                             <TableRow key={line.sku} className="hover:bg-transparent">
                               <StoreTableCell className="whitespace-normal">
                                 <span className="block font-medium">{line.item.itemName}</span>
-                                <span className="mt-2 block text-muted-foreground">{line.item.category}</span>
+                                <span className="mt-2 block text-muted-foreground">{line.item.packLabel}</span>
                               </StoreTableCell>
                               <StoreTableCell>{line.sku}</StoreTableCell>
                               <StoreTableCell>
@@ -580,9 +658,15 @@ export function NewRequestForm({
 
               {groups.length > 1 && (
                 <p className="rounded-lg bg-info-muted p-4 text-sm text-foreground/80">
-                  Chilled and ambient items ship on different vehicles, so this request will be submitted as two orders:{" "}
-                  <strong className="font-semibold">{orderNumbers[0]}</strong> (chilled) and{" "}
-                  <strong className="font-semibold">{orderNumbers[1]}</strong> (ambient).
+                  Chilled and ambient items ship on different vehicles, so this request will be submitted as two orders
+                  {numbersPreview ? (
+                    <>
+                      : <strong className="font-semibold">{numbersPreview[0]}</strong> (chilled) and{" "}
+                      <strong className="font-semibold">{numbersPreview[1]}</strong> (ambient).
+                    </>
+                  ) : (
+                    ": one chilled and one ambient."
+                  )}
                 </p>
               )}
 
@@ -598,7 +682,7 @@ export function NewRequestForm({
           </StoreSectionCard>
 
           {/* Delivery date */}
-          <StoreSectionCard title="Delivery Date" description="Pick the day. Time follows your outlet's delivery window.">
+          <StoreSectionCard title="Delivery Date" description="Pick the day, and narrow the time window if you need to.">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="delivery-date" className="text-base font-medium text-foreground/80">
@@ -625,7 +709,14 @@ export function NewRequestForm({
                       mode="single"
                       selected={deliveryDate}
                       defaultMonth={deliveryDate ?? earliest}
-                      disabled={(date) => !isSelectableDeliveryDate(date, now, isHighPriority, holidays)}
+                      disabled={(date) =>
+                        !isSelectableDeliveryDate(date, now, isHighPriority, holidays) || isFullyBooked(date)
+                      }
+                      modifiers={{ booked: bookedDays }}
+                      modifiersClassNames={{
+                        booked:
+                          "relative after:pointer-events-none after:absolute after:bottom-0.5 after:left-1/2 after:size-1.5 after:-translate-x-1/2 after:rounded-full after:bg-primary",
+                      }}
                       onSelect={(date) => {
                         setDeliveryDate(date);
                         if (date) setCalendarOpen(false);
@@ -633,7 +724,7 @@ export function NewRequestForm({
                       autoFocus
                     />
                     <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-                      No deliveries on Sundays or public holidays.
+                      No deliveries on Sundays or public holidays. A dot means you already have an order that day.
                     </p>
                   </PopoverContent>
                 </Popover>
@@ -648,13 +739,69 @@ export function NewRequestForm({
                   </p>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-4 rounded-lg bg-background p-4 text-sm">
-                <div className="flex flex-col gap-2">
-                  <span className="font-medium text-muted-foreground">Delivery window</span>
-                  <span className="font-bold text-foreground">{formatDeliveryWindow(outlet)}</span>
+              <fieldset className="flex flex-col gap-3 rounded-lg bg-background p-4 text-sm">
+                <legend className="sr-only">Delivery window</legend>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span aria-hidden="true" className="font-medium text-muted-foreground">
+                    Delivery window
+                  </span>
+                  {isCustomWindow && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWindowStart(outlet.windowStart);
+                        setWindowEnd(outlet.windowEnd);
+                      }}
+                      className="min-h-11 text-sm font-bold text-primary underline-offset-4 hover:underline md:min-h-0"
+                    >
+                      Use full window
+                    </button>
+                  )}
                 </div>
-                <span className="text-muted-foreground">Fixed for {outlet.code}</span>
-              </div>
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-1 flex-col gap-2">
+                    <Label htmlFor="window-start">From</Label>
+                    <Select
+                      value={windowStart}
+                      onValueChange={(value) => {
+                        setWindowStart(value);
+                        if (value >= windowEnd) setWindowEnd(slots[slots.indexOf(value) + 1]);
+                      }}
+                    >
+                      <SelectTrigger id="window-start" className="h-11 w-full bg-card md:h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {slots.slice(0, -1).map((slot) => (
+                          <SelectItem key={slot} value={slot}>
+                            {slot}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <Label htmlFor="window-end">To</Label>
+                    <Select value={windowEnd} onValueChange={setWindowEnd}>
+                      <SelectTrigger id="window-end" className="h-11 w-full bg-card md:h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {slots
+                          .filter((slot) => slot > windowStart)
+                          .map((slot) => (
+                            <SelectItem key={slot} value={slot}>
+                              {slot}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-muted-foreground">
+                  Within {outlet.code}&apos;s receiving hours, {formatDeliveryWindow(outlet)}.
+                </p>
+              </fieldset>
             </div>
           </StoreSectionCard>
 
@@ -684,7 +831,9 @@ export function NewRequestForm({
         <StoreSectionCard title="Request Summary" description="Review before submitting" className="xl:sticky xl:top-6">
           <div className="flex flex-col gap-4 text-sm">
             <dl className="flex flex-col gap-4">
-              <SummaryRow label={groups.length > 1 ? "Order IDs" : "Order ID"}>{orderNumbers.join(", ")}</SummaryRow>
+              <SummaryRow label={groups.length > 1 ? "Order IDs" : "Order ID"}>
+                {numbersPreview ? numbersPreview.join(", ") : "Assigned when you submit"}
+              </SummaryRow>
               <SummaryRow label="Outlet">
                 {outlet.code} · {outlet.name}
               </SummaryRow>
@@ -702,7 +851,7 @@ export function NewRequestForm({
                 )}
               </SummaryRow>
               <SummaryRow label="Target delivery">
-                {deliveryDate ? `${format(deliveryDate, "d MMM yyyy")}, ${formatDeliveryWindow(outlet)}` : "Not chosen"}
+                {deliveryDate ? `${format(deliveryDate, "d MMM yyyy")}, ${formatDeliveryWindow(chosenWindow)}` : "Not chosen"}
               </SummaryRow>
               <SummaryRow label="Unloading">{unloading} (from Outlet Settings)</SummaryRow>
             </dl>
@@ -743,8 +892,9 @@ export function NewRequestForm({
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         catalogue={catalogue}
+        onHand={onHand}
         selected={selectedMap}
-        requestLabel={orderNumbers.join(" / ")}
+        requestLabel={numbersPreview ? numbersPreview.join(" / ") : "this request"}
         onConfirm={(next) => {
           // Keep existing order of lines, append new ones.
           setItems((current) => {
@@ -794,12 +944,12 @@ function SubmittedConfirmation({
   orderNumbers,
   groups,
   deliveryDate,
-  outlet,
+  deliveryWindow,
 }: {
   orderNumbers: string[];
   groups: TemperatureClass[];
   deliveryDate: Date;
-  outlet: StoreOutlet;
+  deliveryWindow: { windowStart: string; windowEnd: string };
 }) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -809,7 +959,7 @@ function SubmittedConfirmation({
         <p className="text-sm text-muted-foreground">
           The depot will confirm your request shortly. Delivery is planned for{" "}
           <strong className="font-semibold text-foreground">
-            {format(deliveryDate, "EEEE d MMM")}, {formatDeliveryWindow(outlet)}
+            {format(deliveryDate, "EEEE d MMM")}, {formatDeliveryWindow(deliveryWindow)}
           </strong>
           .
         </p>

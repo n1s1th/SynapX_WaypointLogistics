@@ -28,6 +28,9 @@ class Vehicle(Base):
     trips_today: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     trips_planned: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     maintenance_state: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    fuel_type: Mapped[str] = mapped_column(String(50), nullable=False, default="diesel")
+    km_per_l: Mapped[float] = mapped_column(Float, nullable=False, default=6.0)
+    weekly_fuel_quota_l: Mapped[float] = mapped_column(Float, nullable=False, default=500.0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

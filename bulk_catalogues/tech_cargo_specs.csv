@@ -1,0 +1,348 @@
+sku,name,chain,units_per_pack,pack_type,unit_weight_kg,unit_volume_m3,temp_requirement,depot_name,last_updated
+TC-BLN-02,2-unit Shipping Pallet - High-Torque Glass Blenders,Tech,2,Shipping Pallet,7.07,0.0396,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-HD-01,6-unit Master Carton - External Rugged Hard Drives 2TB,Tech,6,Master Carton,1.96,0.0076,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-02,8-unit Master Carton - 27-inch IPS QHD Display Panels,Tech,8,Master Carton,55.49,0.3780,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROUT-01,10-unit Master Carton - Dual-Band Wi-Fi 6 Mesh Nodes,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROUT-02,12-unit Master Carton - Gigabit 8-Port Desktop Switches,Tech,12,Master Carton,10.40,0.0378,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TONR-02,4-unit Master Carton - Genuine Black Ink Refill Packs,Tech,4,Master Carton,1.84,0.0076,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-01,4-unit Shipping Pallet - Line Interactive UPS 1200VA,Tech,4,Shipping Pallet,35.36,0.0968,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-WEBC-01,8-unit Master Carton - Full HD 1080p Auto-Focus Webcams,Tech,8,Master Carton,2.04,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-01,2-unit Shipping Pallet - Smart Air Purifiers,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-01,12-unit Master Carton - Mirrorless Digital Cameras with Lens Kit,Tech,12,Master Carton,14.08,0.1134,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MIC-01,4-unit Master Carton - Wireless Noise-Cancelling Headphones,Tech,4,Master Carton,1.71,0.0160,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-01,6-unit Shipping Pallet - Compact Colour Laser Printers,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-01,8-unit Master Carton - 10-inch Android Tablet Devices,Tech,8,Master Carton,5.06,0.0353,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-100,10-unit Master Carton - Standard Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-101,4-unit Shipping Pallet - Standard QHD Computer Monitor Model 01,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-102,6-unit Shipping Pallet - Standard Compact Laser Printer Model 01,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-103,6-unit Master Carton - Standard Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-104,8-unit Master Carton - Standard Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-105,10-unit Master Carton - Standard Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-106,12-unit Master Carton - Standard Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-107,2-unit Shipping Pallet - Standard Smart Air Purifier Model 01,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-108,3-unit Shipping Pallet - Standard Line Interactive UPS Model 01,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-109,8-unit Master Carton - Standard Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-110,10-unit Master Carton - Plus Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-111,2-unit Shipping Pallet - Plus QHD Computer Monitor Model 01,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-112,3-unit Shipping Pallet - Plus Compact Laser Printer Model 01,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-113,6-unit Master Carton - Plus Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-114,8-unit Master Carton - Plus Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-115,10-unit Master Carton - Plus Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-116,12-unit Master Carton - Plus Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-117,4-unit Shipping Pallet - Plus Smart Air Purifier Model 01,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-118,6-unit Shipping Pallet - Plus Line Interactive UPS Model 01,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-119,8-unit Master Carton - Plus Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-120,10-unit Master Carton - Pro Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-121,4-unit Shipping Pallet - Pro QHD Computer Monitor Model 01,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-122,6-unit Shipping Pallet - Pro Compact Laser Printer Model 01,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-123,6-unit Master Carton - Pro Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-124,8-unit Master Carton - Pro Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-125,10-unit Master Carton - Pro Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-126,12-unit Master Carton - Pro Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-127,2-unit Shipping Pallet - Pro Smart Air Purifier Model 01,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-128,3-unit Shipping Pallet - Pro Line Interactive UPS Model 01,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-129,8-unit Master Carton - Pro Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-130,10-unit Master Carton - Lite Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-131,2-unit Shipping Pallet - Lite QHD Computer Monitor Model 01,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-132,3-unit Shipping Pallet - Lite Compact Laser Printer Model 01,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-133,6-unit Master Carton - Lite Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-134,8-unit Master Carton - Lite Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-135,10-unit Master Carton - Lite Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-136,12-unit Master Carton - Lite Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-137,4-unit Shipping Pallet - Lite Smart Air Purifier Model 01,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-138,6-unit Shipping Pallet - Lite Line Interactive UPS Model 01,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-139,8-unit Master Carton - Lite Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-140,10-unit Master Carton - Max Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-141,4-unit Shipping Pallet - Max QHD Computer Monitor Model 01,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-142,6-unit Shipping Pallet - Max Compact Laser Printer Model 01,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-143,6-unit Master Carton - Max Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-144,8-unit Master Carton - Max Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-145,10-unit Master Carton - Max Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-146,12-unit Master Carton - Max Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-147,2-unit Shipping Pallet - Max Smart Air Purifier Model 01,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-148,3-unit Shipping Pallet - Max Line Interactive UPS Model 01,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-149,8-unit Master Carton - Max Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-150,10-unit Master Carton - Essential Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-151,2-unit Shipping Pallet - Essential QHD Computer Monitor Model 01,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-152,3-unit Shipping Pallet - Essential Compact Laser Printer Model 01,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-153,6-unit Master Carton - Essential Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-154,8-unit Master Carton - Essential Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-155,10-unit Master Carton - Essential Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-156,12-unit Master Carton - Essential Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-157,4-unit Shipping Pallet - Essential Smart Air Purifier Model 01,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-158,6-unit Shipping Pallet - Essential Line Interactive UPS Model 01,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-159,8-unit Master Carton - Essential Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-160,10-unit Master Carton - Smart Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-161,4-unit Shipping Pallet - Smart QHD Computer Monitor Model 01,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-162,6-unit Shipping Pallet - Smart Compact Laser Printer Model 01,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-163,6-unit Master Carton - Smart Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-164,8-unit Master Carton - Smart Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-165,10-unit Master Carton - Smart Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-166,12-unit Master Carton - Smart Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-167,2-unit Shipping Pallet - Smart Smart Air Purifier Model 01,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-168,3-unit Shipping Pallet - Smart Line Interactive UPS Model 01,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-169,8-unit Master Carton - Smart Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-170,10-unit Master Carton - Business Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-171,2-unit Shipping Pallet - Business QHD Computer Monitor Model 01,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-172,3-unit Shipping Pallet - Business Compact Laser Printer Model 01,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-173,6-unit Master Carton - Business Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-174,8-unit Master Carton - Business Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-175,10-unit Master Carton - Business Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-176,12-unit Master Carton - Business Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-177,4-unit Shipping Pallet - Business Smart Air Purifier Model 01,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-178,6-unit Shipping Pallet - Business Line Interactive UPS Model 01,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-179,8-unit Master Carton - Business Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-180,10-unit Master Carton - Home Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-181,4-unit Shipping Pallet - Home QHD Computer Monitor Model 01,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-182,6-unit Shipping Pallet - Home Compact Laser Printer Model 01,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-183,6-unit Master Carton - Home Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-184,8-unit Master Carton - Home Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-185,10-unit Master Carton - Home Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-186,12-unit Master Carton - Home Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-187,2-unit Shipping Pallet - Home Smart Air Purifier Model 01,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-188,3-unit Shipping Pallet - Home Line Interactive UPS Model 01,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-189,8-unit Master Carton - Home Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-190,10-unit Master Carton - Travel Android Tablet Model 01,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-191,2-unit Shipping Pallet - Travel QHD Computer Monitor Model 01,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-192,3-unit Shipping Pallet - Travel Compact Laser Printer Model 01,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-193,6-unit Master Carton - Travel Wireless Headphones Model 01,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-194,8-unit Master Carton - Travel Mirrorless Camera Kit Model 01,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-195,10-unit Master Carton - Travel Wi-Fi Mesh Router Model 01,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-196,12-unit Master Carton - Travel Portable Solid-State Drive Model 01,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-197,4-unit Shipping Pallet - Travel Smart Air Purifier Model 01,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-198,6-unit Shipping Pallet - Travel Line Interactive UPS Model 01,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-199,8-unit Master Carton - Travel Portable Bluetooth Speaker Model 01,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-200,10-unit Master Carton - Standard Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-201,4-unit Shipping Pallet - Standard QHD Computer Monitor Model 02,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-202,6-unit Shipping Pallet - Standard Compact Laser Printer Model 02,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-203,6-unit Master Carton - Standard Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-204,8-unit Master Carton - Standard Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-205,10-unit Master Carton - Standard Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-206,12-unit Master Carton - Standard Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-207,2-unit Shipping Pallet - Standard Smart Air Purifier Model 02,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-208,3-unit Shipping Pallet - Standard Line Interactive UPS Model 02,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-209,8-unit Master Carton - Standard Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-210,10-unit Master Carton - Plus Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-211,2-unit Shipping Pallet - Plus QHD Computer Monitor Model 02,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-212,3-unit Shipping Pallet - Plus Compact Laser Printer Model 02,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-213,6-unit Master Carton - Plus Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-214,8-unit Master Carton - Plus Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-215,10-unit Master Carton - Plus Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-216,12-unit Master Carton - Plus Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-217,4-unit Shipping Pallet - Plus Smart Air Purifier Model 02,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-218,6-unit Shipping Pallet - Plus Line Interactive UPS Model 02,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-219,8-unit Master Carton - Plus Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-220,10-unit Master Carton - Pro Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-221,4-unit Shipping Pallet - Pro QHD Computer Monitor Model 02,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-222,6-unit Shipping Pallet - Pro Compact Laser Printer Model 02,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-223,6-unit Master Carton - Pro Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-224,8-unit Master Carton - Pro Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-225,10-unit Master Carton - Pro Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-226,12-unit Master Carton - Pro Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-227,2-unit Shipping Pallet - Pro Smart Air Purifier Model 02,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-228,3-unit Shipping Pallet - Pro Line Interactive UPS Model 02,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-229,8-unit Master Carton - Pro Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-230,10-unit Master Carton - Lite Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-231,2-unit Shipping Pallet - Lite QHD Computer Monitor Model 02,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-232,3-unit Shipping Pallet - Lite Compact Laser Printer Model 02,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-233,6-unit Master Carton - Lite Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-234,8-unit Master Carton - Lite Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-235,10-unit Master Carton - Lite Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-236,12-unit Master Carton - Lite Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-237,4-unit Shipping Pallet - Lite Smart Air Purifier Model 02,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-238,6-unit Shipping Pallet - Lite Line Interactive UPS Model 02,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-239,8-unit Master Carton - Lite Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-240,10-unit Master Carton - Max Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-241,4-unit Shipping Pallet - Max QHD Computer Monitor Model 02,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-242,6-unit Shipping Pallet - Max Compact Laser Printer Model 02,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-243,6-unit Master Carton - Max Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-244,8-unit Master Carton - Max Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-245,10-unit Master Carton - Max Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-246,12-unit Master Carton - Max Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-247,2-unit Shipping Pallet - Max Smart Air Purifier Model 02,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-248,3-unit Shipping Pallet - Max Line Interactive UPS Model 02,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-249,8-unit Master Carton - Max Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-250,10-unit Master Carton - Essential Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-251,2-unit Shipping Pallet - Essential QHD Computer Monitor Model 02,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-252,3-unit Shipping Pallet - Essential Compact Laser Printer Model 02,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-253,6-unit Master Carton - Essential Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-254,8-unit Master Carton - Essential Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-255,10-unit Master Carton - Essential Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-256,12-unit Master Carton - Essential Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-257,4-unit Shipping Pallet - Essential Smart Air Purifier Model 02,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-258,6-unit Shipping Pallet - Essential Line Interactive UPS Model 02,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-259,8-unit Master Carton - Essential Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-260,10-unit Master Carton - Smart Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-261,4-unit Shipping Pallet - Smart QHD Computer Monitor Model 02,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-262,6-unit Shipping Pallet - Smart Compact Laser Printer Model 02,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-263,6-unit Master Carton - Smart Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-264,8-unit Master Carton - Smart Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-265,10-unit Master Carton - Smart Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-266,12-unit Master Carton - Smart Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-267,2-unit Shipping Pallet - Smart Smart Air Purifier Model 02,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-268,3-unit Shipping Pallet - Smart Line Interactive UPS Model 02,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-269,8-unit Master Carton - Smart Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-270,10-unit Master Carton - Business Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-271,2-unit Shipping Pallet - Business QHD Computer Monitor Model 02,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-272,3-unit Shipping Pallet - Business Compact Laser Printer Model 02,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-273,6-unit Master Carton - Business Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-274,8-unit Master Carton - Business Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-275,10-unit Master Carton - Business Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-276,12-unit Master Carton - Business Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-277,4-unit Shipping Pallet - Business Smart Air Purifier Model 02,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-278,6-unit Shipping Pallet - Business Line Interactive UPS Model 02,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-279,8-unit Master Carton - Business Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-280,10-unit Master Carton - Home Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-281,4-unit Shipping Pallet - Home QHD Computer Monitor Model 02,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-282,6-unit Shipping Pallet - Home Compact Laser Printer Model 02,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-283,6-unit Master Carton - Home Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-284,8-unit Master Carton - Home Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-285,10-unit Master Carton - Home Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-286,12-unit Master Carton - Home Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-287,2-unit Shipping Pallet - Home Smart Air Purifier Model 02,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-288,3-unit Shipping Pallet - Home Line Interactive UPS Model 02,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-289,8-unit Master Carton - Home Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-290,10-unit Master Carton - Travel Android Tablet Model 02,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-291,2-unit Shipping Pallet - Travel QHD Computer Monitor Model 02,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-292,3-unit Shipping Pallet - Travel Compact Laser Printer Model 02,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-293,6-unit Master Carton - Travel Wireless Headphones Model 02,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-294,8-unit Master Carton - Travel Mirrorless Camera Kit Model 02,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-295,10-unit Master Carton - Travel Wi-Fi Mesh Router Model 02,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-296,12-unit Master Carton - Travel Portable Solid-State Drive Model 02,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-297,4-unit Shipping Pallet - Travel Smart Air Purifier Model 02,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-298,6-unit Shipping Pallet - Travel Line Interactive UPS Model 02,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-299,8-unit Master Carton - Travel Portable Bluetooth Speaker Model 02,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-300,10-unit Master Carton - Standard Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-301,4-unit Shipping Pallet - Standard QHD Computer Monitor Model 03,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-302,6-unit Shipping Pallet - Standard Compact Laser Printer Model 03,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-303,6-unit Master Carton - Standard Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-304,8-unit Master Carton - Standard Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-305,10-unit Master Carton - Standard Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-306,12-unit Master Carton - Standard Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-307,2-unit Shipping Pallet - Standard Smart Air Purifier Model 03,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-308,3-unit Shipping Pallet - Standard Line Interactive UPS Model 03,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-309,8-unit Master Carton - Standard Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-310,10-unit Master Carton - Plus Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-311,2-unit Shipping Pallet - Plus QHD Computer Monitor Model 03,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-312,3-unit Shipping Pallet - Plus Compact Laser Printer Model 03,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-313,6-unit Master Carton - Plus Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-314,8-unit Master Carton - Plus Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-315,10-unit Master Carton - Plus Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-316,12-unit Master Carton - Plus Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-317,4-unit Shipping Pallet - Plus Smart Air Purifier Model 03,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-318,6-unit Shipping Pallet - Plus Line Interactive UPS Model 03,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-319,8-unit Master Carton - Plus Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-320,10-unit Master Carton - Pro Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-321,4-unit Shipping Pallet - Pro QHD Computer Monitor Model 03,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-322,6-unit Shipping Pallet - Pro Compact Laser Printer Model 03,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-323,6-unit Master Carton - Pro Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-324,8-unit Master Carton - Pro Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-325,10-unit Master Carton - Pro Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-326,12-unit Master Carton - Pro Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-327,2-unit Shipping Pallet - Pro Smart Air Purifier Model 03,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-328,3-unit Shipping Pallet - Pro Line Interactive UPS Model 03,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-329,8-unit Master Carton - Pro Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-330,10-unit Master Carton - Lite Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-331,2-unit Shipping Pallet - Lite QHD Computer Monitor Model 03,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-332,3-unit Shipping Pallet - Lite Compact Laser Printer Model 03,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-333,6-unit Master Carton - Lite Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-334,8-unit Master Carton - Lite Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-335,10-unit Master Carton - Lite Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-336,12-unit Master Carton - Lite Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-337,4-unit Shipping Pallet - Lite Smart Air Purifier Model 03,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-338,6-unit Shipping Pallet - Lite Line Interactive UPS Model 03,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-339,8-unit Master Carton - Lite Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-340,10-unit Master Carton - Max Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-341,4-unit Shipping Pallet - Max QHD Computer Monitor Model 03,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-342,6-unit Shipping Pallet - Max Compact Laser Printer Model 03,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-343,6-unit Master Carton - Max Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-344,8-unit Master Carton - Max Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-345,10-unit Master Carton - Max Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-346,12-unit Master Carton - Max Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-347,2-unit Shipping Pallet - Max Smart Air Purifier Model 03,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-348,3-unit Shipping Pallet - Max Line Interactive UPS Model 03,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-349,8-unit Master Carton - Max Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-350,10-unit Master Carton - Essential Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-351,2-unit Shipping Pallet - Essential QHD Computer Monitor Model 03,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-352,3-unit Shipping Pallet - Essential Compact Laser Printer Model 03,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-353,6-unit Master Carton - Essential Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-354,8-unit Master Carton - Essential Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-355,10-unit Master Carton - Essential Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-356,12-unit Master Carton - Essential Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-357,4-unit Shipping Pallet - Essential Smart Air Purifier Model 03,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-358,6-unit Shipping Pallet - Essential Line Interactive UPS Model 03,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-359,8-unit Master Carton - Essential Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-360,10-unit Master Carton - Smart Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-361,4-unit Shipping Pallet - Smart QHD Computer Monitor Model 03,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-362,6-unit Shipping Pallet - Smart Compact Laser Printer Model 03,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-363,6-unit Master Carton - Smart Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-364,8-unit Master Carton - Smart Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-365,10-unit Master Carton - Smart Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-366,12-unit Master Carton - Smart Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-367,2-unit Shipping Pallet - Smart Smart Air Purifier Model 03,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-368,3-unit Shipping Pallet - Smart Line Interactive UPS Model 03,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-369,8-unit Master Carton - Smart Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-370,10-unit Master Carton - Business Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-371,2-unit Shipping Pallet - Business QHD Computer Monitor Model 03,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-372,3-unit Shipping Pallet - Business Compact Laser Printer Model 03,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-373,6-unit Master Carton - Business Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-374,8-unit Master Carton - Business Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-375,10-unit Master Carton - Business Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-376,12-unit Master Carton - Business Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-377,4-unit Shipping Pallet - Business Smart Air Purifier Model 03,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-378,6-unit Shipping Pallet - Business Line Interactive UPS Model 03,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-379,8-unit Master Carton - Business Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-380,10-unit Master Carton - Home Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-381,4-unit Shipping Pallet - Home QHD Computer Monitor Model 03,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-382,6-unit Shipping Pallet - Home Compact Laser Printer Model 03,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-383,6-unit Master Carton - Home Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-384,8-unit Master Carton - Home Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-385,10-unit Master Carton - Home Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-386,12-unit Master Carton - Home Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-387,2-unit Shipping Pallet - Home Smart Air Purifier Model 03,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-388,3-unit Shipping Pallet - Home Line Interactive UPS Model 03,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-389,8-unit Master Carton - Home Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-390,10-unit Master Carton - Travel Android Tablet Model 03,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-391,2-unit Shipping Pallet - Travel QHD Computer Monitor Model 03,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-392,3-unit Shipping Pallet - Travel Compact Laser Printer Model 03,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-393,6-unit Master Carton - Travel Wireless Headphones Model 03,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-394,8-unit Master Carton - Travel Mirrorless Camera Kit Model 03,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-395,10-unit Master Carton - Travel Wi-Fi Mesh Router Model 03,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-396,12-unit Master Carton - Travel Portable Solid-State Drive Model 03,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-397,4-unit Shipping Pallet - Travel Smart Air Purifier Model 03,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-398,6-unit Shipping Pallet - Travel Line Interactive UPS Model 03,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-399,8-unit Master Carton - Travel Portable Bluetooth Speaker Model 03,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-400,10-unit Master Carton - Standard Android Tablet Model 04,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-401,4-unit Shipping Pallet - Standard QHD Computer Monitor Model 04,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-402,6-unit Shipping Pallet - Standard Compact Laser Printer Model 04,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-403,6-unit Master Carton - Standard Wireless Headphones Model 04,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-404,8-unit Master Carton - Standard Mirrorless Camera Kit Model 04,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-405,10-unit Master Carton - Standard Wi-Fi Mesh Router Model 04,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-406,12-unit Master Carton - Standard Portable Solid-State Drive Model 04,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-407,2-unit Shipping Pallet - Standard Smart Air Purifier Model 04,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-408,3-unit Shipping Pallet - Standard Line Interactive UPS Model 04,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-409,8-unit Master Carton - Standard Portable Bluetooth Speaker Model 04,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-410,10-unit Master Carton - Plus Android Tablet Model 04,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-411,2-unit Shipping Pallet - Plus QHD Computer Monitor Model 04,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-412,3-unit Shipping Pallet - Plus Compact Laser Printer Model 04,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-413,6-unit Master Carton - Plus Wireless Headphones Model 04,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-414,8-unit Master Carton - Plus Mirrorless Camera Kit Model 04,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-415,10-unit Master Carton - Plus Wi-Fi Mesh Router Model 04,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-416,12-unit Master Carton - Plus Portable Solid-State Drive Model 04,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-417,4-unit Shipping Pallet - Plus Smart Air Purifier Model 04,Tech,4,Shipping Pallet,23.30,0.1408,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-418,6-unit Shipping Pallet - Plus Line Interactive UPS Model 04,Tech,6,Shipping Pallet,53.04,0.1452,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-419,8-unit Master Carton - Plus Portable Bluetooth Speaker Model 04,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-420,10-unit Master Carton - Pro Android Tablet Model 04,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-421,4-unit Shipping Pallet - Pro QHD Computer Monitor Model 04,Tech,4,Shipping Pallet,28.29,0.1980,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-422,6-unit Shipping Pallet - Pro Compact Laser Printer Model 04,Tech,6,Shipping Pallet,79.87,0.4026,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-423,6-unit Master Carton - Pro Wireless Headphones Model 04,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-CAM-424,8-unit Master Carton - Pro Mirrorless Camera Kit Model 04,Tech,8,Master Carton,9.38,0.0756,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-ROU-425,10-unit Master Carton - Pro Wi-Fi Mesh Router Model 04,Tech,10,Master Carton,12.24,0.0525,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-DRV-426,12-unit Master Carton - Pro Portable Solid-State Drive Model 04,Tech,12,Master Carton,2.45,0.0126,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AIR-427,2-unit Shipping Pallet - Pro Smart Air Purifier Model 04,Tech,2,Shipping Pallet,11.65,0.0704,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-UPS-428,3-unit Shipping Pallet - Pro Line Interactive UPS Model 04,Tech,3,Shipping Pallet,26.52,0.0726,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-SPK-429,8-unit Master Carton - Pro Portable Bluetooth Speaker Model 04,Tech,8,Master Carton,7.34,0.0462,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-TAB-430,10-unit Master Carton - Lite Android Tablet Model 04,Tech,10,Master Carton,6.32,0.0441,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-MON-431,2-unit Shipping Pallet - Lite QHD Computer Monitor Model 04,Tech,2,Shipping Pallet,14.14,0.0990,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-PRN-432,3-unit Shipping Pallet - Lite Compact Laser Printer Model 04,Tech,3,Shipping Pallet,39.94,0.2013,Ambient,Peliyagoda Central,2026-10-03T12:30:00
+TC-AUD-433,6-unit Master Carton - Lite Wireless Headphones Model 04,Tech,6,Master Carton,2.57,0.0239,Ambient,Peliyagoda Central,2026-10-03T12:30:00

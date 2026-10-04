@@ -1,4 +1,7 @@
+import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
 from app.core.config import settings
@@ -32,6 +35,11 @@ from app.routers.receipts import router as receipts_router
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(receipts_router, prefix="/api")
+
+# Serve uploaded photos as static files
+_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads")
+os.makedirs(_UPLOAD_DIR, exist_ok=True)
+app.mount("/static/uploads", StaticFiles(directory=_UPLOAD_DIR), name="uploads")
 
 
 @app.get("/", tags=["Root"])

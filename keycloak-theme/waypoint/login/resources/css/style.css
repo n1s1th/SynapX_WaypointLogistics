@@ -1,0 +1,203 @@
+/* Waypoint Logistics — unified Keycloak login theme (Keycloak 26 legacy login). */
+
+:root {
+  --wp-navy: #092c4c;
+  --wp-primary: #18385f;
+  --wp-primary-hover: #102d4d;
+  --wp-ink: #192641;
+  --wp-muted: #718096;
+  --wp-border: #c8d1dd;
+  --wp-focus: #1e63c4;
+  --wp-amber: #f9b934;
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, .login-pf, body.login-pf { min-height: 100%; margin: 0; font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+body.login-pf { background: #202020; }
+
+/* Only direct page children participate in the desktop grid. */
+.login-pf-page {
+  position: relative;
+  display: grid;
+  width: min(100%, 1200px);
+  min-height: 720px;
+  grid-template-columns: 42% 58%;
+  margin: 34px auto;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.login-pf-page::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0 auto 0 0;
+  width: 42%;
+  content: "";
+  background: linear-gradient(180deg, #1e4673 0%, var(--wp-navy) 100%);
+}
+
+/* Left operational panel. */
+#kc-header {
+  position: relative;
+  z-index: 1;
+  grid-column: 1;
+  grid-row: 1;
+  padding: 52px 54px;
+  color: #ffffff;
+}
+
+#kc-header::before { content: none !important; }
+#kc-header::after {
+  position: absolute;
+  bottom: 53px;
+  left: 54px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  content: "●  Secure access · Waypoint Logistics";
+  background: rgb(255 255 255 / 8%);
+  color: #d8e6f3;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+#kc-header-wrapper {
+  position: relative;
+  display: flex;
+  min-height: 36px;
+  padding-left: 48px;
+  align-items: center;
+  color: transparent;
+  font-size: 0;
+}
+
+#kc-header-wrapper::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  content: "W";
+  background: var(--wp-amber);
+  color: var(--wp-navy);
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: -.08em;
+}
+
+#kc-header-wrapper::after {
+  display: block;
+  content: "SYNAPX\A WAYPOINT\A LOGISTICS";
+  white-space: pre;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .045em;
+  line-height: 1.02;
+}
+
+.login-pf-page::after {
+  position: absolute;
+  z-index: 1;
+  top: 242px;
+  left: 54px;
+  width: calc(42% - 108px);
+  content: "Every delivery,\A under control.\A\A Plan routes, coordinate vehicles, and respond to\A exceptions from one operational workspace.";
+  white-space: pre-line;
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Right-side form: #kc-content is intentionally not positioned separately. */
+.card-pf {
+  z-index: 1;
+  display: flex;
+  min-height: 720px;
+  grid-column: 2;
+  grid-row: 1;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  padding: 70px 12%;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.login-pf-header, #kc-content { width: min(100%, 380px); margin: 0 auto; padding: 0; }
+.login-pf-header { margin-bottom: 7px; border: 0; }
+#kc-content-wrapper, #kc-form, #kc-form-wrapper { width: 100%; }
+
+#kc-page-title { margin: 0; color: transparent; font-size: 0; line-height: 1; }
+#kc-page-title::before {
+  display: block;
+  margin-bottom: 13px;
+  content: "SECURE ACCESS";
+  color: #b66f00;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+#kc-page-title::after {
+  display: block;
+  content: "Welcome back";
+  color: var(--wp-ink);
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+
+#kc-form::before { display: block; margin: 0 0 25px; content: "Sign in to continue to Waypoint Logistics."; color: var(--wp-muted); font-size: 12px; }
+.form-group { margin-bottom: 17px; }
+label.control-label, label.field-label { display: block; margin-bottom: 7px; color: #304057; font-size: 12px; font-weight: 650; }
+
+input[type="text"], input[type="password"], input[type="email"], .form-control {
+  width: 100%;
+  height: 42px;
+  padding: 0 38px 0 12px;
+  border: 1px solid var(--wp-border);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--wp-ink);
+  font: inherit;
+  font-size: 13px;
+  box-shadow: none;
+}
+input:focus, .form-control:focus { outline: 0; border-color: var(--wp-focus); box-shadow: 0 0 0 3px rgb(30 99 196 / 17%); }
+
+#kc-login {
+  width: 100%;
+  height: 43px;
+  border: 1px solid var(--wp-primary);
+  border-radius: 7px;
+  background: var(--wp-primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: none;
+}
+#kc-login:hover { border-color: var(--wp-primary-hover); background: var(--wp-primary-hover); }
+#kc-login:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid rgb(30 99 196 / 35%); outline-offset: 2px; }
+
+#kc-form-options { margin: 3px 0 18px; color: var(--wp-muted); font-size: 11px; }
+#kc-form-options .checkbox { float: left; }
+#kc-form-options #kc-forgot-password { float: right; }
+input[type="checkbox"] { width: 14px; height: 14px; margin-right: 6px; accent-color: var(--wp-primary); vertical-align: -2px; }
+a, #kc-registration a, #kc-info-wrapper a { color: var(--wp-primary); font-weight: 650; text-decoration: none; }
+a:hover { color: var(--wp-primary-hover); text-decoration: underline; }
+.alert { margin-bottom: 18px; border-radius: 7px; font-size: 12px; }
+.alert-error, .alert-danger { border-color: #e9bbbb; background: #fbefef; color: #8b2e2e; }
+
+@media (max-width: 800px) {
+  body.login-pf { background: #f6f6f3; }
+  .login-pf-page { display: block; width: 100%; min-height: 100vh; margin: 0; overflow: visible; }
+  .login-pf-page::before, .login-pf-page::after, #kc-header { display: none; }
+  .card-pf { display: flex; min-height: 100vh; padding: 48px 24px; }
+}

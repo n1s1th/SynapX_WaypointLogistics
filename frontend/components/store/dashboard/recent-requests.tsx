@@ -4,13 +4,21 @@ import { Table, TableBody, TableRow } from "@/components/ui/table";
 import { StoreArrowLink, StoreSectionCard } from "@/components/store/store-cards";
 import { StoreTableCell, StoreTableHeader } from "@/components/store/store-table";
 import { OrderStatusPill, PriorityPill } from "@/components/store/status-pill";
-import { formatShortWindow } from "@/components/store/format";
-import { currentOutlet, type StoreOrder } from "@/components/store/mock-data";
+import { formatShortWindow, windowFor } from "@/components/store/format";
+import type { StoreOrder, StoreOutlet } from "@/components/store/mock-data";
 import { MobileSectionTitle } from "@/components/store/dashboard/mobile-section-title";
 
 const requestHref = (order: StoreOrder) => `/store/requests/${order.orderNumber}`;
 
-export function RecentRequests({ orders, className }: { orders: StoreOrder[]; className?: string }) {
+export function RecentRequests({
+  orders,
+  outlet,
+  className,
+}: {
+  orders: StoreOrder[];
+  outlet: StoreOutlet | null;
+  className?: string;
+}) {
   return (
     <div className={className}>
       <StoreSectionCard
@@ -41,7 +49,7 @@ export function RecentRequests({ orders, className }: { orders: StoreOrder[]; cl
                     </Link>
                   </StoreTableCell>
                   <StoreTableCell className="min-w-28 whitespace-normal">
-                    {formatShortWindow(order.orderDate, currentOutlet)}
+                    {formatShortWindow(order.orderDate, windowFor(order, outlet))}
                   </StoreTableCell>
                   <StoreTableCell>{order.items.length}</StoreTableCell>
                   <StoreTableCell>
@@ -70,7 +78,7 @@ export function RecentRequests({ orders, className }: { orders: StoreOrder[]; cl
             <dl className="flex flex-col gap-2 text-sm">
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Required by</dt>
-                <dd className="text-right font-medium">{formatShortWindow(order.orderDate, currentOutlet)}</dd>
+                <dd className="text-right font-medium">{formatShortWindow(order.orderDate, windowFor(order, outlet))}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Items</dt>

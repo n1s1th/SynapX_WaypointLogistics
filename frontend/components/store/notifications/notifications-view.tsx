@@ -56,7 +56,7 @@ function timeLabel(iso: string, now: Date) {
   return base;
 }
 
-export function NotificationsView({ outlet, now }: { outlet: StoreOutlet; now: Date }) {
+export function NotificationsView({ outlet, now }: { outlet: StoreOutlet | null; now: Date }) {
   const { items: notifications, status, reload } = useNotificationsState();
   const [tab, setTab] = useState<NotificationTab>("all");
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -79,7 +79,7 @@ export function NotificationsView({ outlet, now }: { outlet: StoreOutlet; now: D
           <p className="text-sm text-muted-foreground">
             <span className="md:hidden">{unread.length === 0 ? "All caught up" : `${unread.length} unread`}</span>
             <span className="hidden md:inline">
-              Order updates, delivery alerts and receiving activity for {outlet.code}.
+              Order updates, delivery alerts and receiving activity for {outlet?.code ?? "your outlet"}.
             </span>
           </p>
         </div>

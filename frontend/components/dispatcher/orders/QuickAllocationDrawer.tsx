@@ -55,14 +55,14 @@ export function QuickAllocationDrawer({
 
     async function fetchVehicles() {
       try {
-        const res = await fetchWithFallback("/api/v1/fleet/vehicles");
+        const res = await fetchWithFallback("/api/v1/fleet/vehicles?status=AVAILABLE");
         if (res.ok) {
           const data: Vehicle[] = await res.json();
           setVehicles(data);
           // Auto select first compatible vehicle
           const compatible = data.find((v) => {
             const isTempMatch = !requiresChilled || v.temperature_mode?.toLowerCase() === "reefer";
-            const isAvail = v.status?.toLowerCase() !== "unavailable";
+            const isAvail = v.status === "AVAILABLE";
             return isTempMatch && isAvail;
           });
           if (compatible) {
@@ -87,31 +87,73 @@ export function QuickAllocationDrawer({
     setIsSubmitting(true);
     setErrorMessage(null);
 
+    let allocationId: number | null = null;
+
     try {
+      // Step 1: Create the Allocation record for the selected vehicle
+      const allocRes = await fetchWithFallback("/api/v1/allocations/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicle_id: selectedVehicleId,
+          status: "ALLOCATED",
+          departure_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+        }),
+      });
+
+      if (!allocRes.ok) {
+        const err = await allocRes.json();
+        throw new Error(
+          typeof err.detail === "string" ? err.detail : "Failed to create allocation"
+        );
+      }
+
+      const allocation = await allocRes.json();
+      allocationId = allocation.id;
+
+      // Step 2: Link the selected orders to the new allocation
       const res = await fetchWithFallback("/api/v1/orders/bulk-allocate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           order_ids: selectedOrders.map((o) => o.id),
+          allocation_id: allocation.id
         }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Failed to allocate orders");
+        throw new Error(
+          typeof err.detail === "string" ? err.detail : "Failed to link orders to allocation"
+        );
       }
 
+      // Success
       const vehicleCode = selectedVehicle?.code || "VEH014";
       const count = selectedOrders.length;
+      allocationId = null; // Mark as committed — no rollback needed
       setIsConstraintReviewOpen(false);
       onAllocationSuccess(vehicleCode, count);
       onClose();
     } catch (err: unknown) {
+      // Rollback: If Step 1 succeeded but Step 2 failed, cancel the orphan allocation
+      // so the vehicle is freed back to AVAILABLE and no ghost record is left behind.
+      if (allocationId !== null) {
+        try {
+          await fetchWithFallback(`/api/v1/allocations/${allocationId}`, {
+            method: "DELETE",
+          });
+        } catch {
+          // Rollback failed silently — the dispatcher can manually cancel from the board
+          console.error(`[QuickAllocation] Rollback failed for allocation #${allocationId}`);
+        }
+      }
       setErrorMessage(err instanceof Error ? err.message : "Allocation error");
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <>

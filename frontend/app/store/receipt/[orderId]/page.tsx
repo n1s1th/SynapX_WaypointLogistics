@@ -1,5 +1,7 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import ReceiptConfirmationPage from "@/app/store-manager/orders/[orderId]/receipt/page";
-
-export default ReceiptConfirmationPage;
+// Older receipt link: receiving lives at /store/deliveries/[orderNumber].
+export default async function ReceiptRedirect({ params }: PageProps<"/store/receipt/[orderId]">) {
+  const { orderId } = await params;
+  redirect(`/store/deliveries/${encodeURIComponent(orderId)}`);
+}

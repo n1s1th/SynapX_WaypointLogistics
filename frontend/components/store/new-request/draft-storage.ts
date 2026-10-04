@@ -6,6 +6,8 @@ export interface RequestDraft {
   isHighPriority: boolean;
   deliveryDate?: string;
   notes: string;
+  /** Set when the manager narrowed the delivery window. */
+  window?: { start: string; end: string };
   savedAt: string;
 }
 

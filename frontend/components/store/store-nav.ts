@@ -5,6 +5,7 @@ import {
   History,
   House,
   LayoutGrid,
+  Package,
   SlidersVertical,
   TriangleAlert,
   Truck,
@@ -23,6 +24,7 @@ export const STORE_HOME = "/store";
 export const storeSidebarItems: StoreNavItem[] = [
   { title: "Dashboard", href: STORE_HOME, icon: LayoutGrid },
   { title: "Goods Requests", href: "/store/requests", icon: ClipboardList },
+  { title: "Store Stock", href: "/store/stock", icon: Package },
   { title: "Incoming Deliveries", href: "/store/deliveries", icon: Truck },
   { title: "Delivery History", href: "/store/history", icon: History },
   { title: "Exceptions & Issues", href: "/store/issues", icon: TriangleAlert },
@@ -42,6 +44,7 @@ export const storeBottomNavItems: StoreNavItem[] = [
 // Pages reached through the mobile "More" tab.
 export const storeMoreHrefs = [
   "/store/more",
+  "/store/stock",
   "/store/history",
   "/store/settings",
   "/store/notifications",
@@ -55,6 +58,7 @@ export function isStoreNavActive(pathname: string, href: string) {
 const pageTitles: { href: string; title: string }[] = [
   { href: "/store/requests/new", title: "New Request" },
   { href: "/store/requests", title: "Goods Requests" },
+  { href: "/store/stock", title: "Store Stock" },
   { href: "/store/deliveries", title: "Incoming Deliveries" },
   { href: "/store/history", title: "Delivery History" },
   { href: "/store/issues", title: "Exceptions & Issues" },

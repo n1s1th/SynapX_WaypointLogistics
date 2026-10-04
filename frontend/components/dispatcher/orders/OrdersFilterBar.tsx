@@ -57,6 +57,7 @@ export function OrdersFilterBar({
           <SelectContent className="text-xs">
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="unallocated">Unallocated</SelectItem>
+            <SelectItem value="submitted">Submitted</SelectItem>
             <SelectItem value="confirmed">Confirmed</SelectItem>
             <SelectItem value="priority">Priority</SelectItem>
             <SelectItem value="allocated">Allocated</SelectItem>

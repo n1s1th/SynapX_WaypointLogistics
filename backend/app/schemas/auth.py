@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from app.models.user import UserRole
 
 
@@ -9,6 +9,13 @@ class UserBase(BaseModel):
     full_name: str
     role: UserRole = UserRole.DISPATCHER
     is_active: bool = True
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def normalize_role(cls, value):
+        if isinstance(value, str):
+            return value.upper()
+        return value
 
 
 class UserCreate(UserBase):

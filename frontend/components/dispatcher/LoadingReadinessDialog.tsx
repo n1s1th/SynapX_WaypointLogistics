@@ -10,11 +10,12 @@ interface LoadingReadinessDialogProps {
 
 export function LoadingReadinessDialog({ run, onClose }: LoadingReadinessDialogProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const events = run.loading_events || [];
+  const events = run.loader?.loading_events || run.loading_events || [];
   
   const lastUpdateTime = events.length > 0 ? events[events.length - 1].time : "-";
+  const stopsCompleted = run.loader?.stops_completed ?? run.stops_completed;
   const itemsChecked = run.stop_count > 0
-    ? Math.round((run.stops_completed / run.stop_count) * 100)
+    ? Math.round((stopsCompleted / run.stop_count) * 100)
     : 0;
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,7 +90,7 @@ export function LoadingReadinessDialog({ run, onClose }: LoadingReadinessDialogP
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-500 font-medium">Stops loaded:</span>
-                <span className="text-sm font-bold text-slate-900">{run.stops_completed} / {run.stop_count}</span>
+                <span className="text-sm font-bold text-slate-900">{stopsCompleted} / {run.stop_count}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-500 font-medium">Items checked:</span>

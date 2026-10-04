@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.order import OrderStatus
-from app.models.reference import Depot
+from app.models.reference import Depot, Outlet
+from app.models.user import User
 from app.schemas.store_order import GoodsRequestCreate, OrderStatusUpdate, StoreOrderRead
 from app.services.order_service import order_service
 
 # Store Manager order routes (docs/store-manager-contract.md §5). Registered before the generic /orders
-# router so /orders/store isn't read as /orders/{order_id}. Auth comes with Keycloak; outlet_id is passed
-# explicitly until then.
+# router so /orders/store isn't read as /orders/{order_id}. A signed-in store manager only ever sees their
+# own outlet (deps.resolve_store_outlet); admins and local dev pick it with outlet_id.
 router = APIRouter()
 
 
@@ -19,14 +20,17 @@ def place_goods_request(
     request: GoodsRequestCreate,
     db: Session = Depends(deps.get_db),
     now: datetime = Depends(deps.get_now),
+    current_user: User = Depends(deps.get_current_user),
 ):
     """Place a goods request. Returns one order per temperature zone (chilled and ambient ship separately)."""
-    return order_service.place_order(db, request, now)
+    outlet = deps.resolve_store_outlet(db, current_user, request.outlet_id)
+    placed_by = current_user.id if current_user.role in deps.STORE_ROLES else None
+    return order_service.place_order(db, request.model_copy(update={"outlet_id": outlet.id}), now, placed_by)
 
 
 @router.get("/store", response_model=List[StoreOrderRead])
 def list_store_orders(
-    outlet_id: int,
+    outlet: Outlet = Depends(deps.get_store_outlet),
     status_filter: Optional[List[OrderStatus]] = Query(default=None, alias="status"),
     priority: Optional[bool] = None,
     date_from: Optional[date] = None,
@@ -37,7 +41,7 @@ def list_store_orders(
     db: Session = Depends(deps.get_db),
 ):
     """Goods Requests list (Figma 02). Repeat ?status= for several statuses; dates filter on submission."""
-    return order_service.get_orders(db, outlet_id, status_filter, priority, date_from, date_to, search, skip, limit)
+    return order_service.get_orders(db, outlet.id, status_filter, priority, date_from, date_to, search, skip, limit)
 
 
 @router.get("/by-date", response_model=List[StoreOrderRead])
@@ -47,14 +51,26 @@ def orders_for_loading(day: date = Query(alias="date"), depot: Depot = Depot.PEL
 
 
 @router.get("/store/{order_number}", response_model=StoreOrderRead)
-def get_store_order(order_number: str, db: Session = Depends(deps.get_db)):
+def get_store_order(
+    order_number: str,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
     """Request Details (Figma 04), looked up by order number, e.g. ORD0000001."""
-    return order_service.get_order_by_number(db, order_number)
+    order = order_service.get_order_by_number(db, order_number)
+    deps.ensure_store_access(db, current_user, order.outlet_id)
+    return order
 
 
 @router.post("/{order_id}/cancel", response_model=StoreOrderRead)
-def cancel_store_order(order_id: int, db: Session = Depends(deps.get_db), now: datetime = Depends(deps.get_now)):
+def cancel_store_order(
+    order_id: int,
+    db: Session = Depends(deps.get_db),
+    now: datetime = Depends(deps.get_now),
+    current_user: User = Depends(deps.get_current_user),
+):
     """Cancel before the 4 PM cutoff on the day before delivery."""
+    deps.ensure_store_access(db, current_user, order_service.outlet_id_of(db, order_id))
     return order_service.cancel_order(db, order_id, now)
 
 

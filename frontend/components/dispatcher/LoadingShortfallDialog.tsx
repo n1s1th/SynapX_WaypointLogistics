@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 
 import { DeliveryRun } from "@/app/dispatcher/delivery-runs/page";
 
@@ -15,171 +16,173 @@ interface LoadingShortfallDialogProps {
 }
 
 export function LoadingShortfallDialog({ run, onClose, onAction }: LoadingShortfallDialogProps) {
-  const [isHolding, setIsHolding] = useState(false);
+  const [issues, setIssues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resolving, setResolving] = useState<string | null>(null);
   
-  // Extract shortfall data from loading_events
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const events = run.loading_events || [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shortfallEvent = events.find((e: any) => e.status === "error");
-  const noteParts = shortfallEvent?.note?.split("·") ?? [];
-  const affectedStop = noteParts[0]?.trim() ?? "Unknown";
-  const issue = noteParts[1]?.trim() ?? "Loading issue";
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        const depot = run.depot_name || "peliyagoda";
+        const res = await fetch(`${API_BASE}/api/v1/loader/issues?dock=${depot}`);
+        if (res.ok) {
+          const data = await res.json();
+          const runIssues = data.filter((i: any) => 
+            i.run_code === run.trip_code && 
+            (i.status === "sent" || i.status === "seen")
+          );
+          setIssues(runIssues);
+        }
+      } catch (e) {
+        toast.error("Failed to load dock flags");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchIssues();
+  }, [run.depot_name, run.trip_code]);
 
-  // Calculate remaining time and severity
-  const now = new Date();
-  const depTime = run.departure_time ? new Date(run.departure_time) : null;
-  const minsDiff = depTime ? Math.round((depTime.getTime() - now.getTime()) / 60000) : 999;
-  const isAtRisk = minsDiff >= 0 && minsDiff <= 30;
-  
-  const severity = isAtRisk ? "HIGH" : "MEDIUM";
-  const severityClass = severity === "HIGH"
-    ? "bg-red-50 text-red-600 border border-red-200"
-    : "bg-amber-50 text-amber-700 border border-amber-200";
-
-  const handleHoldDeparture = async () => {
-    if (!depTime) return;
-    
-    setIsHolding(true);
-    // Add 30 minutes to departure time
-    const newDepTime = new Date(depTime.getTime() + 30 * 60000);
-    
+  const handleDecision = async (issueId: number, optionId: number, optionLabel: string) => {
+    setResolving(`${issueId}-${optionId}`);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}`, {
-        method: 'PATCH',
+      const res = await fetch(`${API_BASE}/api/v1/loader/issues/${issueId}/decision`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ departure_time: newDepTime.toISOString() })
+        body: JSON.stringify({
+          option: optionId,
+          note: "Dispatcher applied decision",
+          client_action_id: crypto.randomUUID(),
+          decided_by: "Dispatcher"
+        })
       });
       if (res.ok) {
-        toast.success("Departure held by 30 minutes");
+        toast.success("Decision sent to dock");
+
+        if (optionLabel.toLowerCase().includes("hold") && run.departure_time) {
+            const newDepTime = new Date(new Date(run.departure_time).getTime() + 30 * 60000);
+            
+            await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ departure_time: newDepTime.toISOString() })
+            });
+
+            if (run.loader) {
+                await fetch(`${API_BASE}/api/v1/loader/dispatch-trips/${run.id}/plan`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    client_action_id: crypto.randomUUID(),
+                    base_version: run.loader.plan_version,
+                    departs_at: newDepTime.toISOString(),
+                    dispatcher: "Dispatcher"
+                  })
+                });
+            }
+            toast.success("Departure held by 30 minutes");
+        }
+
         onAction();
         onClose();
+      } else if (res.status === 409) {
+        const data = await res.json();
+        if (data.detail && data.detail.code === "INVALID_STATE_TRANSITION") {
+          toast.error("Run has already gated out");
+        } else {
+          toast.error("Issue already decided or locked");
+        }
       } else {
-        toast.error("Failed to hold departure");
+        toast.error("Failed to submit decision");
       }
-    } catch {
+    } catch (e) {
       toast.error("Error connecting to server");
     } finally {
-      setIsHolding(false);
+      setResolving(null);
     }
-  };
-
-  const handleAdjustOrder = async () => {
-    const headers = { 'Content-Type': 'application/json' };
-    try {
-      await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/add-loading-event`, {
-        method: 'POST', headers,
-        body: JSON.stringify({
-          event: "Shortfall resolved",
-          time: format(new Date(), "HH:mm"),
-          note: "Order adjusted by dispatcher",
-          status: "ok"
-        }),
-      });
-      await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}`, {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ open_shortfalls: 0 }),
-      });
-      toast.success("Order adjusted — shortfall resolved");
-      onAction();
-      onClose();
-    } catch { toast.error("Failed to adjust order"); }
-  };
-
-  const handleSendToExceptions = async () => {
-    try {
-      await fetch(`${API_BASE}/api/v1/delivery-runs/${run.id}/send-to-exceptions`, { method: 'POST' });
-      toast.success("Escalated to exceptions");
-      onAction();
-      onClose();
-    } catch { toast.error("Failed to send to exceptions"); }
   };
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md bg-white border-0 p-0 rounded-[10px] overflow-hidden">
+      <DialogContent showCloseButton={false} className="sm:max-w-xl bg-white border-0 p-0 rounded-[10px] overflow-hidden">
         
         <div className="p-6">
           <DialogHeader className="mb-5 flex flex-row items-start justify-between">
             <div>
-              <DialogTitle className="text-xl font-bold text-slate-900 mb-1">Loading Shortfall</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-slate-900 mb-1 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Loading Exceptions
+              </DialogTitle>
               <DialogDescription className="text-slate-500">
-                A loading issue remains unresolved close to departure.
+                Unresolved dock flags for {run.trip_code}
               </DialogDescription>
             </div>
-            <div className={`px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider shrink-0 ml-4 ${severityClass}`}>
-              {severity}
+            <div className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider shrink-0 ml-4">
+              ACTION REQUIRED
             </div>
           </DialogHeader>
 
-          <h3 className="text-sm font-bold text-slate-900 mb-4">{run.trip_code} · {run.vehicle_number}</h3>
-
-          <div className="grid grid-cols-2 gap-y-4 mb-6">
-            <div>
-              <p className="text-xs text-slate-500 font-medium mb-1">Departure</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {depTime ? format(depTime, "HH:mm") : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 font-medium mb-1">Current time</p>
-              <p className="text-sm font-semibold text-slate-900">{format(now, "HH:mm")}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 font-medium mb-1">Affected stop</p>
-              <p className="text-sm font-semibold text-slate-900">{affectedStop}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 font-medium mb-1">Issue</p>
-              <p className="text-sm font-semibold text-red-600">{issue}</p>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-100 pt-5">
-            <h4 className="text-sm font-bold text-slate-900 mb-3">Impact</h4>
-            
-            <div className="space-y-2">
-              <div className="bg-amber-50 border border-amber-100 rounded-[6px] p-2.5 flex items-start gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-amber-700">Loading incomplete</p>
-                  <p className="text-xs text-amber-600/80 font-medium mt-0.5">{run.stops_completed} of {run.stop_count} stops fully loaded</p>
+          {loading ? (
+            <div className="py-8 text-center text-slate-500">Loading dock flags...</div>
+          ) : issues.length === 0 ? (
+            <div className="py-8 text-center text-slate-500">No open dock flags found.</div>
+          ) : (
+            <div className="space-y-6 max-h-[60vh] overflow-y-auto">
+              {issues.map(issue => (
+                <div key={issue.id} className="border border-slate-200 rounded-[8px] overflow-hidden">
+                  <div className="bg-slate-50 p-4 border-b border-slate-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-slate-900">{issue.outlet_code || 'Store'} · Order {issue.order_number}</h4>
+                        <p className="text-sm text-red-600 font-semibold mt-1 capitalize">
+                          {issue.issue_type}: {issue.units_affected} of {issue.units_total} units
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500 font-medium">Decide by</p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {issue.decide_by ? format(new Date(issue.decide_by), "HH:mm") : "-"}
+                        </p>
+                      </div>
+                    </div>
+                    {issue.note && (
+                      <div className="bg-white border border-slate-200 rounded p-2 text-sm text-slate-600 mt-2">
+                        <span className="font-medium text-slate-700">Dock note:</span> {issue.note}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 space-y-3 bg-white">
+                    <h5 className="text-sm font-bold text-slate-700 mb-2">Resolution Options:</h5>
+                    <div className="flex flex-col gap-2">
+                      {issue.options.map((opt: any) => (
+                        <div key={opt.id} className="flex items-center justify-between p-3 border border-slate-200 rounded-[6px] hover:border-slate-300 transition-colors">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                              {opt.label}
+                              {opt.is_default && <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">Default</span>}
+                            </p>
+                            {opt.detail && <p className="text-xs text-slate-500 mt-0.5">{opt.detail}</p>}
+                          </div>
+                          <Button 
+                            size="sm"
+                            disabled={resolving !== null}
+                            onClick={() => handleDecision(issue.id, opt.id, opt.label)}
+                            className={opt.is_default ? "bg-[#18385F] hover:bg-[#12294a] text-white" : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"}
+                          >
+                            {resolving === `${issue.id}-${opt.id}` ? "Applying..." : "Select"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="bg-red-50 border border-red-100 rounded-[6px] p-2.5 flex items-start gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-red-700">Order discrepancy</p>
-                  <p className="text-xs text-red-600/80 font-medium mt-0.5">Expected quantity cannot be loaded as planned</p>
-                </div>
-              </div>
-              
-              <div className={`border rounded-[6px] p-2.5 flex items-start gap-2 ${isAtRisk ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-200'}`}>
-                <div>
-                  <p className={`text-sm font-semibold ${isAtRisk ? 'text-amber-700' : 'text-slate-700'}`}>Departure risk</p>
-                  <p className={`text-xs font-medium mt-0.5 ${isAtRisk ? 'text-amber-600/80' : 'text-slate-500'}`}>
-                    {minsDiff > 0 ? `${minsDiff} minutes remain before planned departure` : 'Departure time has passed'}
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
 
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-slate-900 mb-3">Dispatcher actions</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <Button onClick={handleAdjustOrder} className="h-11 bg-[#18385F] hover:bg-[#12294a] text-white font-semibold">
-                Adjust Order
-              </Button>
-              <Button onClick={handleHoldDeparture} disabled={isHolding || !depTime} variant="outline" className="h-11 border-slate-200 text-slate-700">
-                {isHolding ? "Holding..." : "Hold Departure"}
-              </Button>
-              <Button onClick={handleSendToExceptions} variant="outline" className="h-11 border-slate-200 text-slate-700">
-                Send to Exceptions
-              </Button>
-              <Button onClick={onClose} variant="outline" className="h-11 border-slate-200 text-slate-700">
-                Close
-              </Button>
-            </div>
+          <div className="mt-6 pt-5 border-t border-slate-100 flex justify-end">
+            <Button onClick={onClose} variant="outline" className="h-10 px-6 border-slate-200 text-slate-700">
+              Close
+            </Button>
           </div>
           
         </div>

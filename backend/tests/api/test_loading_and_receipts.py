@@ -1,14 +1,29 @@
 from datetime import datetime, timezone
 
+from app.models.order import Order, OrderStatus
 
-def test_delivery_receipt_flow(client):
-    order_id = 1
+
+def make_order(db_session, number, status=OrderStatus.DISPATCHED, outlet_id=5):
+    order = Order(
+        order_number=number,
+        client_name="Fresh Colombo",
+        destination_address="Fresh Colombo, Colombo",
+        status=status,
+        outlet_id=outlet_id,
+    )
+    db_session.add(order)
+    db_session.commit()
+    return order
+
+
+def test_delivery_receipt_flow(client, db_session):
+    order = make_order(db_session, "ORD0000001")
     outlet_id = 5
     now_iso = datetime.now(timezone.utc).isoformat()
 
     # Submit receipt
     payload = {
-        "order_id": order_id,
+        "order_id": order.id,
         "outlet_id": outlet_id,
         "units_received": 40,
         "weight_received_kg": 120.5,
@@ -19,22 +34,41 @@ def test_delivery_receipt_flow(client):
     submit_res = client.post("/api/receipts", json=payload)
     assert submit_res.status_code == 201
     receipt = submit_res.json()
-    assert receipt["order_id"] == order_id
+    assert receipt["order_id"] == order.id
     assert receipt["has_issues"] is False
+
+    # Receiving completes the order (dispatched -> delivered -> completed).
+    db_session.refresh(order)
+    assert order.status == OrderStatus.COMPLETED
 
     # Duplicate should 409
     dup_res = client.post("/api/receipts", json=payload)
     assert dup_res.status_code == 409
 
     # Get receipt
-    get_res = client.get(f"/api/receipts/{order_id}")
+    get_res = client.get(f"/api/receipts/{order.id}")
     assert get_res.status_code == 200
     assert get_res.json()["outlet_id"] == outlet_id
 
 
-def test_offline_receipt_sync(client):
-    order_1 = 101
-    order_2 = 102
+def test_receipt_needs_the_order_to_have_left_the_depot(client, db_session):
+    still_loading = make_order(db_session, "ORD0000002", status=OrderStatus.READY_FOR_DISPATCH)
+    res = client.post(
+        "/api/receipts",
+        json={
+            "order_id": still_loading.id,
+            "outlet_id": 5,
+            "has_issues": False,
+            "confirmed_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    assert res.status_code == 409
+    assert "hasn't left the depot" in res.json()["detail"]
+
+
+def test_offline_receipt_sync(client, db_session):
+    order_1 = make_order(db_session, "ORD0000101").id
+    order_2 = make_order(db_session, "ORD0000102", status=OrderStatus.DELIVERED).id
     now_iso = datetime.now(timezone.utc).isoformat()
 
     batch = {

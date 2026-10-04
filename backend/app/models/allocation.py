@@ -38,3 +38,5 @@ class Allocation(Base):
     driver = relationship("DriverProfile", back_populates="allocations")
     # Orders can be linked to allocations
     orders = relationship("Order", back_populates="allocation")
+    # DispatchTrips are linked to allocations
+    dispatch_trips = relationship("DispatchTrip", backref="allocation")

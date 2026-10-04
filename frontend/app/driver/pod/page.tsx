@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Package, Camera, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import DeviceClock from "@/components/driver/DeviceClock";
 
 const items = [
   { id: 1, name: "Beverage Case 600ml x24", qty: 2, checked: true },
@@ -27,7 +28,7 @@ export default function ProofOfDeliveryPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F2F5F8", fontFamily: "Inter, sans-serif" }}>
       {/* Status Bar */}
       <div className="flex justify-between items-center px-5" style={{ height: 34, backgroundColor: "#FFFFFF" }}>
-        <span className="text-xs font-semibold" style={{ color: "#12202E" }}>06:58</span>
+        <DeviceClock className="text-xs font-semibold" style={{ color: "#12202E" }} />
       </div>
 
       {/* Header */}

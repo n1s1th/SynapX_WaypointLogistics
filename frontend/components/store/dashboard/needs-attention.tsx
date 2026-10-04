@@ -30,7 +30,7 @@ function itemContent(item: AttentionItem) {
     mobileTitle: `Issue ${issue.code}`,
     pill: <StorePill tone="warning">Review</StorePill>,
     body: issue.summary,
-    href: `/store/issues/${issue.code}`,
+    href: `/store/issues?search=${encodeURIComponent(issue.orderNumber || issue.code)}`,
     linkLabel: "View Issue Details",
     mobileLinkLabel: "View Issue",
     isPrimaryAction: false,

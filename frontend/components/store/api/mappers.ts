@@ -1,10 +1,15 @@
 import {
-  mockCatalogue,
+  type Brand,
+  type CatalogueItem,
   type NotificationCategory,
   type NotificationType,
   type OrderStatus,
+  type StoreIssue as StoreDashboardIssue,
   type StoreNotification,
   type StoreOrder,
+  type StoreManager,
+  type StoreOutlet,
+  type StoreStock,
   type TemperatureClass,
 } from "@/components/store/mock-data";
 
@@ -16,6 +21,8 @@ export interface ApiOrderItem {
   sku: string;
   item_name: string;
   quantity: number;
+  quantity_sent?: number | null;
+  dispatcher_note?: string | null;
   unit_price: number;
 }
 
@@ -39,8 +46,30 @@ export interface ApiStoreOrder {
   deferral_reason: string | null;
   deferral_count: number;
   items: ApiOrderItem[];
+  shortfall: ApiOrderShortfall | null;
+  delivery: ApiOrderDelivery | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ApiOrderDelivery {
+  vehicle_code: string | null;
+  vehicle_type: string | null;
+  temperature_mode: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+  trip_code: string | null;
+  trip_status: string | null;
+  departure_time: string | null;
+  estimated_arrival: string | null;
+  actual_arrival: string | null;
+}
+
+export interface ApiOrderShortfall {
+  state: "under_review" | "confirmed";
+  units_short: number | null;
+  units_total: number | null;
+  reasons: string[];
 }
 
 export interface ApiNotification {
@@ -56,13 +85,83 @@ export interface ApiNotification {
   created_at: string;
 }
 
+export interface ApiCatalogueItem {
+  sku: string;
+  name: string;
+  pack_label: string | null;
+  brand: string;
+  temperature_zone: string;
+  unit_weight_kg: number;
+  unit_volume_m3: number;
+}
+
+export interface ApiStoreMe {
+  manager: { id: number; full_name: string; email: string; role: string };
+  outlet: {
+    id: number;
+    code: string;
+    name: string;
+    brand: string;
+    district: string;
+    depot: string | null;
+    window_start: string | null;
+    window_end: string | null;
+  };
+}
+
+/** The signed-in manager and their outlet, from GET /store/me. */
+export function toStoreSession(me: ApiStoreMe): { manager: StoreManager; outlet: StoreOutlet } {
+  const names = me.manager.full_name.trim().split(/\s+/);
+  return {
+    manager: {
+      fullName: me.manager.full_name,
+      firstName: names[0] ?? "",
+      initials: names
+        .slice(0, 2)
+        .map((name) => name.charAt(0).toUpperCase())
+        .join(""),
+    },
+    outlet: {
+      id: me.outlet.id,
+      code: me.outlet.code,
+      name: me.outlet.name,
+      brand: me.outlet.brand.toLowerCase() as Brand,
+      district: me.outlet.district,
+      windowStart: me.outlet.window_start ?? "00:00",
+      windowEnd: me.outlet.window_end ?? "23:59",
+    },
+  };
+}
+
+export interface ApiStoreStock {
+  imported_at: string | null;
+  items: { sku: string; name: string | null; pack_label: string | null; quantity_on_hand: number }[];
+}
+
+export interface ApiStockImportResult {
+  imported: number;
+  skipped: { line: number | null; sku: string | null; reason: string }[];
+  imported_at: string;
+}
+
+export function toStoreStock(api: ApiStoreStock): StoreStock {
+  return {
+    importedAt: api.imported_at,
+    items: api.items.map((item) => ({
+      sku: item.sku,
+      itemName: item.name,
+      packLabel: item.pack_label,
+      quantityOnHand: item.quantity_on_hand,
+    })),
+  };
+}
+
 export interface ApiOperatingDays {
   operating_days: string[];
   earliest_default: string;
   earliest_high_priority: string;
 }
 
-const catalogueBySku = new Map(mockCatalogue.map((item) => [item.sku, item]));
 
 export function toTemperatureClass(zone: string): TemperatureClass {
   return zone.toLowerCase() === "chilled" ? "chilled" : "ambient";
@@ -70,6 +169,28 @@ export function toTemperatureClass(zone: string): TemperatureClass {
 
 export function toTemperatureZone(temperature: TemperatureClass) {
   return temperature === "chilled" ? "Chilled" : "Ambient";
+}
+
+/** "6 unit Chilled Carton" -> "Cartons", "2 unit Shipping Pallet" -> "Pallets". */
+function unitLabelFor(pack: string | null) {
+  const last = pack?.trim().split(/\s+/).pop();
+  return last ? `${last.charAt(0).toUpperCase()}${last.slice(1)}s` : "Units";
+}
+
+export function toCatalogueItem(item: ApiCatalogueItem): CatalogueItem {
+  return {
+    sku: item.sku,
+    itemName: item.name,
+    packLabel: item.pack_label ?? "",
+    temperatureClass: toTemperatureClass(item.temperature_zone),
+    unitLabel: unitLabelFor(item.pack_label),
+  };
+}
+
+/** "05:00 – 06:30" (orders.delivery_window) -> { windowStart, windowEnd }. */
+function parseWindow(value: string | null): StoreOrder["deliveryWindow"] {
+  const match = value?.match(/(\d{2}:\d{2})\s*[–-]\s*(\d{2}:\d{2})/);
+  return match ? { windowStart: match[1], windowEnd: match[2] } : undefined;
 }
 
 export function toStoreOrder(order: ApiStoreOrder): StoreOrder {
@@ -84,17 +205,44 @@ export function toStoreOrder(order: ApiStoreOrder): StoreOrder {
     submittedAt: order.submitted_at ?? order.created_at,
     notes: order.notes ?? undefined,
     deferralReason: order.deferral_reason ?? undefined,
+    deliveryWindow: parseWindow(order.delivery_window),
+    delivery: order.delivery
+      ? {
+          vehicleCode: order.delivery.vehicle_code ?? undefined,
+          vehicleType: order.delivery.vehicle_type ?? undefined,
+          temperatureMode: order.delivery.temperature_mode ?? undefined,
+          driverName: order.delivery.driver_name ?? undefined,
+          driverPhone: order.delivery.driver_phone ?? undefined,
+          tripCode: order.delivery.trip_code ?? undefined,
+          tripStatus: order.delivery.trip_status ?? undefined,
+          departureTime: order.delivery.departure_time ?? undefined,
+          estimatedArrival: order.delivery.estimated_arrival ?? undefined,
+          actualArrival: order.delivery.actual_arrival ?? undefined,
+        }
+      : undefined,
+    eta: order.delivery?.estimated_arrival ?? undefined,
+    arrivedAt: order.delivery?.actual_arrival ?? undefined,
+    vehicleCode: order.delivery?.vehicle_code ?? undefined,
     statusTimes: order.submitted_at ? { submitted: order.submitted_at } : undefined,
+    shortfall: order.shortfall
+      ? {
+          state: order.shortfall.state,
+          unitsShort: order.shortfall.units_short ?? undefined,
+          unitsTotal: order.shortfall.units_total ?? undefined,
+        }
+      : undefined,
     items: order.items.map((item) => {
-      // The API doesn't have catalogue details yet (contract Q4), so category and unit come from the catalogue.
-      const catalogue = catalogueBySku.get(item.sku);
+      // Order lines don't carry the pack label; every catalogue item ships by the carton, and an order is one
+      // temperature zone, so the line shares the order's.
       return {
         sku: item.sku,
         itemName: item.item_name,
-        category: catalogue?.category ?? "",
-        temperatureClass: catalogue?.temperatureClass ?? temperatureClass,
+        category: "",
+        temperatureClass,
         quantity: item.quantity,
-        unitLabel: catalogue?.unitLabel ?? "Units",
+        quantitySent: item.quantity_sent ?? undefined,
+        depotNote: item.dispatcher_note ?? undefined,
+        unitLabel: "Cartons",
       };
     }),
   };
@@ -159,6 +307,17 @@ export interface ApiOutletSettings {
   last_synced_at?: string;
 }
 
+export function toStoreOutlet(api: ApiOutletSettings): StoreOutlet {
+  return {
+    code: api.outlet_code,
+    name: api.outlet_name,
+    brand: api.brand.toLowerCase() as Brand,
+    district: api.district,
+    windowStart: api.window_start,
+    windowEnd: api.window_end,
+  };
+}
+
 export function toOutletSettings(api: ApiOutletSettings) {
   return {
     outletId: api.outlet_id,
@@ -182,6 +341,25 @@ export function toOutletSettings(api: ApiOutletSettings) {
     smsAlertsPriority: api.sms_alerts_priority,
     isVerified: api.is_verified,
     lastSyncedAt: api.last_synced_at ? new Date(api.last_synced_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "today at 14:31",
+  };
+}
+
+export interface ApiDeliveryIssueDashboard {
+  id: number;
+  order_id: number | null;
+  order_number: string | null;
+  issue_type: string;
+  title: string;
+  description: string;
+  status: string;
+}
+
+export function toStoreDashboardIssue(api: ApiDeliveryIssueDashboard): StoreDashboardIssue {
+  return {
+    code: `ISS${String(api.id).padStart(7, "0")}`,
+    orderNumber: api.order_number || (api.order_id ? `ORD${String(api.order_id).padStart(7, "0")}` : "ORD0000001"),
+    summary: `${api.title || api.issue_type}: ${api.description || "Review required."}`,
+    isOpen: api.status === "open" || api.status === "under_review",
   };
 }
 

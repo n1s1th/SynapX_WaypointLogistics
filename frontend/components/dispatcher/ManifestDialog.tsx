@@ -15,8 +15,8 @@ interface ManifestOrder {
   client_name: string;
   destination_address: string;
   status: string;
-  total_amount: number;
-  items: { sku: string; item_name: string; quantity: number; unit_price: number }[];
+
+    items: { sku: string; item_name: string; quantity: number }[];
 }
 
 interface ManifestData {
@@ -87,7 +87,7 @@ export function ManifestDialog({ run, onClose }: ManifestDialogProps) {
     : "—";
 
   const totalItems = manifest?.orders.reduce((acc, o) => acc + o.items.reduce((a, i) => a + i.quantity, 0), 0) ?? 0;
-  const totalValue = manifest?.orders.reduce((acc, o) => acc + o.total_amount, 0) ?? 0;
+
 
   const statusColor = (s: string) => {
     const lower = s.toLowerCase();
@@ -142,12 +142,7 @@ export function ManifestDialog({ run, onClose }: ManifestDialogProps) {
             <span><span className="text-slate-900 font-bold">{run.total_weight_kg.toFixed(0)} kg</span> weight</span>
             <span className="text-slate-200">|</span>
             <span><span className="text-slate-900 font-bold">{run.total_volume_m3.toFixed(1)} m³</span> volume</span>
-            {totalValue > 0 && (
-              <>
-                <span className="text-slate-200">|</span>
-                <span><span className="text-slate-900 font-bold">LKR {totalValue.toLocaleString()}</span></span>
-              </>
-            )}
+
           </div>
         </div>
 
@@ -210,27 +205,23 @@ export function ManifestDialog({ run, onClose }: ManifestDialogProps) {
                               <p className="text-xs text-slate-400">{order.destination_address}</p>
                             </div>
                             <div className="flex items-center gap-3 shrink-0 ml-4">
-                              {order.total_amount > 0 && (
-                                <span className="text-sm font-semibold text-slate-700">LKR {order.total_amount.toLocaleString()}</span>
-                              )}
+
                               <span className="text-xs text-slate-400">{order.items.length} items</span>
                               {isExpanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
                             </div>
                           </button>
                           {isExpanded && order.items.length > 0 && (
                             <div className="border-t border-slate-100 bg-slate-50/60">
-                              <div className="grid grid-cols-12 gap-2 px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              <div className="grid grid-cols-9 gap-2 px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                 <span className="col-span-2">SKU</span>
                                 <span className="col-span-5">Item</span>
                                 <span className="col-span-2 text-right">Qty</span>
-                                <span className="col-span-3 text-right">Unit Price</span>
                               </div>
                               {order.items.map((item, i) => (
-                                <div key={i} className="grid grid-cols-12 gap-2 px-4 py-2 text-xs border-t border-slate-100 hover:bg-slate-50">
+                                <div key={i} className="grid grid-cols-9 gap-2 px-4 py-2 text-xs border-t border-slate-100 hover:bg-slate-50">
                                   <span className="col-span-2 font-mono text-slate-500">{item.sku}</span>
                                   <span className="col-span-5 text-slate-800 font-medium">{item.item_name}</span>
                                   <span className="col-span-2 text-right font-bold text-slate-900">{item.quantity}</span>
-                                  <span className="col-span-3 text-right text-slate-600">LKR {item.unit_price.toLocaleString()}</span>
                                 </div>
                               ))}
                             </div>

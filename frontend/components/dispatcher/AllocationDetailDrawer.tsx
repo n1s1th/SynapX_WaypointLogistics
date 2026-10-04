@@ -66,7 +66,9 @@ export function AllocationDetailDrawer({
         onOpenChange(false);
       } else {
         const err = await res.json();
-        const errorMessage = Array.isArray(err.detail) ? err.detail[0]?.msg : err.detail;
+        const errorMessage = typeof err.detail === "string" ? err.detail :
+                             Array.isArray(err.detail) ? err.detail[0]?.msg :
+                             err.detail?.message || "Failed to update allocation";
         toast.error(errorMessage || "Failed to update allocation");
       }
     } catch {
@@ -88,8 +90,18 @@ export function AllocationDetailDrawer({
         router.push(`/dispatcher/delivery-runs`);
       } else {
         const err = await res.json();
-        const errorMessage = Array.isArray(err.detail) ? err.detail[0]?.msg : err.detail;
-        toast.error(errorMessage || "Failed to dispatch vehicle");
+        let errorMessage = "Failed to dispatch vehicle";
+        if (typeof err.detail === "string") {
+          errorMessage = err.detail;
+        } else if (Array.isArray(err.detail)) {
+          errorMessage = err.detail[0]?.msg || errorMessage;
+        } else if (err.detail?.message) {
+          errorMessage = err.detail.message;
+          if (Array.isArray(err.detail.violations) && err.detail.violations.length > 0) {
+            errorMessage += ": " + err.detail.violations.map((v: any) => v.message).join(", ");
+          }
+        }
+        toast.error(errorMessage);
       }
     } catch {
       toast.error("Network error occurred");
@@ -342,9 +354,9 @@ export function AllocationDetailDrawer({
                 <Button
                   style={{ backgroundColor: "#1c355e", color: "#ffffff" }}
                   className="px-4 hover:opacity-90 shadow-none font-medium flex-1"
-                  onClick={() => updateStatus("READY", "Allocation marked as ready for dispatch")}
+                  onClick={() => updateStatus("READY", "Vehicle sent to loading dock")}
                 >
-                  Mark as Ready
+                  Send to Dock
                 </Button>
               </>
             )}

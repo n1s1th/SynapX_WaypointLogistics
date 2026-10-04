@@ -1,7 +1,8 @@
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, computed_field
 from app.models.order import OrderStatus
+from app.models.reference import Depot
 
 
 class OrderItemBase(BaseModel):
@@ -18,6 +19,8 @@ class OrderItemCreate(OrderItemBase):
 class OrderItemRead(OrderItemBase):
     id: int
     order_id: int
+    quantity_sent: Optional[int] = None
+    dispatcher_note: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,11 +34,14 @@ class OrderBase(BaseModel):
     temperature_zone: str = "Ambient"
     delivery_window: Optional[str] = None
     weight_kg: float = 0.0
+    units: Optional[int] = None
+    volume_m3: Optional[float] = None
     is_priority: bool = False
     is_late: bool = False
     operating_date: Optional[str] = None
     deferral_reason: Optional[str] = None
     allocation_id: Optional[int] = None
+    depot: Depot = Depot.PELIYAGODA
 
     @field_validator("status", mode="before")
     @classmethod
@@ -62,6 +68,8 @@ class OrderUpdate(BaseModel):
     temperature_zone: Optional[str] = None
     delivery_window: Optional[str] = None
     weight_kg: Optional[float] = None
+    units: Optional[int] = None
+    volume_m3: Optional[float] = None
     is_priority: Optional[bool] = None
     is_late: Optional[bool] = None
     operating_date: Optional[str] = None
@@ -76,5 +84,30 @@ class OrderRead(OrderBase):
     items: List[OrderItemRead] = []
     created_at: datetime
     updated_at: datetime
+    estimated_arrival: Optional[datetime] = None
+
+    @computed_field
+    @property
+    def order_units(self) -> int:
+        if self.units is not None and self.units > 0:
+            return self.units
+        if self.items:
+            return sum(item.quantity for item in self.items)
+        return 0
+
+    @computed_field
+    @property
+    def order_weight_kg(self) -> float:
+        return self.weight_kg or 0.0
+
+    @computed_field
+    @property
+    def order_volume_m3(self) -> float:
+        return self.volume_m3 or 0.0
+
+    @computed_field
+    @property
+    def temp_requirement(self) -> str:
+        return self.temperature_zone or "Ambient"
 
     model_config = ConfigDict(from_attributes=True)

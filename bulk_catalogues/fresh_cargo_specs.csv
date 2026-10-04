@@ -1,0 +1,349 @@
+sku,name,chain,units_per_pack,pack_type,unit_weight_kg,unit_volume_m3,temp_requirement,depot_name,last_updated
+FR-BEEF-01,6-unit Chilled Carton - Prime Chilled Beef Cuts,Fresh,6,Chilled Carton,13.46,0.0283,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-01,8-unit Chilled Carton - Fresh Broiler Chicken (Whole),Fresh,8,Chilled Carton,14.69,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-EGG-03,10-unit Chilled Carton - Omega-3 Enriched Eggs (10 pack),Fresh,10,Chilled Carton,6.63,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-01,12-unit Insulated Crate - Frozen Sweet Corn & Peas 1kg,Fresh,12,Insulated Crate,12.85,0.0277,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FSH-01,16-unit Chilled Carton - Fresh Sailfish Steaks,Fresh,16,Chilled Carton,24.48,0.0504,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-03,20-unit Insulated Crate - Vanilla Bean Gelato Tubs 2L,Fresh,20,Insulated Crate,28.56,0.0735,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-MLK-01,24-unit Beverage Crate - Pasteurized Full Cream Milk 1L,Fresh,24,Beverage Crate,25.21,0.0378,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-VEG-04,6-unit Chilled Carton - Organic Salad Greens Mix 250g,Fresh,6,Chilled Carton,1.84,0.0113,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YOG-02,8-unit Chilled Carton - Natural Set Curd Clay Pot 1kg,Fresh,8,Chilled Carton,9.38,0.0235,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-01,10-unit Chilled Carton - Unsalted Butter Blocks 500g,Fresh,10,Chilled Carton,5.30,0.0116,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-01,12-unit Chilled Carton - Mozzarella Cheese Blocks 1kg,Fresh,12,Chilled Carton,12.85,0.0265,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRT-01,16-unit Chilled Carton - Premium Seedless Grapes 500g,Fresh,16,Chilled Carton,8.98,0.0403,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-01,20-unit Beverage Crate - Fresh Orange Juice 1L,Fresh,20,Beverage Crate,22.03,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-VEG-05,24-unit Chilled Carton - Baby Carrots 500g,Fresh,24,Chilled Carton,13.46,0.0428,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-100,6-unit Beverage Crate - Classic Full Cream Milk 250g,Fresh,6,Beverage Crate,4.71,0.0069,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-101,8-unit Chilled Carton - Classic Greek Yogurt 250g,Fresh,8,Chilled Carton,4.24,0.0101,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-102,10-unit Chilled Carton - Classic Mature Cheddar Cheese 250g,Fresh,10,Chilled Carton,5.41,0.0137,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-103,12-unit Chilled Carton - Classic Salmon Fillets 250g,Fresh,12,Chilled Carton,6.36,0.0290,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-104,16-unit Chilled Carton - Classic Chicken Breast Fillets 250g,Fresh,16,Chilled Carton,17.14,0.0588,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-105,20-unit Insulated Crate - Classic Frozen Mixed Vegetables 250g,Fresh,20,Insulated Crate,15.30,0.0399,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-106,24-unit Insulated Crate - Classic Premium Ice Cream 250g,Fresh,24,Insulated Crate,18.36,0.0504,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-107,6-unit Chilled Carton - Classic Salted Butter 250g,Fresh,6,Chilled Carton,3.98,0.0088,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-108,8-unit Beverage Crate - Classic Fresh Fruit Juice 250g,Fresh,8,Beverage Crate,13.22,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-109,10-unit Chilled Carton - Classic Seasonal Fruit Selection 250g,Fresh,10,Chilled Carton,11.63,0.0494,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-110,12-unit Beverage Crate - Classic Full Cream Milk 500g,Fresh,12,Beverage Crate,9.42,0.0139,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-111,16-unit Chilled Carton - Classic Greek Yogurt 500g,Fresh,16,Chilled Carton,8.49,0.0202,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-112,20-unit Chilled Carton - Classic Mature Cheddar Cheese 500g,Fresh,20,Chilled Carton,10.81,0.0273,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-113,24-unit Chilled Carton - Classic Salmon Fillets 500g,Fresh,24,Chilled Carton,12.73,0.0580,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-114,6-unit Chilled Carton - Classic Chicken Breast Fillets 500g,Fresh,6,Chilled Carton,6.43,0.0221,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-115,8-unit Insulated Crate - Classic Frozen Mixed Vegetables 500g,Fresh,8,Insulated Crate,6.12,0.0160,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-116,10-unit Insulated Crate - Classic Premium Ice Cream 500g,Fresh,10,Insulated Crate,7.65,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-117,12-unit Chilled Carton - Classic Salted Butter 500g,Fresh,12,Chilled Carton,7.96,0.0176,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-118,16-unit Beverage Crate - Classic Fresh Fruit Juice 500g,Fresh,16,Beverage Crate,26.44,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-119,20-unit Chilled Carton - Classic Seasonal Fruit Selection 500g,Fresh,20,Chilled Carton,23.26,0.0987,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-120,24-unit Beverage Crate - Classic Full Cream Milk 750g,Fresh,24,Beverage Crate,18.85,0.0277,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-121,6-unit Chilled Carton - Classic Greek Yogurt 750g,Fresh,6,Chilled Carton,3.18,0.0076,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-122,8-unit Chilled Carton - Classic Mature Cheddar Cheese 750g,Fresh,8,Chilled Carton,4.32,0.0109,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-123,10-unit Chilled Carton - Classic Salmon Fillets 750g,Fresh,10,Chilled Carton,5.30,0.0242,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-124,12-unit Chilled Carton - Classic Chicken Breast Fillets 750g,Fresh,12,Chilled Carton,12.85,0.0441,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-125,16-unit Insulated Crate - Classic Frozen Mixed Vegetables 750g,Fresh,16,Insulated Crate,12.24,0.0319,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-126,20-unit Insulated Crate - Classic Premium Ice Cream 750g,Fresh,20,Insulated Crate,15.30,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-127,24-unit Chilled Carton - Classic Salted Butter 750g,Fresh,24,Chilled Carton,15.91,0.0353,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-128,6-unit Beverage Crate - Classic Fresh Fruit Juice 750g,Fresh,6,Beverage Crate,9.91,0.0158,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-129,8-unit Chilled Carton - Classic Seasonal Fruit Selection 750g,Fresh,8,Chilled Carton,9.30,0.0395,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-130,10-unit Beverage Crate - Classic Full Cream Milk 1kg,Fresh,10,Beverage Crate,7.85,0.0116,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-131,12-unit Chilled Carton - Classic Greek Yogurt 1kg,Fresh,12,Chilled Carton,6.36,0.0151,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-132,16-unit Chilled Carton - Classic Mature Cheddar Cheese 1kg,Fresh,16,Chilled Carton,8.65,0.0218,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-133,20-unit Chilled Carton - Classic Salmon Fillets 1kg,Fresh,20,Chilled Carton,10.61,0.0483,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-134,24-unit Chilled Carton - Classic Chicken Breast Fillets 1kg,Fresh,24,Chilled Carton,25.70,0.0882,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-135,6-unit Insulated Crate - Classic Frozen Mixed Vegetables 1kg,Fresh,6,Insulated Crate,4.59,0.0120,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-136,8-unit Insulated Crate - Classic Premium Ice Cream 1kg,Fresh,8,Insulated Crate,6.12,0.0168,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-137,10-unit Chilled Carton - Classic Salted Butter 1kg,Fresh,10,Chilled Carton,6.63,0.0147,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-138,12-unit Beverage Crate - Classic Fresh Fruit Juice 1kg,Fresh,12,Beverage Crate,19.83,0.0315,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-139,16-unit Chilled Carton - Classic Seasonal Fruit Selection 1kg,Fresh,16,Chilled Carton,18.60,0.0790,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-140,20-unit Beverage Crate - Classic Full Cream Milk 2kg,Fresh,20,Beverage Crate,15.71,0.0231,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-141,24-unit Chilled Carton - Classic Greek Yogurt 2kg,Fresh,24,Chilled Carton,12.73,0.0302,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-142,6-unit Chilled Carton - Classic Mature Cheddar Cheese 2kg,Fresh,6,Chilled Carton,3.24,0.0082,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-143,8-unit Chilled Carton - Classic Salmon Fillets 2kg,Fresh,8,Chilled Carton,4.24,0.0193,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-144,10-unit Chilled Carton - Classic Chicken Breast Fillets 2kg,Fresh,10,Chilled Carton,10.71,0.0368,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-145,12-unit Insulated Crate - Classic Frozen Mixed Vegetables 2kg,Fresh,12,Insulated Crate,9.18,0.0239,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-146,16-unit Insulated Crate - Classic Premium Ice Cream 2kg,Fresh,16,Insulated Crate,12.24,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-147,20-unit Chilled Carton - Classic Salted Butter 2kg,Fresh,20,Chilled Carton,13.26,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-148,24-unit Beverage Crate - Classic Fresh Fruit Juice 2kg,Fresh,24,Beverage Crate,39.66,0.0630,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-149,6-unit Chilled Carton - Classic Seasonal Fruit Selection 2kg,Fresh,6,Chilled Carton,6.98,0.0296,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-150,8-unit Beverage Crate - Classic Full Cream Milk 1L,Fresh,8,Beverage Crate,6.28,0.0092,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-151,10-unit Chilled Carton - Classic Greek Yogurt 1L,Fresh,10,Chilled Carton,5.30,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-152,12-unit Chilled Carton - Classic Mature Cheddar Cheese 1L,Fresh,12,Chilled Carton,6.49,0.0164,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-153,16-unit Chilled Carton - Classic Salmon Fillets 1L,Fresh,16,Chilled Carton,8.49,0.0386,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-154,20-unit Chilled Carton - Classic Chicken Breast Fillets 1L,Fresh,20,Chilled Carton,21.42,0.0735,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-155,24-unit Insulated Crate - Classic Frozen Mixed Vegetables 1L,Fresh,24,Insulated Crate,18.36,0.0479,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-156,6-unit Insulated Crate - Classic Premium Ice Cream 1L,Fresh,6,Insulated Crate,4.59,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-157,8-unit Chilled Carton - Classic Salted Butter 1L,Fresh,8,Chilled Carton,5.30,0.0118,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-158,10-unit Beverage Crate - Classic Fresh Fruit Juice 1L,Fresh,10,Beverage Crate,16.52,0.0263,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-159,12-unit Chilled Carton - Classic Seasonal Fruit Selection 1L,Fresh,12,Chilled Carton,13.95,0.0592,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-160,16-unit Beverage Crate - Classic Full Cream Milk 2L,Fresh,16,Beverage Crate,12.57,0.0185,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-161,20-unit Chilled Carton - Classic Greek Yogurt 2L,Fresh,20,Chilled Carton,10.61,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-162,24-unit Chilled Carton - Classic Mature Cheddar Cheese 2L,Fresh,24,Chilled Carton,12.97,0.0328,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-163,6-unit Chilled Carton - Classic Salmon Fillets 2L,Fresh,6,Chilled Carton,3.18,0.0145,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-164,8-unit Chilled Carton - Classic Chicken Breast Fillets 2L,Fresh,8,Chilled Carton,8.57,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-165,10-unit Insulated Crate - Classic Frozen Mixed Vegetables 2L,Fresh,10,Insulated Crate,7.65,0.0199,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-166,12-unit Insulated Crate - Classic Premium Ice Cream 2L,Fresh,12,Insulated Crate,9.18,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-167,16-unit Chilled Carton - Classic Salted Butter 2L,Fresh,16,Chilled Carton,10.61,0.0235,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-168,20-unit Beverage Crate - Classic Fresh Fruit Juice 2L,Fresh,20,Beverage Crate,33.05,0.0525,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-169,24-unit Chilled Carton - Classic Seasonal Fruit Selection 2L,Fresh,24,Chilled Carton,27.91,0.1184,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-170,6-unit Beverage Crate - Classic Full Cream Milk Family Pack,Fresh,6,Beverage Crate,4.71,0.0069,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-171,8-unit Chilled Carton - Classic Greek Yogurt Family Pack,Fresh,8,Chilled Carton,4.24,0.0101,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-172,10-unit Chilled Carton - Classic Mature Cheddar Cheese Family Pack,Fresh,10,Chilled Carton,5.41,0.0137,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-173,12-unit Chilled Carton - Classic Salmon Fillets Family Pack,Fresh,12,Chilled Carton,6.36,0.0290,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-174,16-unit Chilled Carton - Classic Chicken Breast Fillets Family Pack,Fresh,16,Chilled Carton,17.14,0.0588,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-175,20-unit Insulated Crate - Classic Frozen Mixed Vegetables Family Pack,Fresh,20,Insulated Crate,15.30,0.0399,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-176,24-unit Insulated Crate - Classic Premium Ice Cream Family Pack,Fresh,24,Insulated Crate,18.36,0.0504,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-177,6-unit Chilled Carton - Classic Salted Butter Family Pack,Fresh,6,Chilled Carton,3.98,0.0088,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-178,8-unit Beverage Crate - Classic Fresh Fruit Juice Family Pack,Fresh,8,Beverage Crate,13.22,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-179,10-unit Chilled Carton - Classic Seasonal Fruit Selection Family Pack,Fresh,10,Chilled Carton,11.63,0.0494,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-180,12-unit Beverage Crate - Classic Full Cream Milk Value Pack,Fresh,12,Beverage Crate,9.42,0.0139,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-181,16-unit Chilled Carton - Classic Greek Yogurt Value Pack,Fresh,16,Chilled Carton,8.49,0.0202,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-182,20-unit Chilled Carton - Classic Mature Cheddar Cheese Value Pack,Fresh,20,Chilled Carton,10.81,0.0273,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-183,24-unit Chilled Carton - Classic Salmon Fillets Value Pack,Fresh,24,Chilled Carton,12.73,0.0580,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-184,6-unit Chilled Carton - Classic Chicken Breast Fillets Value Pack,Fresh,6,Chilled Carton,6.43,0.0221,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-185,8-unit Insulated Crate - Classic Frozen Mixed Vegetables Value Pack,Fresh,8,Insulated Crate,6.12,0.0160,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-186,10-unit Insulated Crate - Classic Premium Ice Cream Value Pack,Fresh,10,Insulated Crate,7.65,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-187,12-unit Chilled Carton - Classic Salted Butter Value Pack,Fresh,12,Chilled Carton,7.96,0.0176,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-188,16-unit Beverage Crate - Classic Fresh Fruit Juice Value Pack,Fresh,16,Beverage Crate,26.44,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-189,20-unit Chilled Carton - Classic Seasonal Fruit Selection Value Pack,Fresh,20,Chilled Carton,23.26,0.0987,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-190,24-unit Beverage Crate - Classic Full Cream Milk Chef Pack,Fresh,24,Beverage Crate,18.85,0.0277,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-191,6-unit Chilled Carton - Classic Greek Yogurt Chef Pack,Fresh,6,Chilled Carton,3.18,0.0076,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-192,8-unit Chilled Carton - Classic Mature Cheddar Cheese Chef Pack,Fresh,8,Chilled Carton,4.32,0.0109,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-193,10-unit Chilled Carton - Classic Salmon Fillets Chef Pack,Fresh,10,Chilled Carton,5.30,0.0242,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-194,12-unit Chilled Carton - Classic Chicken Breast Fillets Chef Pack,Fresh,12,Chilled Carton,12.85,0.0441,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-195,16-unit Insulated Crate - Classic Frozen Mixed Vegetables Chef Pack,Fresh,16,Insulated Crate,12.24,0.0319,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-196,20-unit Insulated Crate - Classic Premium Ice Cream Chef Pack,Fresh,20,Insulated Crate,15.30,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-197,24-unit Chilled Carton - Classic Salted Butter Chef Pack,Fresh,24,Chilled Carton,15.91,0.0353,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-198,6-unit Beverage Crate - Classic Fresh Fruit Juice Chef Pack,Fresh,6,Beverage Crate,9.91,0.0158,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-199,8-unit Chilled Carton - Classic Seasonal Fruit Selection Chef Pack,Fresh,8,Chilled Carton,9.30,0.0395,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-200,10-unit Beverage Crate - Natural Full Cream Milk 250g,Fresh,10,Beverage Crate,7.85,0.0116,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-201,12-unit Chilled Carton - Natural Greek Yogurt 250g,Fresh,12,Chilled Carton,6.36,0.0151,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-202,16-unit Chilled Carton - Natural Mature Cheddar Cheese 250g,Fresh,16,Chilled Carton,8.65,0.0218,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-203,20-unit Chilled Carton - Natural Salmon Fillets 250g,Fresh,20,Chilled Carton,10.61,0.0483,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-204,24-unit Chilled Carton - Natural Chicken Breast Fillets 250g,Fresh,24,Chilled Carton,25.70,0.0882,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-205,6-unit Insulated Crate - Natural Frozen Mixed Vegetables 250g,Fresh,6,Insulated Crate,4.59,0.0120,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-206,8-unit Insulated Crate - Natural Premium Ice Cream 250g,Fresh,8,Insulated Crate,6.12,0.0168,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-207,10-unit Chilled Carton - Natural Salted Butter 250g,Fresh,10,Chilled Carton,6.63,0.0147,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-208,12-unit Beverage Crate - Natural Fresh Fruit Juice 250g,Fresh,12,Beverage Crate,19.83,0.0315,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-209,16-unit Chilled Carton - Natural Seasonal Fruit Selection 250g,Fresh,16,Chilled Carton,18.60,0.0790,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-210,20-unit Beverage Crate - Natural Full Cream Milk 500g,Fresh,20,Beverage Crate,15.71,0.0231,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-211,24-unit Chilled Carton - Natural Greek Yogurt 500g,Fresh,24,Chilled Carton,12.73,0.0302,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-212,6-unit Chilled Carton - Natural Mature Cheddar Cheese 500g,Fresh,6,Chilled Carton,3.24,0.0082,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-213,8-unit Chilled Carton - Natural Salmon Fillets 500g,Fresh,8,Chilled Carton,4.24,0.0193,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-214,10-unit Chilled Carton - Natural Chicken Breast Fillets 500g,Fresh,10,Chilled Carton,10.71,0.0368,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-215,12-unit Insulated Crate - Natural Frozen Mixed Vegetables 500g,Fresh,12,Insulated Crate,9.18,0.0239,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-216,16-unit Insulated Crate - Natural Premium Ice Cream 500g,Fresh,16,Insulated Crate,12.24,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-217,20-unit Chilled Carton - Natural Salted Butter 500g,Fresh,20,Chilled Carton,13.26,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-218,24-unit Beverage Crate - Natural Fresh Fruit Juice 500g,Fresh,24,Beverage Crate,39.66,0.0630,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-219,6-unit Chilled Carton - Natural Seasonal Fruit Selection 500g,Fresh,6,Chilled Carton,6.98,0.0296,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-220,8-unit Beverage Crate - Natural Full Cream Milk 750g,Fresh,8,Beverage Crate,6.28,0.0092,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-221,10-unit Chilled Carton - Natural Greek Yogurt 750g,Fresh,10,Chilled Carton,5.30,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-222,12-unit Chilled Carton - Natural Mature Cheddar Cheese 750g,Fresh,12,Chilled Carton,6.49,0.0164,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-223,16-unit Chilled Carton - Natural Salmon Fillets 750g,Fresh,16,Chilled Carton,8.49,0.0386,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-224,20-unit Chilled Carton - Natural Chicken Breast Fillets 750g,Fresh,20,Chilled Carton,21.42,0.0735,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-225,24-unit Insulated Crate - Natural Frozen Mixed Vegetables 750g,Fresh,24,Insulated Crate,18.36,0.0479,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-226,6-unit Insulated Crate - Natural Premium Ice Cream 750g,Fresh,6,Insulated Crate,4.59,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-227,8-unit Chilled Carton - Natural Salted Butter 750g,Fresh,8,Chilled Carton,5.30,0.0118,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-228,10-unit Beverage Crate - Natural Fresh Fruit Juice 750g,Fresh,10,Beverage Crate,16.52,0.0263,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-229,12-unit Chilled Carton - Natural Seasonal Fruit Selection 750g,Fresh,12,Chilled Carton,13.95,0.0592,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-230,16-unit Beverage Crate - Natural Full Cream Milk 1kg,Fresh,16,Beverage Crate,12.57,0.0185,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-231,20-unit Chilled Carton - Natural Greek Yogurt 1kg,Fresh,20,Chilled Carton,10.61,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-232,24-unit Chilled Carton - Natural Mature Cheddar Cheese 1kg,Fresh,24,Chilled Carton,12.97,0.0328,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-233,6-unit Chilled Carton - Natural Salmon Fillets 1kg,Fresh,6,Chilled Carton,3.18,0.0145,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-234,8-unit Chilled Carton - Natural Chicken Breast Fillets 1kg,Fresh,8,Chilled Carton,8.57,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-235,10-unit Insulated Crate - Natural Frozen Mixed Vegetables 1kg,Fresh,10,Insulated Crate,7.65,0.0199,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-236,12-unit Insulated Crate - Natural Premium Ice Cream 1kg,Fresh,12,Insulated Crate,9.18,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-237,16-unit Chilled Carton - Natural Salted Butter 1kg,Fresh,16,Chilled Carton,10.61,0.0235,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-238,20-unit Beverage Crate - Natural Fresh Fruit Juice 1kg,Fresh,20,Beverage Crate,33.05,0.0525,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-239,24-unit Chilled Carton - Natural Seasonal Fruit Selection 1kg,Fresh,24,Chilled Carton,27.91,0.1184,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-240,6-unit Beverage Crate - Natural Full Cream Milk 2kg,Fresh,6,Beverage Crate,4.71,0.0069,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-241,8-unit Chilled Carton - Natural Greek Yogurt 2kg,Fresh,8,Chilled Carton,4.24,0.0101,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-242,10-unit Chilled Carton - Natural Mature Cheddar Cheese 2kg,Fresh,10,Chilled Carton,5.41,0.0137,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-243,12-unit Chilled Carton - Natural Salmon Fillets 2kg,Fresh,12,Chilled Carton,6.36,0.0290,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-244,16-unit Chilled Carton - Natural Chicken Breast Fillets 2kg,Fresh,16,Chilled Carton,17.14,0.0588,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-245,20-unit Insulated Crate - Natural Frozen Mixed Vegetables 2kg,Fresh,20,Insulated Crate,15.30,0.0399,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-246,24-unit Insulated Crate - Natural Premium Ice Cream 2kg,Fresh,24,Insulated Crate,18.36,0.0504,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-247,6-unit Chilled Carton - Natural Salted Butter 2kg,Fresh,6,Chilled Carton,3.98,0.0088,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-248,8-unit Beverage Crate - Natural Fresh Fruit Juice 2kg,Fresh,8,Beverage Crate,13.22,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-249,10-unit Chilled Carton - Natural Seasonal Fruit Selection 2kg,Fresh,10,Chilled Carton,11.63,0.0494,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-250,12-unit Beverage Crate - Natural Full Cream Milk 1L,Fresh,12,Beverage Crate,9.42,0.0139,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-251,16-unit Chilled Carton - Natural Greek Yogurt 1L,Fresh,16,Chilled Carton,8.49,0.0202,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-252,20-unit Chilled Carton - Natural Mature Cheddar Cheese 1L,Fresh,20,Chilled Carton,10.81,0.0273,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-253,24-unit Chilled Carton - Natural Salmon Fillets 1L,Fresh,24,Chilled Carton,12.73,0.0580,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-254,6-unit Chilled Carton - Natural Chicken Breast Fillets 1L,Fresh,6,Chilled Carton,6.43,0.0221,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-255,8-unit Insulated Crate - Natural Frozen Mixed Vegetables 1L,Fresh,8,Insulated Crate,6.12,0.0160,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-256,10-unit Insulated Crate - Natural Premium Ice Cream 1L,Fresh,10,Insulated Crate,7.65,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-257,12-unit Chilled Carton - Natural Salted Butter 1L,Fresh,12,Chilled Carton,7.96,0.0176,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-258,16-unit Beverage Crate - Natural Fresh Fruit Juice 1L,Fresh,16,Beverage Crate,26.44,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-259,20-unit Chilled Carton - Natural Seasonal Fruit Selection 1L,Fresh,20,Chilled Carton,23.26,0.0987,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-260,24-unit Beverage Crate - Natural Full Cream Milk 2L,Fresh,24,Beverage Crate,18.85,0.0277,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-261,6-unit Chilled Carton - Natural Greek Yogurt 2L,Fresh,6,Chilled Carton,3.18,0.0076,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-262,8-unit Chilled Carton - Natural Mature Cheddar Cheese 2L,Fresh,8,Chilled Carton,4.32,0.0109,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-263,10-unit Chilled Carton - Natural Salmon Fillets 2L,Fresh,10,Chilled Carton,5.30,0.0242,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-264,12-unit Chilled Carton - Natural Chicken Breast Fillets 2L,Fresh,12,Chilled Carton,12.85,0.0441,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-265,16-unit Insulated Crate - Natural Frozen Mixed Vegetables 2L,Fresh,16,Insulated Crate,12.24,0.0319,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-266,20-unit Insulated Crate - Natural Premium Ice Cream 2L,Fresh,20,Insulated Crate,15.30,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-267,24-unit Chilled Carton - Natural Salted Butter 2L,Fresh,24,Chilled Carton,15.91,0.0353,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-268,6-unit Beverage Crate - Natural Fresh Fruit Juice 2L,Fresh,6,Beverage Crate,9.91,0.0158,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-269,8-unit Chilled Carton - Natural Seasonal Fruit Selection 2L,Fresh,8,Chilled Carton,9.30,0.0395,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-270,10-unit Beverage Crate - Natural Full Cream Milk Family Pack,Fresh,10,Beverage Crate,7.85,0.0116,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-271,12-unit Chilled Carton - Natural Greek Yogurt Family Pack,Fresh,12,Chilled Carton,6.36,0.0151,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-272,16-unit Chilled Carton - Natural Mature Cheddar Cheese Family Pack,Fresh,16,Chilled Carton,8.65,0.0218,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-273,20-unit Chilled Carton - Natural Salmon Fillets Family Pack,Fresh,20,Chilled Carton,10.61,0.0483,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-274,24-unit Chilled Carton - Natural Chicken Breast Fillets Family Pack,Fresh,24,Chilled Carton,25.70,0.0882,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-275,6-unit Insulated Crate - Natural Frozen Mixed Vegetables Family Pack,Fresh,6,Insulated Crate,4.59,0.0120,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-276,8-unit Insulated Crate - Natural Premium Ice Cream Family Pack,Fresh,8,Insulated Crate,6.12,0.0168,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-277,10-unit Chilled Carton - Natural Salted Butter Family Pack,Fresh,10,Chilled Carton,6.63,0.0147,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-278,12-unit Beverage Crate - Natural Fresh Fruit Juice Family Pack,Fresh,12,Beverage Crate,19.83,0.0315,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-279,16-unit Chilled Carton - Natural Seasonal Fruit Selection Family Pack,Fresh,16,Chilled Carton,18.60,0.0790,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-280,20-unit Beverage Crate - Natural Full Cream Milk Value Pack,Fresh,20,Beverage Crate,15.71,0.0231,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-281,24-unit Chilled Carton - Natural Greek Yogurt Value Pack,Fresh,24,Chilled Carton,12.73,0.0302,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-282,6-unit Chilled Carton - Natural Mature Cheddar Cheese Value Pack,Fresh,6,Chilled Carton,3.24,0.0082,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-283,8-unit Chilled Carton - Natural Salmon Fillets Value Pack,Fresh,8,Chilled Carton,4.24,0.0193,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-284,10-unit Chilled Carton - Natural Chicken Breast Fillets Value Pack,Fresh,10,Chilled Carton,10.71,0.0368,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-285,12-unit Insulated Crate - Natural Frozen Mixed Vegetables Value Pack,Fresh,12,Insulated Crate,9.18,0.0239,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-286,16-unit Insulated Crate - Natural Premium Ice Cream Value Pack,Fresh,16,Insulated Crate,12.24,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-287,20-unit Chilled Carton - Natural Salted Butter Value Pack,Fresh,20,Chilled Carton,13.26,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-288,24-unit Beverage Crate - Natural Fresh Fruit Juice Value Pack,Fresh,24,Beverage Crate,39.66,0.0630,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-289,6-unit Chilled Carton - Natural Seasonal Fruit Selection Value Pack,Fresh,6,Chilled Carton,6.98,0.0296,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-290,8-unit Beverage Crate - Natural Full Cream Milk Chef Pack,Fresh,8,Beverage Crate,6.28,0.0092,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-291,10-unit Chilled Carton - Natural Greek Yogurt Chef Pack,Fresh,10,Chilled Carton,5.30,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-292,12-unit Chilled Carton - Natural Mature Cheddar Cheese Chef Pack,Fresh,12,Chilled Carton,6.49,0.0164,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-293,16-unit Chilled Carton - Natural Salmon Fillets Chef Pack,Fresh,16,Chilled Carton,8.49,0.0386,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-294,20-unit Chilled Carton - Natural Chicken Breast Fillets Chef Pack,Fresh,20,Chilled Carton,21.42,0.0735,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-295,24-unit Insulated Crate - Natural Frozen Mixed Vegetables Chef Pack,Fresh,24,Insulated Crate,18.36,0.0479,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-296,6-unit Insulated Crate - Natural Premium Ice Cream Chef Pack,Fresh,6,Insulated Crate,4.59,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-297,8-unit Chilled Carton - Natural Salted Butter Chef Pack,Fresh,8,Chilled Carton,5.30,0.0118,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-298,10-unit Beverage Crate - Natural Fresh Fruit Juice Chef Pack,Fresh,10,Beverage Crate,16.52,0.0263,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-299,12-unit Chilled Carton - Natural Seasonal Fruit Selection Chef Pack,Fresh,12,Chilled Carton,13.95,0.0592,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-300,16-unit Beverage Crate - Mild Full Cream Milk 250g,Fresh,16,Beverage Crate,12.57,0.0185,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-301,20-unit Chilled Carton - Mild Greek Yogurt 250g,Fresh,20,Chilled Carton,10.61,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-302,24-unit Chilled Carton - Mild Mature Cheddar Cheese 250g,Fresh,24,Chilled Carton,12.97,0.0328,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-303,6-unit Chilled Carton - Mild Salmon Fillets 250g,Fresh,6,Chilled Carton,3.18,0.0145,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-304,8-unit Chilled Carton - Mild Chicken Breast Fillets 250g,Fresh,8,Chilled Carton,8.57,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-305,10-unit Insulated Crate - Mild Frozen Mixed Vegetables 250g,Fresh,10,Insulated Crate,7.65,0.0199,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-306,12-unit Insulated Crate - Mild Premium Ice Cream 250g,Fresh,12,Insulated Crate,9.18,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-307,16-unit Chilled Carton - Mild Salted Butter 250g,Fresh,16,Chilled Carton,10.61,0.0235,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-308,20-unit Beverage Crate - Mild Fresh Fruit Juice 250g,Fresh,20,Beverage Crate,33.05,0.0525,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-309,24-unit Chilled Carton - Mild Seasonal Fruit Selection 250g,Fresh,24,Chilled Carton,27.91,0.1184,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-310,6-unit Beverage Crate - Mild Full Cream Milk 500g,Fresh,6,Beverage Crate,4.71,0.0069,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-311,8-unit Chilled Carton - Mild Greek Yogurt 500g,Fresh,8,Chilled Carton,4.24,0.0101,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-312,10-unit Chilled Carton - Mild Mature Cheddar Cheese 500g,Fresh,10,Chilled Carton,5.41,0.0137,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-313,12-unit Chilled Carton - Mild Salmon Fillets 500g,Fresh,12,Chilled Carton,6.36,0.0290,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-314,16-unit Chilled Carton - Mild Chicken Breast Fillets 500g,Fresh,16,Chilled Carton,17.14,0.0588,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-315,20-unit Insulated Crate - Mild Frozen Mixed Vegetables 500g,Fresh,20,Insulated Crate,15.30,0.0399,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-316,24-unit Insulated Crate - Mild Premium Ice Cream 500g,Fresh,24,Insulated Crate,18.36,0.0504,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-317,6-unit Chilled Carton - Mild Salted Butter 500g,Fresh,6,Chilled Carton,3.98,0.0088,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-318,8-unit Beverage Crate - Mild Fresh Fruit Juice 500g,Fresh,8,Beverage Crate,13.22,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-319,10-unit Chilled Carton - Mild Seasonal Fruit Selection 500g,Fresh,10,Chilled Carton,11.63,0.0494,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-320,12-unit Beverage Crate - Mild Full Cream Milk 750g,Fresh,12,Beverage Crate,9.42,0.0139,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-321,16-unit Chilled Carton - Mild Greek Yogurt 750g,Fresh,16,Chilled Carton,8.49,0.0202,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-322,20-unit Chilled Carton - Mild Mature Cheddar Cheese 750g,Fresh,20,Chilled Carton,10.81,0.0273,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-323,24-unit Chilled Carton - Mild Salmon Fillets 750g,Fresh,24,Chilled Carton,12.73,0.0580,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-324,6-unit Chilled Carton - Mild Chicken Breast Fillets 750g,Fresh,6,Chilled Carton,6.43,0.0221,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-325,8-unit Insulated Crate - Mild Frozen Mixed Vegetables 750g,Fresh,8,Insulated Crate,6.12,0.0160,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-326,10-unit Insulated Crate - Mild Premium Ice Cream 750g,Fresh,10,Insulated Crate,7.65,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-327,12-unit Chilled Carton - Mild Salted Butter 750g,Fresh,12,Chilled Carton,7.96,0.0176,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-328,16-unit Beverage Crate - Mild Fresh Fruit Juice 750g,Fresh,16,Beverage Crate,26.44,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-329,20-unit Chilled Carton - Mild Seasonal Fruit Selection 750g,Fresh,20,Chilled Carton,23.26,0.0987,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-330,24-unit Beverage Crate - Mild Full Cream Milk 1kg,Fresh,24,Beverage Crate,18.85,0.0277,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-331,6-unit Chilled Carton - Mild Greek Yogurt 1kg,Fresh,6,Chilled Carton,3.18,0.0076,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-332,8-unit Chilled Carton - Mild Mature Cheddar Cheese 1kg,Fresh,8,Chilled Carton,4.32,0.0109,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-333,10-unit Chilled Carton - Mild Salmon Fillets 1kg,Fresh,10,Chilled Carton,5.30,0.0242,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-334,12-unit Chilled Carton - Mild Chicken Breast Fillets 1kg,Fresh,12,Chilled Carton,12.85,0.0441,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-335,16-unit Insulated Crate - Mild Frozen Mixed Vegetables 1kg,Fresh,16,Insulated Crate,12.24,0.0319,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-336,20-unit Insulated Crate - Mild Premium Ice Cream 1kg,Fresh,20,Insulated Crate,15.30,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-337,24-unit Chilled Carton - Mild Salted Butter 1kg,Fresh,24,Chilled Carton,15.91,0.0353,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-338,6-unit Beverage Crate - Mild Fresh Fruit Juice 1kg,Fresh,6,Beverage Crate,9.91,0.0158,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-339,8-unit Chilled Carton - Mild Seasonal Fruit Selection 1kg,Fresh,8,Chilled Carton,9.30,0.0395,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-340,10-unit Beverage Crate - Mild Full Cream Milk 2kg,Fresh,10,Beverage Crate,7.85,0.0116,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-341,12-unit Chilled Carton - Mild Greek Yogurt 2kg,Fresh,12,Chilled Carton,6.36,0.0151,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-342,16-unit Chilled Carton - Mild Mature Cheddar Cheese 2kg,Fresh,16,Chilled Carton,8.65,0.0218,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-343,20-unit Chilled Carton - Mild Salmon Fillets 2kg,Fresh,20,Chilled Carton,10.61,0.0483,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-344,24-unit Chilled Carton - Mild Chicken Breast Fillets 2kg,Fresh,24,Chilled Carton,25.70,0.0882,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-345,6-unit Insulated Crate - Mild Frozen Mixed Vegetables 2kg,Fresh,6,Insulated Crate,4.59,0.0120,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-346,8-unit Insulated Crate - Mild Premium Ice Cream 2kg,Fresh,8,Insulated Crate,6.12,0.0168,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-347,10-unit Chilled Carton - Mild Salted Butter 2kg,Fresh,10,Chilled Carton,6.63,0.0147,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-348,12-unit Beverage Crate - Mild Fresh Fruit Juice 2kg,Fresh,12,Beverage Crate,19.83,0.0315,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-349,16-unit Chilled Carton - Mild Seasonal Fruit Selection 2kg,Fresh,16,Chilled Carton,18.60,0.0790,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-350,20-unit Beverage Crate - Mild Full Cream Milk 1L,Fresh,20,Beverage Crate,15.71,0.0231,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-351,24-unit Chilled Carton - Mild Greek Yogurt 1L,Fresh,24,Chilled Carton,12.73,0.0302,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-352,6-unit Chilled Carton - Mild Mature Cheddar Cheese 1L,Fresh,6,Chilled Carton,3.24,0.0082,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-353,8-unit Chilled Carton - Mild Salmon Fillets 1L,Fresh,8,Chilled Carton,4.24,0.0193,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-354,10-unit Chilled Carton - Mild Chicken Breast Fillets 1L,Fresh,10,Chilled Carton,10.71,0.0368,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-355,12-unit Insulated Crate - Mild Frozen Mixed Vegetables 1L,Fresh,12,Insulated Crate,9.18,0.0239,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-356,16-unit Insulated Crate - Mild Premium Ice Cream 1L,Fresh,16,Insulated Crate,12.24,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-357,20-unit Chilled Carton - Mild Salted Butter 1L,Fresh,20,Chilled Carton,13.26,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-358,24-unit Beverage Crate - Mild Fresh Fruit Juice 1L,Fresh,24,Beverage Crate,39.66,0.0630,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-359,6-unit Chilled Carton - Mild Seasonal Fruit Selection 1L,Fresh,6,Chilled Carton,6.98,0.0296,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-360,8-unit Beverage Crate - Mild Full Cream Milk 2L,Fresh,8,Beverage Crate,6.28,0.0092,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-361,10-unit Chilled Carton - Mild Greek Yogurt 2L,Fresh,10,Chilled Carton,5.30,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-362,12-unit Chilled Carton - Mild Mature Cheddar Cheese 2L,Fresh,12,Chilled Carton,6.49,0.0164,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-363,16-unit Chilled Carton - Mild Salmon Fillets 2L,Fresh,16,Chilled Carton,8.49,0.0386,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-364,20-unit Chilled Carton - Mild Chicken Breast Fillets 2L,Fresh,20,Chilled Carton,21.42,0.0735,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-365,24-unit Insulated Crate - Mild Frozen Mixed Vegetables 2L,Fresh,24,Insulated Crate,18.36,0.0479,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-366,6-unit Insulated Crate - Mild Premium Ice Cream 2L,Fresh,6,Insulated Crate,4.59,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-367,8-unit Chilled Carton - Mild Salted Butter 2L,Fresh,8,Chilled Carton,5.30,0.0118,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-368,10-unit Beverage Crate - Mild Fresh Fruit Juice 2L,Fresh,10,Beverage Crate,16.52,0.0263,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-369,12-unit Chilled Carton - Mild Seasonal Fruit Selection 2L,Fresh,12,Chilled Carton,13.95,0.0592,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-370,16-unit Beverage Crate - Mild Full Cream Milk Family Pack,Fresh,16,Beverage Crate,12.57,0.0185,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-371,20-unit Chilled Carton - Mild Greek Yogurt Family Pack,Fresh,20,Chilled Carton,10.61,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-372,24-unit Chilled Carton - Mild Mature Cheddar Cheese Family Pack,Fresh,24,Chilled Carton,12.97,0.0328,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-373,6-unit Chilled Carton - Mild Salmon Fillets Family Pack,Fresh,6,Chilled Carton,3.18,0.0145,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-374,8-unit Chilled Carton - Mild Chicken Breast Fillets Family Pack,Fresh,8,Chilled Carton,8.57,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-375,10-unit Insulated Crate - Mild Frozen Mixed Vegetables Family Pack,Fresh,10,Insulated Crate,7.65,0.0199,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-376,12-unit Insulated Crate - Mild Premium Ice Cream Family Pack,Fresh,12,Insulated Crate,9.18,0.0252,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-377,16-unit Chilled Carton - Mild Salted Butter Family Pack,Fresh,16,Chilled Carton,10.61,0.0235,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-378,20-unit Beverage Crate - Mild Fresh Fruit Juice Family Pack,Fresh,20,Beverage Crate,33.05,0.0525,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-379,24-unit Chilled Carton - Mild Seasonal Fruit Selection Family Pack,Fresh,24,Chilled Carton,27.91,0.1184,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-380,6-unit Beverage Crate - Mild Full Cream Milk Value Pack,Fresh,6,Beverage Crate,4.71,0.0069,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-381,8-unit Chilled Carton - Mild Greek Yogurt Value Pack,Fresh,8,Chilled Carton,4.24,0.0101,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-382,10-unit Chilled Carton - Mild Mature Cheddar Cheese Value Pack,Fresh,10,Chilled Carton,5.41,0.0137,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-383,12-unit Chilled Carton - Mild Salmon Fillets Value Pack,Fresh,12,Chilled Carton,6.36,0.0290,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-384,16-unit Chilled Carton - Mild Chicken Breast Fillets Value Pack,Fresh,16,Chilled Carton,17.14,0.0588,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-385,20-unit Insulated Crate - Mild Frozen Mixed Vegetables Value Pack,Fresh,20,Insulated Crate,15.30,0.0399,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-386,24-unit Insulated Crate - Mild Premium Ice Cream Value Pack,Fresh,24,Insulated Crate,18.36,0.0504,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-387,6-unit Chilled Carton - Mild Salted Butter Value Pack,Fresh,6,Chilled Carton,3.98,0.0088,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-388,8-unit Beverage Crate - Mild Fresh Fruit Juice Value Pack,Fresh,8,Beverage Crate,13.22,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-389,10-unit Chilled Carton - Mild Seasonal Fruit Selection Value Pack,Fresh,10,Chilled Carton,11.63,0.0494,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-390,12-unit Beverage Crate - Mild Full Cream Milk Chef Pack,Fresh,12,Beverage Crate,9.42,0.0139,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-391,16-unit Chilled Carton - Mild Greek Yogurt Chef Pack,Fresh,16,Chilled Carton,8.49,0.0202,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-392,20-unit Chilled Carton - Mild Mature Cheddar Cheese Chef Pack,Fresh,20,Chilled Carton,10.81,0.0273,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-393,24-unit Chilled Carton - Mild Salmon Fillets Chef Pack,Fresh,24,Chilled Carton,12.73,0.0580,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-394,6-unit Chilled Carton - Mild Chicken Breast Fillets Chef Pack,Fresh,6,Chilled Carton,6.43,0.0221,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-395,8-unit Insulated Crate - Mild Frozen Mixed Vegetables Chef Pack,Fresh,8,Insulated Crate,6.12,0.0160,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-396,10-unit Insulated Crate - Mild Premium Ice Cream Chef Pack,Fresh,10,Insulated Crate,7.65,0.0210,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-397,12-unit Chilled Carton - Mild Salted Butter Chef Pack,Fresh,12,Chilled Carton,7.96,0.0176,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-398,16-unit Beverage Crate - Mild Fresh Fruit Juice Chef Pack,Fresh,16,Beverage Crate,26.44,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-399,20-unit Chilled Carton - Mild Seasonal Fruit Selection Chef Pack,Fresh,20,Chilled Carton,23.26,0.0987,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-400,24-unit Beverage Crate - Herb Full Cream Milk 250g,Fresh,24,Beverage Crate,18.85,0.0277,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-401,6-unit Chilled Carton - Herb Greek Yogurt 250g,Fresh,6,Chilled Carton,3.18,0.0076,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-402,8-unit Chilled Carton - Herb Mature Cheddar Cheese 250g,Fresh,8,Chilled Carton,4.32,0.0109,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-403,10-unit Chilled Carton - Herb Salmon Fillets 250g,Fresh,10,Chilled Carton,5.30,0.0242,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-404,12-unit Chilled Carton - Herb Chicken Breast Fillets 250g,Fresh,12,Chilled Carton,12.85,0.0441,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-405,16-unit Insulated Crate - Herb Frozen Mixed Vegetables 250g,Fresh,16,Insulated Crate,12.24,0.0319,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-406,20-unit Insulated Crate - Herb Premium Ice Cream 250g,Fresh,20,Insulated Crate,15.30,0.0420,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-407,24-unit Chilled Carton - Herb Salted Butter 250g,Fresh,24,Chilled Carton,15.91,0.0353,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-408,6-unit Beverage Crate - Herb Fresh Fruit Juice 250g,Fresh,6,Beverage Crate,9.91,0.0158,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-409,8-unit Chilled Carton - Herb Seasonal Fruit Selection 250g,Fresh,8,Chilled Carton,9.30,0.0395,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-410,10-unit Beverage Crate - Herb Full Cream Milk 500g,Fresh,10,Beverage Crate,7.85,0.0116,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-411,12-unit Chilled Carton - Herb Greek Yogurt 500g,Fresh,12,Chilled Carton,6.36,0.0151,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-412,16-unit Chilled Carton - Herb Mature Cheddar Cheese 500g,Fresh,16,Chilled Carton,8.65,0.0218,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-413,20-unit Chilled Carton - Herb Salmon Fillets 500g,Fresh,20,Chilled Carton,10.61,0.0483,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-414,24-unit Chilled Carton - Herb Chicken Breast Fillets 500g,Fresh,24,Chilled Carton,25.70,0.0882,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-415,6-unit Insulated Crate - Herb Frozen Mixed Vegetables 500g,Fresh,6,Insulated Crate,4.59,0.0120,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-416,8-unit Insulated Crate - Herb Premium Ice Cream 500g,Fresh,8,Insulated Crate,6.12,0.0168,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-417,10-unit Chilled Carton - Herb Salted Butter 500g,Fresh,10,Chilled Carton,6.63,0.0147,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-418,12-unit Beverage Crate - Herb Fresh Fruit Juice 500g,Fresh,12,Beverage Crate,19.83,0.0315,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-419,16-unit Chilled Carton - Herb Seasonal Fruit Selection 500g,Fresh,16,Chilled Carton,18.60,0.0790,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-420,20-unit Beverage Crate - Herb Full Cream Milk 750g,Fresh,20,Beverage Crate,15.71,0.0231,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-421,24-unit Chilled Carton - Herb Greek Yogurt 750g,Fresh,24,Chilled Carton,12.73,0.0302,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-422,6-unit Chilled Carton - Herb Mature Cheddar Cheese 750g,Fresh,6,Chilled Carton,3.24,0.0082,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-423,8-unit Chilled Carton - Herb Salmon Fillets 750g,Fresh,8,Chilled Carton,4.24,0.0193,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHK-424,10-unit Chilled Carton - Herb Chicken Breast Fillets 750g,Fresh,10,Chilled Carton,10.71,0.0368,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRZ-425,12-unit Insulated Crate - Herb Frozen Mixed Vegetables 750g,Fresh,12,Insulated Crate,9.18,0.0239,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-ICE-426,16-unit Insulated Crate - Herb Premium Ice Cream 750g,Fresh,16,Insulated Crate,12.24,0.0336,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-BTR-427,20-unit Chilled Carton - Herb Salted Butter 750g,Fresh,20,Chilled Carton,13.26,0.0294,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-JUI-428,24-unit Beverage Crate - Herb Fresh Fruit Juice 750g,Fresh,24,Beverage Crate,39.66,0.0630,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FRU-429,6-unit Chilled Carton - Herb Seasonal Fruit Selection 750g,Fresh,6,Chilled Carton,6.98,0.0296,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-FML-430,8-unit Beverage Crate - Herb Full Cream Milk 1kg,Fresh,8,Beverage Crate,6.28,0.0092,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-YGT-431,10-unit Chilled Carton - Herb Greek Yogurt 1kg,Fresh,10,Chilled Carton,5.30,0.0126,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-CHS-432,12-unit Chilled Carton - Herb Mature Cheddar Cheese 1kg,Fresh,12,Chilled Carton,6.49,0.0164,Chilled,Peliyagoda Central,2026-10-03T12:30:00
+FR-SFM-433,16-unit Chilled Carton - Herb Salmon Fillets 1kg,Fresh,16,Chilled Carton,8.49,0.0386,Chilled,Peliyagoda Central,2026-10-03T12:30:00

@@ -77,6 +77,11 @@ backend/grant.py
 backend/reset_db.py
 backend/seed_orders_to_allocations.py
 backend/seed_trips.py
+backend/seed_docks.py
+backend/scratch.py
+backend/scratch_allocation_test.py
 
 # Reference data from the brief (outlets, calendar, vehicles). Shared privately, not committed.
 docs/*.csv
+docs/stock_uploads/
+backend/app/static/uploads/
